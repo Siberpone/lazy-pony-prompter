@@ -4,7 +4,7 @@ from lpp import LazyPonyPrompter as LPP
 
 
 class Scripts(scripts.Script):
-    lpp = LPP()
+    lpp = LPP(scripts.basedir())
 
     def title(self):
         return "Lazy Pony Prompter"
