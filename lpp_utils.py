@@ -12,32 +12,45 @@ def send_api_request(endpoint, query):
         return json.load(response)
 
 
-def get_character_tags(images_count=500, query_delay=0.5, selector="name"):
-    def fetch_query_page(page=1):
-        query_params = {
-            "q": f"category:character, images.gte:{images_count}",
-            "per_page": 50,
-            "page": page
-        }
-        return send_api_request(
-            "https://derpibooru.org/api/v1/json/search/tags",
-            query_params
-        )
+def send_paged_api_request(endpoint,
+                           query_params,
+                           root_selector_func,
+                           item_selector_func=lambda x: x,
+                           max_items=None,
+                           query_delay=0.5,
+                           verbose=False
+                           ):
+    def report(message):
+        if verbose:
+            print(message)
 
-    tags = []
-    print("Sending query...")
-    json_response = fetch_query_page()
+    if "per_page" in query_params.keys():
+        per_page = query_params["per_page"]
+    else:
+        per_page = 50
+        query_params["per_page"] = per_page
+
+    items = []
+
+    report("Sending query...")
+    query_params["page"] = 1
+    json_response = send_api_request(endpoint, query_params)
+    items += [item_selector_func(x) for x in root_selector_func(json_response)]
+
     total = json_response["total"]
-    page_count = (total // 50) + (1 if total % 50 > 0 else 0)
-    tags += [x[selector] for x in json_response["tags"]]
-    print(
-        f"Success! A total of {total} tags on {page_count} pages will be fetched.")
+    if max_items is not None and max_items < total:
+        pages_to_load = (max_items // per_page) + (1 if max_items % per_page > 0 else 0)
+        report(f"Success! A total of {max_items} items on {pages_to_load} pages will be fetched.")
+    else:
+        pages_to_load = (total // per_page) + (1 if total % per_page > 0 else 0)
+        report(f"Success! A total of {total} items on {pages_to_load} pages will be fetched.")
 
-    for p in range(2, page_count + 1):
+    for p in range(2, pages_to_load + 1):
         time.sleep(query_delay)
-        print(f"Fetching page {p}")
-        json_response = fetch_query_page(p)
-        tags += [x[selector] for x in json_response["tags"]]
+        report(f"Fetching page {p}")
+        query_params["page"] = p
+        json_response = send_api_request(endpoint, query_params)
+        items += [item_selector_func(x) for x in root_selector_func(json_response)]
 
-    print("Done!")
-    return tags
+    report("Done!")
+    return items if max_items is None or max_items >= total else items[:max_items]

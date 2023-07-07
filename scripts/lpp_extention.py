@@ -24,9 +24,9 @@ class Scripts(scripts.Script):
                     prompts_count = gr.Slider(
                         label="Number of prompts to load",
                         minimum=1,
-                        maximum=50,
+                        maximum=200,
                         step=1,
-                        value=10
+                        value=50
                     )
                     filter_type = gr.Dropdown(
                         label="Derpibooru Filter",

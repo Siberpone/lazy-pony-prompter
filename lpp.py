@@ -1,5 +1,4 @@
-from urllib.request import urlopen, Request
-from urllib.parse import urlencode
+from lpp_utils import send_api_request, send_paged_api_request
 from random import choices
 import json
 import os
@@ -23,13 +22,6 @@ class LazyPonyPrompter():
         with open(os.path.join(self.working_path, "config.json")) as f:
             return json.load(f)
 
-    def send_api_request(self, endpoint, query):
-        url = "?".join([endpoint, urlencode(query)])
-        req = Request(url)
-        req.add_header("User-Agent", "urllib")
-        with urlopen(req) as response:
-            return json.load(response)
-
     def get_api_key(self):
         api_key_file = os.path.join(self.working_path, "api_key")
         if os.path.exists(api_key_file):
@@ -39,7 +31,7 @@ class LazyPonyPrompter():
             return None
 
     def fetch_user_filters(self):
-        json_response = self.send_api_request(
+        json_response = send_api_request(
             "https://derpibooru.org/api/v1/json/filters/user",
             {"key": self.api_key}
         )
@@ -48,8 +40,7 @@ class LazyPonyPrompter():
 
     def fetch_prompts(self, query, count=50, filter_type=None, sort_type=None):
         query_params = {
-            "q": query,
-            "per_page": count
+            "q": query
         }
         if self.api_key is not None:
             query_params["key"] = self.api_key
@@ -58,18 +49,21 @@ class LazyPonyPrompter():
         if sort_type is not None and sort_type in self.sort_params.keys():
             query_params["sf"] = self.sort_params[sort_type]
 
-        json_response = self.send_api_request(
+        json_response = send_paged_api_request(
             "https://derpibooru.org/api/v1/json/search/images",
-            query_params
+            query_params,
+            lambda x: x["images"],
+            lambda x: x["tags"],
+            count
         )
 
         self.prompts.clear()
         preface = "source_pony, score_9"
-        for image in json_response["images"]:
+        for tag_list in json_response:
             rating = None
-            prompt = []
             characters = []
-            for tag in image["tags"]:
+            prompt_tail = []
+            for tag in tag_list:
                 if rating is None and tag in self.ratings.keys():
                     rating = self.ratings[tag]
                     continue
@@ -78,12 +72,12 @@ class LazyPonyPrompter():
                     continue
                 if tag.startswith("artist:") or tag in self.blacklisted_tags:
                     continue
-                prompt.append(tag)
-            self.prompts.append(" ,".join(filter(None, [
+                prompt_tail.append(tag)
+            self.prompts.append(", ".join(filter(None, [
                 preface,
                 rating,
-                " ,".join(characters),
-                " ,".join(prompt)
+                ", ".join(characters),
+                ", ".join(prompt_tail)
             ])))
 
     def choose_prompts(self, n=1):
