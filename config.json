@@ -1,0 +1,31 @@
+{
+    "system filters": {
+        "Default (System)": 100073,
+        "Everything (System)": 56027
+    },
+    "sort params": {
+        "Wilson Score": "wilson_score",
+        "Score": "score",
+        "Upvotes": "upvotes",
+        "Fave Count": "faves",
+        "Upload Date": "first_seen_at",
+        "Tag Count": "tag_count"
+    },
+    "ratings": {
+        "safe": "rating_safe",
+        "suggestive": "rating_questionable",
+        "questionable": "rating_questionable",
+        "explicit": "rating_explicit",
+        "semi-grimdark": "rating_explicit, semi-grimdark",
+        "grimdark": "rating_explicit, grimdark",
+        "grotesque": "rating_explicit, grotesque"
+    },
+    "blacklisted tags": [
+        "watermark",
+        "patreon",
+        "patreon logo"
+    ],
+    "character tags": [
+        "rainbow dash"
+    ]
+}

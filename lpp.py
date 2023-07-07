@@ -10,31 +10,18 @@ class LazyPonyPrompter():
         self.working_path = working_path
         self.api_key = self.get_api_key()
         self.prompts = []
-        self.api_endpoint = 'https://derpibooru.org/api/v1/json/search/images'
-        self.filters = {
-            "Default (System)": 100073,
-            "Everything (System)": 56027
-        }
+        config = self.load_config()
+        self.filters = config["system filters"]
         if self.api_key is not None:
             self.fetch_user_filters()
-        self.sort_params = {
-            "Wilson Score": "wilson_score",
-            "Score": "score",
-            "Upvotes": "upvotes",
-            "Fave Count": "faves",
-            "Upload Date": "first_seen_at",
-            "Tag Count": "tag_count"
+        self.sort_params = config["sort params"]
+        self.ratings = config["ratings"]
+        self.character_tags = set(config["character tags"])
+        self.blacklisted_tags = set(config["blacklisted tags"])
 
-        }
-        self.ratings = {
-            "safe": "rating_safe",
-            "suggestive": "rating_questionable",
-            "questionable": "rating_questionable",
-            "explicit": "rating_explicit",
-            "semi-grimdark": "rating_explicit, semi-grimdark",
-            "grimdark": "rating_explicit, grimdark",
-            "grotesque": "rating_explicit, grotesque",
-        }
+    def load_config(self):
+        with open(os.path.join(self.working_path, "config.json")) as f:
+            return json.load(f)
 
     def send_api_request(self, endpoint, query):
         url = "?".join([endpoint, urlencode(query)])
