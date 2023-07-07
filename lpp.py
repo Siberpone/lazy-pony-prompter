@@ -68,16 +68,23 @@ class LazyPonyPrompter():
         for image in json_response["images"]:
             rating = None
             prompt = []
+            characters = []
             for tag in image["tags"]:
                 if rating is None and tag in self.ratings.keys():
                     rating = self.ratings[tag]
                     continue
-                if tag.startswith("artist:"):
+                if tag in self.character_tags:
+                    characters.append(tag)
+                    continue
+                if tag.startswith("artist:") or tag in self.blacklisted_tags:
                     continue
                 prompt.append(tag)
-            self.prompts.append(
-                " ,".join(filter(None, [preface, rating, " ,".join(prompt)]))
-            )
+            self.prompts.append(" ,".join(filter(None, [
+                preface,
+                rating,
+                " ,".join(characters),
+                " ,".join(prompt)
+            ])))
 
     def choose_prompts(self, n=1):
         return choices(self.prompts, k=n)
