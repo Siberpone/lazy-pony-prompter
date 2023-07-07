@@ -20,9 +20,11 @@ class LazyPonyPrompter():
         self.sort_params = {
             "Wilson Score": "wilson_score",
             "Score": "score",
-            "Tag Count": "tag_count",
             "Upvotes": "upvotes",
-            "Fave Count": "faves"
+            "Fave Count": "faves",
+            "Upload Date": "first_seen_at",
+            "Tag Count": "tag_count"
+
         }
         self.ratings = {
             "safe": "rating_safe",
@@ -34,6 +36,13 @@ class LazyPonyPrompter():
             "grotesque": "rating_explicit, grotesque",
         }
 
+    def send_api_request(self, endpoint, query):
+        url = "?".join([endpoint, urlencode(query)])
+        req = Request(url)
+        req.add_header("User-Agent", "urllib")
+        with urlopen(req) as response:
+            return json.load(response)
+
     def get_api_key(self):
         api_key_file = os.path.join(self.working_path, "api_key")
         if os.path.exists(api_key_file):
@@ -43,25 +52,14 @@ class LazyPonyPrompter():
             return None
 
     def fetch_user_filters(self):
-        filter_api_endpoint = "https://derpibooru.org/api/v1/json/filters/user"
-        query = {
-            "key": self.api_key
-        }
-        url = "?".join([filter_api_endpoint, urlencode(query)])
-        req = Request(url)
-        req.add_header("User-Agent", "urllib")
-        with urlopen(req) as response:
-            json_response = json.load(response)
-
+        json_response = self.send_api_request(
+            "https://derpibooru.org/api/v1/json/filters/user",
+            {"key": self.api_key}
+        )
         for filter in json_response["filters"]:
             self.filters[filter["name"]] = filter["id"]
 
-    def fetch_prompts(
-            self,
-            query,
-            count=50,
-            filter_type=None,
-            sort_type=None):
+    def fetch_prompts(self, query, count=50, filter_type=None, sort_type=None):
         query_params = {
             "q": query,
             "per_page": count
@@ -73,11 +71,10 @@ class LazyPonyPrompter():
         if sort_type is not None and sort_type in self.sort_params.keys():
             query_params["sf"] = self.sort_params[sort_type]
 
-        url = "?".join([self.api_endpoint, urlencode(query_params)])
-        req = Request(url)
-        req.add_header("User-Agent", "urllib")
-        with urlopen(req) as response:
-            json_response = json.load(response)
+        json_response = self.send_api_request(
+            "https://derpibooru.org/api/v1/json/search/images",
+            query_params
+        )
 
         self.prompts.clear()
         preface = "source_pony, score_9"
