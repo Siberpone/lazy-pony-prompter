@@ -13,9 +13,13 @@ class Scripts(scripts.Script):
         return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
+
+        def set_no_config(*args):
+            for control in args:
+                setattr(control, "do_not_save_to_config", True)
+
         with gr.Accordion("Lazy Pony Prompter", open=False):
             enabled = gr.Checkbox(label="Enabled", value=False)
-            setattr(enabled, "do_not_save_to_config", True)
             with gr.Column(variant="panel"):
                 query_textbox = gr.Textbox(
                     label="Derpibooru Quiery"
@@ -48,6 +52,9 @@ class Scripts(scripts.Script):
                 interactive=False,
                 container=False
             )
+
+            set_no_config(enabled, query_textbox, prompts_count, filter_type,
+                          sort_type, fetch_tags_btn, status_bar)
 
             def fetch_prompts(*args, **kwargs):
                 try:
