@@ -20,6 +20,10 @@ class Scripts(scripts.Script):
 
         with gr.Accordion("Lazy Pony Prompter", open=False):
             enabled = gr.Checkbox(label="Enabled", value=False)
+            auto_negative_prompt = gr.Checkbox(
+                label="Include negative prompt",
+                value=True
+            )
             with gr.Column(variant="panel"):
                 query_textbox = gr.Textbox(
                     label="Derpibooru Quiery"
@@ -53,8 +57,9 @@ class Scripts(scripts.Script):
                 container=False
             )
 
-            set_no_config(enabled, query_textbox, prompts_count, filter_type,
-                          sort_type, fetch_tags_btn, status_bar)
+            set_no_config(enabled, auto_negative_prompt, query_textbox,
+                          prompts_count, filter_type, sort_type,
+                          fetch_tags_btn, status_bar)
 
             def fetch_prompts(*args, **kwargs):
                 try:
@@ -69,13 +74,17 @@ class Scripts(scripts.Script):
                 outputs=[status_bar],
                 show_progress="full"
             )
-        return [enabled]
+        return [enabled, auto_negative_prompt]
 
-    def process(self, p, enabled):
+    def process(self, p, enabled, auto_negative_prompt):
         if not enabled:
             return p
+
         n_images = p.batch_size * p.n_iter
         p.all_prompts = self.lpp.choose_prompts(n_images)
-        p.all_negative_prompts = [
-            "blurry" for x in range(n_images)
-        ]
+
+        if auto_negative_prompt:
+            for i, np in enumerate(p.all_negative_prompts):
+                p.all_negative_prompts[i] = ", ".join(
+                    [x for x in [p.negative_prompt, self.lpp.get_negative_prompt()] if x]
+                )

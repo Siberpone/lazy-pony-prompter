@@ -20,6 +20,7 @@
         "grimdark": "rating_explicit, grimdark",
         "grotesque": "rating_explicit, grotesque"
     },
+    "negative prompt": "lowres, bad anatomy, text, error, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry",
     "blacklisted tags": [
         "watermark",
         "patreon",

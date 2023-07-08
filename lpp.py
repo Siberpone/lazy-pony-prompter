@@ -17,6 +17,7 @@ class LazyPonyPrompter():
         self.ratings = config["ratings"]
         self.character_tags = set(config["character tags"])
         self.blacklisted_tags = set(config["blacklisted tags"])
+        self.negative_prompt = config["negative prompt"]
 
     def load_config(self):
         with open(os.path.join(self.working_path, "config.json")) as f:
@@ -85,3 +86,6 @@ class LazyPonyPrompter():
 
     def get_loaded_prompts_count(self):
         return len(self.prompts)
+
+    def get_negative_prompt(self):
+        return self.negative_prompt
