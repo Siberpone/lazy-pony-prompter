@@ -16,6 +16,7 @@ class LazyPonyPrompter():
         self.sort_params = config["sort params"]
         self.ratings = config["ratings"]
         self.character_tags = set(config["character tags"])
+        self.prioritized_tags = set(config["prioritized tags"])
         self.blacklisted_tags = set(config["blacklisted tags"])
         self.negative_prompt = config["negative prompt"]
 
@@ -57,12 +58,15 @@ class LazyPonyPrompter():
             lambda x: x["tags"],
             count
         )
+        self.prompts = self.process_raw_tags(json_response)
 
-        self.prompts.clear()
+    def process_raw_tags(self, raw_image_tags):
+        result = []
         preface = "source_pony, score_9"
-        for tag_list in json_response:
+        for tag_list in raw_image_tags:
             rating = None
             characters = []
+            prioritized_tags = []
             prompt_tail = []
             for tag in tag_list:
                 if rating is None and tag in self.ratings.keys():
@@ -71,15 +75,20 @@ class LazyPonyPrompter():
                 if tag in self.character_tags:
                     characters.append(tag)
                     continue
+                if tag in self.prioritized_tags:
+                    prioritized_tags.append(tag)
+                    continue
                 if tag.startswith("artist:") or tag in self.blacklisted_tags:
                     continue
                 prompt_tail.append(tag)
-            self.prompts.append(", ".join(filter(None, [
+            result.append(", ".join(filter(None, [
                 preface,
                 rating,
                 ", ".join(characters),
+                ", ".join(prioritized_tags),
                 ", ".join(prompt_tail)
             ])))
+        return result
 
     def choose_prompts(self, n=1):
         return choices(self.prompts, k=n)
