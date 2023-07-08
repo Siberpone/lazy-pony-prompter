@@ -8,7 +8,9 @@ class LazyPonyPrompter():
     def __init__(self, working_path="."):
         self.working_path = working_path
         self.api_key = self.get_api_key()
+        self.prompt_cache = self.load_prompt_cache()
         self.prompts = []
+
         config = self.load_config()
         self.filters = config["system filters"]
         if self.api_key is not None:
@@ -23,6 +25,24 @@ class LazyPonyPrompter():
     def load_config(self):
         with open(os.path.join(self.working_path, "config.json")) as f:
             return json.load(f)
+
+    def load_prompt_cache(self):
+        cache_file = os.path.join(self.working_path, "cache.json")
+        if os.path.exists(cache_file):
+            with open(cache_file) as f:
+                return json.load(f)
+        else:
+            return {}
+
+    def load_cached_prompts(self, name):
+        if name in self.prompt_cache.keys():
+            self.prompts = self.prompt_cache[name]
+
+    def cache_current_prompts(self, name):
+        self.prompt_cache[name] = self.prompts
+        cache_file = os.path.join(self.working_path, "cache.json")
+        with open(cache_file, "w") as f:
+            json.dump(self.prompt_cache, f, indent=4)
 
     def get_api_key(self):
         api_key_file = os.path.join(self.working_path, "api_key")
@@ -98,3 +118,6 @@ class LazyPonyPrompter():
 
     def get_negative_prompt(self):
         return self.negative_prompt
+
+    def get_cached_prompts_names(self):
+        return self.prompt_cache.keys()

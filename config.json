@@ -198,6 +198,9 @@
     "blacklisted tags": [
         "text",
         "dialogue",
+        "caption",
+        "image macro",
+        "meme",
         "speech bubble",
         "edit",
         "color edit",
@@ -219,6 +222,7 @@
         "prompter needed"
     ],
     "character tags": [
+        "s5 starlight",
         "twilight sparkle",
         "rainbow dash",
         "fluttershy",
