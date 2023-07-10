@@ -42,13 +42,12 @@ class Scripts(scripts.Script):
                     )
                     filter_type = gr.Dropdown(
                         label="Derpibooru Filter",
-                        choices=self.lpp.filters.keys(),
-                        scale=1
+                        choices=self.lpp.get_filter_names()
                     )
                     filter_type.value = filter_type.choices[0]
                     sort_type = gr.Dropdown(
                         label="Sort by",
-                        choices=self.lpp.sort_params.keys()
+                        choices=self.lpp.get_sort_option_names()
                     )
                     sort_type.value = sort_type.choices[0]
                 fetch_tags_btn = gr.Button(
