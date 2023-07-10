@@ -99,7 +99,7 @@ class Scripts(scripts.Script):
                     self.lpp.fetch_prompts(*args, **kwargs)
                     return f"&nbsp;&nbsp;Successfully fetched tags from Derpibooru. {get_lpp_status()}"
                 except Exception as e:
-                    return f"&nbsp;&nbsp;Filed to fetch tags: {e=}, {type(e)=}"
+                    return f"&nbsp;&nbsp;Filed to fetch tags: {str(e)}"
 
             fetch_tags_btn.click(
                 lambda q, n, f, s: fetch_prompts(q, n, f, s),
@@ -119,7 +119,12 @@ class Scripts(scripts.Script):
                         )
                     )
                 except Exception as e:
-                    return f"&nbsp;&nbsp;Failed to save prompts: {e=}, {type(e)=}. {get_lpp_status()}"
+                    return (
+                        f"&nbsp;&nbsp;Failed to save prompts: {str(e)}. {get_lpp_status()}",
+                        gr.Dropdown.update(
+                            choices=list(self.lpp.get_cached_prompts_names())
+                        )
+                    )
 
             save_prompts_btn.click(
                 lambda name: save_prompts(name),
@@ -133,7 +138,7 @@ class Scripts(scripts.Script):
                     self.lpp.load_cached_prompts(name)
                     return f"&nbsp;&nbsp;Loaded \"{name}\". {get_lpp_status()}"
                 except Exception as e:
-                    return f"&nbsp;&nbsp;Failed to load \"{name}\": {e=}, {type(e)=}. {get_lpp_status()}"
+                    return f"&nbsp;&nbsp;Failed to load prompts: {str(e)}. {get_lpp_status()}"
 
             load_prompts_btn.click(
                 lambda name: load_prompts(name),
