@@ -123,11 +123,20 @@ class LazyPonyPrompter():
                 if tag.startswith("artist:") or tag in self.__blacklisted_tags:
                     continue
                 prompt_tail.append(tag)
-            result.append(", ".join(filter(None, [
-                preface,
-                rating,
-                ", ".join(characters),
-                ", ".join(prioritized_tags),
-                ", ".join(prompt_tail)
-            ])))
+            result.append(
+                ", ".join(
+                    filter(
+                        None,
+                        [
+                            preface,
+                            rating,
+                            ", ".join(characters),
+                            ", ".join(prioritized_tags),
+                            ", ".join(prompt_tail)
+                        ]
+                    )
+                )
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+            )
         return result
