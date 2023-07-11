@@ -42,7 +42,7 @@ class LazyPonyPrompter():
 
     def cache_current_prompts(self, name):
         if not name:
-            raise ValueError("Empty \"name\" parameter.")
+            raise ValueError("Empty \"name\" parameter")
         self.__prompt_cache[name] = self.__prompts
         cache_file = os.path.join(self.__working_path, "cache.json")
         with open(cache_file, "w") as f:
@@ -50,7 +50,7 @@ class LazyPonyPrompter():
 
     def load_cached_prompts(self, name):
         if name not in self.__prompt_cache.keys():
-            raise KeyError(f"Can't find \"{name}\" in prompts cache.")
+            raise KeyError(f"Can't find \"{name}\" in prompts cache")
         if name in self.__prompt_cache.keys():
             self.__prompts = self.__prompt_cache[name]
 
