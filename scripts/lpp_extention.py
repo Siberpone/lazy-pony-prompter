@@ -23,7 +23,7 @@ class Scripts(scripts.Script):
         with gr.Accordion("Lazy Pony Prompter", open=False):
             enabled = gr.Checkbox(label="Enabled", value=False)
             auto_negative_prompt = gr.Checkbox(
-                label="Include negative prompt",
+                label="Include Standard Negative Prompt",
                 value=True
             )
 
@@ -34,7 +34,7 @@ class Scripts(scripts.Script):
                 )
                 with gr.Row():
                     prompts_count = gr.Slider(
-                        label="Number of prompts to load",
+                        label="Number of Prompts to Load",
                         minimum=1,
                         maximum=200,
                         step=1,
@@ -59,7 +59,7 @@ class Scripts(scripts.Script):
             with gr.Column(variant="panel"):
                 with gr.Row(scale=4):
                     save_prompts_name = gr.Textbox(
-                        label="Save Current Prompts As"
+                        label="Save Current Prompts as"
                     )
                     load_prompts_name = gr.Dropdown(
                         label="Load Saved Prompts",

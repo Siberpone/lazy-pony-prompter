@@ -1,6 +1,6 @@
 # Lazy Pony Prompter
 
-A [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) utilizing the full power of [Derpibooru](https://derpibooru.org) query syntax and filters.
+A [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) that utilizes the full power of [Derpibooru](https://derpibooru.org) query syntax and filters.
 
 ![showcase](showcase.jpg)
 
@@ -48,7 +48,7 @@ Once you're happy with the settings, it's finally time to click the `Fetch Tags`
 
 ### 🚫 Negative Prompt Handling
 
-LPP includes "standard" V5 negative prompt by default. This can be disabled by unticking the "Include negative prompt" checkbox. The "standard" negative prompt is appended to whatever you type in the normal webui negative prompt textbox.
+LPP includes "standard" V5 negative prompt by default. This can be disabled by unticking the "Include Standard Negative Prompt" checkbox. The "standard" negative prompt is appended to whatever you type in the normal webui negative prompt textbox.
 
 ### 💾 Saving and Loading Prompts
 
