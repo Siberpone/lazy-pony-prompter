@@ -1,10 +1,17 @@
 import gradio as gr
 import modules.scripts as scripts
 from lpp import LazyPonyPrompter as LPP
+import json
+import os
+
+base_dir = scripts.basedir()
 
 
 class Scripts(scripts.Script):
-    lpp = LPP(scripts.basedir())
+    def __init__(self):
+        self.lpp = LPP(base_dir)
+        with open(os.path.join(base_dir, "ui_config.json")) as f:
+            self.config = json.load(f)
 
     def title(self):
         return "Lazy Pony Prompter"
@@ -20,11 +27,17 @@ class Scripts(scripts.Script):
                 if n_prompts > 0 \
                 else "No prompts loaded. Not ready to generate."
 
-        with gr.Accordion("Lazy Pony Prompter", open=False):
-            enabled = gr.Checkbox(label="Enabled", value=False)
+        with gr.Accordion(
+            "Lazy Pony Prompter",
+            open=self.config["start_unfolded"]
+        ):
+            enabled = gr.Checkbox(
+                label="Enabled",
+                value=self.config["enabled"]
+            )
             auto_negative_prompt = gr.Checkbox(
                 label="Include Standard Negative Prompt",
-                value=True
+                value=self.config["include_standard_negative_prompt"]
             )
 
             # Derpibooru Query Panel ------------------------------------------
@@ -35,10 +48,10 @@ class Scripts(scripts.Script):
                 with gr.Row():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
-                        minimum=1,
-                        maximum=200,
-                        step=1,
-                        value=50
+                        minimum=self.config["pormpts_count"]["min"],
+                        maximum=self.config["pormpts_count"]["max"],
+                        step=self.config["pormpts_count"]["step"],
+                        value=self.config["pormpts_count"]["default"]
                     )
                     filter_type = gr.Dropdown(
                         label="Derpibooru Filter",

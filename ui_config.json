@@ -1,0 +1,11 @@
+{
+    "start_unfolded": false,
+    "enabled": false,
+    "include_standard_negative_prompt": true,
+    "pormpts_count": {
+        "min": 5,
+        "max": 300,
+        "step": 5,
+        "default": 100
+    }
+}
