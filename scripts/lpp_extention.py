@@ -56,8 +56,8 @@ class Scripts(scripts.Script):
                 )
 
             # Save/Load Prompts Panel -----------------------------------------
-            with gr.Column(variant="panel"):
-                with gr.Row(scale=4):
+            with gr.Accordion("Saving & Loading", open=False):
+                with gr.Row():
                     save_prompts_name = gr.Textbox(
                         label="Save Current Prompts as"
                     )
@@ -65,7 +65,7 @@ class Scripts(scripts.Script):
                         label="Load Saved Prompts",
                         choices=self.lpp.get_cached_prompts_names()
                     )
-                with gr.Row(scale=1):
+                with gr.Row():
                     save_prompts_btn = gr.Button(
                         value="Save",
                         size="sm"
@@ -157,5 +157,6 @@ class Scripts(scripts.Script):
         if auto_negative_prompt:
             for i, np in enumerate(p.all_negative_prompts):
                 p.all_negative_prompts[i] = ", ".join(
-                    [x for x in [p.negative_prompt, self.lpp.get_negative_prompt()] if x]
+                    [x for x in [p.negative_prompt, self.lpp.get_negative_prompt()]
+                     if x]
                 )

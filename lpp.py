@@ -51,8 +51,7 @@ class LazyPonyPrompter():
     def load_cached_prompts(self, name):
         if name not in self.__prompt_cache.keys():
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        if name in self.__prompt_cache.keys():
-            self.__prompts = self.__prompt_cache[name]
+        self.__prompts = self.__prompt_cache[name]
 
     def fetch_prompts(self, query, count=50, filter_type=None, sort_type=None):
         query_params = {
