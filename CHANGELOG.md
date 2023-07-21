@@ -1,3 +1,10 @@
+### 2023-07-21
+
+* Added custom Prepending/Appending text to prompts
+* Added extra tag filter
+* Refined UI layout
+
 ### 2023-07-20
+
 * Hid save/load into accordion
 * Added UI config

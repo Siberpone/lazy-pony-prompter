@@ -76,18 +76,18 @@ class Scripts(scripts.Script):
                             label="Prepend Prompts with:",
                             interactive=True,
                             value=self.config["prepend"],
-                            placeholder="This text will be prepended to all prompts"
+                            placeholder="Prompts will begin with this text"
                         )
                         append = gr.Textbox(
                             label="Append to Prompts:",
                             value=self.config["append"],
                             interactive=True,
-                            placeholder="This text will be appended to all prompts"
+                            placeholder="Prompts will end with this text"
                         )
                     with gr.Row():
                         tag_filter = gr.Textbox(
                             label="Prune These Tags from Prompts:",
-                            placeholder="A comma separated list of tags to be pruned from prompts"
+                            placeholder="These tags (comma separated) will be pruned from prompts"
                         )
                 fetch_tags_btn = gr.Button(
                     value="Fetch Tags",
@@ -134,16 +134,17 @@ class Scripts(scripts.Script):
 
             # Button Click Handlers -------------------------------------------
             # "Fetch Tags"
-            def fetch_prompts(*args, **kwargs):
+            def build_prompts(*args, **kwargs):
                 try:
-                    self.lpp.fetch_prompts(*args, **kwargs)
+                    self.lpp.build_prompts(*args, **kwargs)
                     return f"&nbsp;&nbsp;Successfully fetched tags from Derpibooru. {get_lpp_status()}"
                 except Exception as e:
                     return f"&nbsp;&nbsp;Filed to fetch tags: {str(e)}"
 
             fetch_tags_btn.click(
-                lambda q, n, f, s: fetch_prompts(q, n, f, s),
-                inputs=[query_textbox, prompts_count, filter_type, sort_type],
+                lambda *args: build_prompts(*args),
+                inputs=[query_textbox, prompts_count, filter_type, sort_type,
+                        prepend, append, tag_filter],
                 outputs=[status_bar],
                 show_progress="full"
             )

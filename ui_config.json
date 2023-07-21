@@ -9,6 +9,6 @@
         "default": 100
     },
     "extra options start unfolded": true,
-    "prepend": "source pony, score 9",
+    "prepend": "source_pony, score_9",
     "append": ""
 }

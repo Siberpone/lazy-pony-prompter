@@ -53,25 +53,14 @@ class LazyPonyPrompter():
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
         self.__prompts = self.__prompt_cache[name]
 
-    def fetch_prompts(self, query, count=50, filter_type=None, sort_type=None):
-        query_params = {
-            "q": query
-        }
-        if self.__api_key is not None:
-            query_params["key"] = self.__api_key
-        if filter_type is not None and filter_type in self.__filters.keys():
-            query_params["filter_id"] = self.__filters[filter_type]
-        if sort_type is not None and sort_type in self.__sort_params.keys():
-            query_params["sf"] = self.__sort_params[sort_type]
-
-        json_response = send_paged_api_request(
-            "https://derpibooru.org/api/v1/json/search/images",
-            query_params,
-            lambda x: x["images"],
-            lambda x: x["tags"],
-            count
+    def build_prompts(self, query, count=50, filter_type=None, sort_type=None,
+                      prepend=None, append=None, tag_filter_str=''):
+        self.__prompts = self.__process_raw_tags(
+            self.__fetch_tags(query, count, filter_type, sort_type),
+            prepend,
+            append,
+            tag_filter_str
         )
-        self.__prompts = self.__process_raw_tags(json_response)
 
     def __load_config(self):
         with open(os.path.join(self.__working_path, "config.json")) as f:
@@ -101,15 +90,41 @@ class LazyPonyPrompter():
         for filter in json_response["filters"]:
             self.__filters[filter["name"]] = filter["id"]
 
-    def __process_raw_tags(self, raw_image_tags):
+    def __fetch_tags(self, query, count, filter_type, sort_type):
+        query_params = {
+            "q": query
+        }
+        if self.__api_key is not None:
+            query_params["key"] = self.__api_key
+        if filter_type is not None and filter_type in self.__filters.keys():
+            query_params["filter_id"] = self.__filters[filter_type]
+        if sort_type is not None and sort_type in self.__sort_params.keys():
+            query_params["sf"] = self.__sort_params[sort_type]
+
+        return send_paged_api_request(
+            "https://derpibooru.org/api/v1/json/search/images",
+            query_params,
+            lambda x: x["images"],
+            lambda x: x["tags"],
+            count
+        )
+
+    def __process_raw_tags(self, raw_image_tags, prepend, append, tag_filter_str):
         result = []
-        preface = "source_pony, score_9"
+        tag_filter = set(
+            filter(None, [t.strip() for t in tag_filter_str.split(",")])
+        )
+
         for tag_list in raw_image_tags:
             rating = None
             characters = []
             prioritized_tags = []
             prompt_tail = []
             for tag in tag_list:
+                if (tag.startswith("artist:")
+                        or tag in self.__blacklisted_tags
+                        or tag in tag_filter):
+                    continue
                 if rating is None and tag in self.__ratings.keys():
                     rating = self.__ratings[tag]
                     continue
@@ -119,19 +134,19 @@ class LazyPonyPrompter():
                 if tag in self.__prioritized_tags:
                     prioritized_tags.append(tag)
                     continue
-                if tag.startswith("artist:") or tag in self.__blacklisted_tags:
-                    continue
                 prompt_tail.append(tag)
+
             result.append(
                 ", ".join(
                     filter(
                         None,
                         [
-                            preface,
+                            prepend,
                             rating,
                             ", ".join(characters),
                             ", ".join(prioritized_tags),
-                            ", ".join(prompt_tail)
+                            ", ".join(prompt_tail),
+                            append
                         ]
                     )
                 )
