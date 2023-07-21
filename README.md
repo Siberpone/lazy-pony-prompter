@@ -62,6 +62,8 @@ You can save your currently loaded prompts for future use by typing in the desir
 To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list. To provide the API key, you must create the `api_key` file in the root LPP extension directory (normally this would be `.../stable-diffusion-webui/extentions/lazy-pony-prompter`) with a text editor of your choice and paste your personal API key into that file. The API key must be the first line in the file. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
 
 ### ✅ Pro Tips & Potential Pitfalls
+* 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
+* 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/ponyverse/discussions).
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions.
 * LPP is very light on traffic since it uses the Derpibooru API and only pulls necessary text data and not the actual webpages or images.
