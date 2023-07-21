@@ -29,7 +29,7 @@ class Scripts(scripts.Script):
 
         with gr.Accordion(
             "Lazy Pony Prompter",
-            open=self.config["start_unfolded"]
+            open=self.config["start unfolded"]
         ):
             enabled = gr.Checkbox(
                 label="Enabled",
@@ -37,32 +37,58 @@ class Scripts(scripts.Script):
             )
             auto_negative_prompt = gr.Checkbox(
                 label="Include Standard Negative Prompt",
-                value=self.config["include_standard_negative_prompt"]
+                value=self.config["include standard negative prompt"]
             )
 
             # Derpibooru Query Panel ------------------------------------------
             with gr.Column(variant="panel"):
                 query_textbox = gr.Textbox(
-                    label="Derpibooru Quiery"
+                    label="Derpibooru Quiery",
+                    placeholder="Type in your Derpibooru query here"
                 )
-                with gr.Row():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=self.config["pormpts_count"]["min"],
-                        maximum=self.config["pormpts_count"]["max"],
-                        step=self.config["pormpts_count"]["step"],
-                        value=self.config["pormpts_count"]["default"]
-                    )
-                    filter_type = gr.Dropdown(
-                        label="Derpibooru Filter",
-                        choices=self.lpp.get_filter_names()
-                    )
-                    filter_type.value = filter_type.choices[0]
-                    sort_type = gr.Dropdown(
-                        label="Sort by",
-                        choices=self.lpp.get_sort_option_names()
-                    )
-                    sort_type.value = sort_type.choices[0]
+                with gr.Accordion(
+                    "Extra Options",
+                    open=self.config["extra options start unfolded"]
+                ):
+                    with gr.Row():
+                        with gr.Column():
+                            prompts_count = gr.Slider(
+                                label="Number of Prompts to Load",
+                                minimum=self.config["prompts count"]["min"],
+                                maximum=self.config["prompts count"]["max"],
+                                step=self.config["prompts count"]["step"],
+                                value=self.config["prompts count"]["default"]
+                            )
+                        with gr.Column():
+                            with gr.Row():
+                                filter_type = gr.Dropdown(
+                                    label="Derpibooru Filter",
+                                    choices=self.lpp.get_filter_names()
+                                )
+                                filter_type.value = filter_type.choices[0]
+                                sort_type = gr.Dropdown(
+                                    label="Sort by",
+                                    choices=self.lpp.get_sort_option_names()
+                                )
+                                sort_type.value = sort_type.choices[0]
+                    with gr.Row():
+                        prepend = gr.Textbox(
+                            label="Prepend Prompts with:",
+                            interactive=True,
+                            value=self.config["prepend"],
+                            placeholder="This text will be prepended to all prompts"
+                        )
+                        append = gr.Textbox(
+                            label="Append to Prompts:",
+                            value=self.config["append"],
+                            interactive=True,
+                            placeholder="This text will be appended to all prompts"
+                        )
+                    with gr.Row():
+                        tag_filter = gr.Textbox(
+                            label="Prune These Tags from Prompts:",
+                            placeholder="A comma separated list of tags to be pruned from prompts"
+                        )
                 fetch_tags_btn = gr.Button(
                     value="Fetch Tags",
                     size="sm"
@@ -101,8 +127,9 @@ class Scripts(scripts.Script):
                     setattr(control, "do_not_save_to_config", True)
 
             set_no_config(enabled, auto_negative_prompt, query_textbox,
-                          prompts_count, filter_type, sort_type, fetch_tags_btn,
-                          status_bar, save_prompts_name, load_prompts_name,
+                          prompts_count, filter_type, sort_type, prepend,
+                          append, tag_filter, fetch_tags_btn, status_bar,
+                          save_prompts_name, load_prompts_name,
                           save_prompts_btn, load_prompts_btn)
 
             # Button Click Handlers -------------------------------------------
@@ -170,6 +197,5 @@ class Scripts(scripts.Script):
         if auto_negative_prompt:
             for i, np in enumerate(p.all_negative_prompts):
                 p.all_negative_prompts[i] = ", ".join(
-                    [x for x in [p.negative_prompt, self.lpp.get_negative_prompt()]
-                     if x]
+                    [x for x in [p.negative_prompt, self.lpp.get_negative_prompt()] if x]
                 )

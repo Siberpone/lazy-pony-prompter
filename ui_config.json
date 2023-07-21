@@ -1,11 +1,14 @@
 {
-    "start_unfolded": false,
+    "start unfolded": false,
     "enabled": false,
-    "include_standard_negative_prompt": true,
-    "pormpts_count": {
+    "include standard negative prompt": true,
+    "prompts count": {
         "min": 5,
         "max": 300,
         "step": 5,
         "default": 100
-    }
+    },
+    "extra options start unfolded": true,
+    "prepend": "source pony, score 9",
+    "append": ""
 }
