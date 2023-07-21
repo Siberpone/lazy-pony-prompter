@@ -63,7 +63,7 @@ To further personalize your queries you can provide LPP with your personal Derpi
 
 ### ✅ Pro Tips & Potential Pitfalls
 * 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
-* 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/ponyverse/discussions).
+* 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/lazy-pony-prompter/discussions).
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions.
 * LPP is very light on traffic since it uses the Derpibooru API and only pulls necessary text data and not the actual webpages or images.
