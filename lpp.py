@@ -32,13 +32,13 @@ class LazyPonyPrompter():
         return self.__negative_prompt
 
     def get_cached_prompts_names(self):
-        return self.__prompt_cache.keys()
+        return list(self.__prompt_cache.keys())
 
     def get_filter_names(self):
-        return self.__filters.keys()
+        return list(self.__filters.keys())
 
     def get_sort_option_names(self):
-        return self.__sort_params.keys()
+        return list(self.__sort_params.keys())
 
     def cache_current_prompts(self, name):
         if not name:
