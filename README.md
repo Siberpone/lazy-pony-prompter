@@ -4,7 +4,7 @@ A [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) prompt
 
 ![showcase](showcase.jpg)
 
-*\* images generated on recommended V5 settings from query `sweet dreams fuel, solo, safe, -anthro`*
+*\* images generated on recommended V5 settings from query `sweet dreams fuel, solo, safe, pony, -anthro`*
 
 # Installation
 
@@ -41,8 +41,11 @@ LPP operates by making a prompt list from a [Derpibooru search query](https://de
 First thing you would do is type in or paste your query into the "Derpibooru Query" textbox (you can preliminarily tune your query on the actual website) using the [Derpibooru search syntax](https://derpibooru.org/pages/search_syntax). Then, below the textbox you can set a number of additional options:
 
 * **Number of prompts to load** - will attempt to fetch tag data from this number of images in the query;
-* **Derpibooru Filter** - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#api-key);
-* **Sort by** - type of sorting to apply to the query. Wilson Score is the default.
+* **Derpibooru Filter** - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
+* **Sort by** - type of sorting to apply to the query. Wilson Score is the default;
+* **Prepend Prompts with** - this text will prepend all prompts;
+* **Append to Prompts** - this text will be appended to all prompts;
+* **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated). *Note:* this doesn't affect the actual query.
 
 Once you're happy with the settings, it's finally time to click the `Fetch Tags` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
 
@@ -61,6 +64,7 @@ To further personalize your queries you can provide LPP with your personal Derpi
 ### ✅ Pro Tips & Potential Pitfalls
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions.
+* LPP is very light on traffic since it uses the Derpibooru API and only pulls necessary text data and not the actual webpages or images.
 * Useful links:
     * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
     * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.
