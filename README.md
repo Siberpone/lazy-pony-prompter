@@ -47,7 +47,7 @@ First thing you would do is type in or paste your query into the "Derpibooru Que
 * **Append to Prompts** - this text will be appended to all prompts;
 * **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated). *Note:* this doesn't affect the actual query.
 
-Once you're happy with the settings, it's finally time to click the `Fetch Tags` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
+Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
 
 > **Note**
 >

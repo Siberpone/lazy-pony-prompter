@@ -29,68 +29,70 @@ class Scripts(scripts.Script):
             "Lazy Pony Prompter",
             open=self.config["start_unfolded"]
         ):
-            enabled = gr.Checkbox(
-                label="Enabled",
-                value=self.config["enabled"]
-            )
-            auto_negative_prompt = gr.Checkbox(
-                label="Include Standard Negative Prompt",
-                value=self.config["include_standard_negative_prompt"]
-            )
+            with gr.Row():
+                enabled = gr.Checkbox(
+                    label="Enabled",
+                    value=self.config["enabled"]
+                )
+                auto_negative_prompt = gr.Checkbox(
+                    label="Include Standard Negative Prompt",
+                    value=self.config["include_standard_negative_prompt"]
+                )
 
             # Derpibooru Query Panel ------------------------------------------
-            with gr.Column(variant="panel"):
-                query_textbox = gr.Textbox(
-                    label="Derpibooru Quiery",
-                    placeholder="Type in your Derpibooru query here"
-                )
-                with gr.Accordion(
-                    "Extra Options",
-                    open=self.config["extra_options_start_unfolded"]
-                ):
-                    with gr.Row():
-                        with gr.Column():
-                            prompts_count = gr.Slider(
-                                label="Number of Prompts to Load",
-                                minimum=self.config["prompts_count"]["min"],
-                                maximum=self.config["prompts_count"]["max"],
-                                step=self.config["prompts_count"]["step"],
-                                value=self.config["prompts_count"]["default"]
+            with gr.Row():
+                with gr.Column(scale=3):
+                    query_textbox = gr.Textbox(
+                        placeholder="Type in your Derpibooru query here",
+                        show_label=False
+                    )
+                with gr.Column(scale=1):
+                    fetch_tags_btn = gr.Button(value="Send")
+
+            # Extra Options Panel ---------------------------------------------
+            with gr.Accordion(
+                "Extra Options",
+                open=self.config["extra_options_start_unfolded"]
+            ):
+                with gr.Row():
+                    with gr.Column():
+                        prompts_count = gr.Slider(
+                            label="Number of Prompts to Load",
+                            minimum=self.config["prompts_count"]["min"],
+                            maximum=self.config["prompts_count"]["max"],
+                            step=self.config["prompts_count"]["step"],
+                            value=self.config["prompts_count"]["default"]
+                        )
+                    with gr.Column():
+                        with gr.Row():
+                            filter_type = gr.Dropdown(
+                                label="Derpibooru Filter",
+                                choices=self.lpp.get_filter_names()
                             )
-                        with gr.Column():
-                            with gr.Row():
-                                filter_type = gr.Dropdown(
-                                    label="Derpibooru Filter",
-                                    choices=self.lpp.get_filter_names()
-                                )
-                                filter_type.value = filter_type.choices[0]
-                                sort_type = gr.Dropdown(
-                                    label="Sort by",
-                                    choices=self.lpp.get_sort_option_names()
-                                )
-                                sort_type.value = sort_type.choices[0]
-                    with gr.Row():
-                        prepend = gr.Textbox(
-                            label="Prepend Prompts with:",
-                            interactive=True,
-                            value=self.config["prepend"],
-                            placeholder="Prompts will begin with this text"
-                        )
-                        append = gr.Textbox(
-                            label="Append to Prompts:",
-                            value=self.config["append"],
-                            interactive=True,
-                            placeholder="Prompts will end with this text"
-                        )
-                    with gr.Row():
-                        tag_filter = gr.Textbox(
-                            label="Prune These Tags from Prompts:",
-                            placeholder="These tags (comma separated) will be pruned from prompts"
-                        )
-                fetch_tags_btn = gr.Button(
-                    value="Fetch Tags",
-                    size="sm"
-                )
+                            filter_type.value = filter_type.choices[0]
+                            sort_type = gr.Dropdown(
+                                label="Sort by",
+                                choices=self.lpp.get_sort_option_names()
+                            )
+                            sort_type.value = sort_type.choices[0]
+                with gr.Row():
+                    prepend = gr.Textbox(
+                        label="Prepend Prompts with:",
+                        interactive=True,
+                        value=self.config["prepend"],
+                        placeholder="Prompts will begin with this text"
+                    )
+                    append = gr.Textbox(
+                        label="Append to Prompts:",
+                        value=self.config["append"],
+                        interactive=True,
+                        placeholder="Prompts will end with this text"
+                    )
+                with gr.Row():
+                    tag_filter = gr.Textbox(
+                        label="Prune These Tags from Prompts:",
+                        placeholder="These tags (comma separated) will be pruned from prompts"
+                    )
 
             # Save/Load Prompts Panel -----------------------------------------
             with gr.Accordion("Saving & Loading", open=False):
@@ -103,20 +105,13 @@ class Scripts(scripts.Script):
                         choices=self.lpp.get_cached_prompts_names()
                     )
                 with gr.Row():
-                    save_prompts_btn = gr.Button(
-                        value="Save",
-                        size="sm"
-                    )
-                    load_prompts_btn = gr.Button(
-                        value="Load",
-                        size="sm"
-                    )
+                    save_prompts_btn = gr.Button(value="Save")
+                    load_prompts_btn = gr.Button(value="Load")
 
             # Status Bar ------------------------------------------------------
-            with gr.Box():
-                status_bar = gr.Markdown(
-                    value=f"&nbsp;&nbsp;{get_lpp_status()}"
-                )
+            status_bar = gr.Markdown(
+                value=f"&nbsp;&nbsp;{get_lpp_status()}"
+            )
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
