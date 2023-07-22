@@ -49,6 +49,10 @@ First thing you would do is type in or paste your query into the "Derpibooru Que
 
 Once you're happy with the settings, it's finally time to click the `Fetch Tags` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
 
+> **Note**
+>
+> You can customize LPP behavior and prompt processing via configuration files. See [Advanced Configuration](#-advanced-configuration).
+
 ### 🚫 Negative Prompt Handling
 
 LPP includes "standard" V5 negative prompt by default. This can be disabled by unticking the "Include Standard Negative Prompt" checkbox. The "standard" negative prompt is appended to whatever you type in the normal webui negative prompt textbox.
@@ -60,6 +64,44 @@ You can save your currently loaded prompts for future use by typing in the desir
 ### 🔑 API Key
 
 To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list. To provide the API key, you must create the `api_key` file in the root LPP extension directory (normally this would be `.../stable-diffusion-webui/extentions/lazy-pony-prompter`) with a text editor of your choice and paste your personal API key into that file. The API key must be the first line in the file. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
+
+### ⚙️ Advanced Configuration
+
+LPP can be customized to suit you personal preferences via [JSON](https://en.wikipedia.org/wiki/JSON) configuration files located in `.../stable-diffusion-webui/extensions/lazy-pony-prompter/config/`. If you navigate to that directory, you'll see it already contains a number of JSON files. **Do not edit these.** They will be overwritten any time you update LPP. Instead, create a file of the same name, but prefixed with `my_`. For example, if you want to add more filtered tags, create `my_filtered_tags.json` file. You only need to specify the values you want to override - user config files are merged to the default ones (lists are concatenated). Purpose of the files are as follows:
+
+* **a1111_ui.json** - controls the user interface starting/default values, such as prompt count slider min/max values, whether the extension should start folded or unfolded and so on;
+* **lpp.json** - contains general system lookups and parameters (generally, these shoud not be changed by the user, except for `negative_prompt`);
+* **character_tags.json** - contains a list of character tags (these are pushed to the beginning of the prompt);
+* **prioritized_tags.json** - contains a list of "important" tags that are pushed to the beginning of the prompt, right after character tags;
+* **filtered_tags.json** - contains a list of tags that are pruned from prompts.
+
+#### Examples
+
+Make LPP start unfolded and change max prompts count to 400:
+
+*my_a1111_ui.json*
+
+```
+{
+    "start_unfolded": true,
+    "prompts_count": {
+        "max": 400
+    }
+}
+```
+
+Extend filtered tags list:
+
+*my_filtered_tags.json*
+
+```
+[
+    "freckles",
+    "fat",
+    "large butt"
+]
+
+```
 
 ### ✅ Pro Tips & Potential Pitfalls
 * 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
