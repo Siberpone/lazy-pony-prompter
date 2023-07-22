@@ -1,3 +1,8 @@
+### 2023-07-22
+
+* Refined config system
+* Added user-defined configs
+
 ### 2023-07-21
 
 * Added custom Prepending/Appending text to prompts

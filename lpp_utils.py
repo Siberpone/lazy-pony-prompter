@@ -2,6 +2,7 @@ from urllib.request import urlopen, Request
 from urllib.parse import urlencode
 import json
 import time
+import os
 
 
 def send_api_request(endpoint, query):
@@ -54,3 +55,34 @@ def send_paged_api_request(endpoint,
 
     report("Done!")
     return items if max_items is None or max_items >= total else items[:max_items]
+
+
+def get_merged_config_entry(entry, working_path):
+    def merge_dicts(target, replacement):
+        for key, val in replacement.items():
+            if key not in target:
+                target[key] = val
+                continue
+
+            if isinstance(val, dict):
+                merge_dicts(target[key], val)
+            else:
+                target[key] = val
+        return target
+
+    config_file = os.path.join(
+        working_path, "config", f"{entry}.json"
+    )
+    user_config_file = os.path.join(
+        working_path, "config", f"my_{entry}.json"
+    )
+    with open(config_file) as f:
+        config_entry = json.load(f)
+    if os.path.exists(user_config_file):
+        with open(user_config_file) as f:
+            user_config_entry = json.load(f)
+            if isinstance(user_config_entry, list):
+                config_entry += user_config_entry
+            else:
+                config_entry = merge_dicts(config_entry, user_config_entry)
+    return config_entry

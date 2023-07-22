@@ -1,4 +1,4 @@
-from lpp_utils import send_api_request, send_paged_api_request
+from lpp_utils import *
 from random import choices
 import json
 import os
@@ -12,15 +12,15 @@ class LazyPonyPrompter():
         self.__prompts = []
 
         config = self.__load_config()
-        self.__filters = config["system filters"]
+        self.__filters = config["system_filters"]
         if self.__api_key is not None:
             self.__fetch_user_filters()
-        self.__sort_params = config["sort params"]
+        self.__sort_params = config["sort_params"]
         self.__ratings = config["ratings"]
-        self.__character_tags = set(config["character tags"])
-        self.__prioritized_tags = set(config["prioritized tags"])
-        self.__blacklisted_tags = set(config["blacklisted tags"])
-        self.__negative_prompt = config["negative prompt"]
+        self.__character_tags = set(config["character_tags"])
+        self.__prioritized_tags = set(config["prioritized_tags"])
+        self.__filtered_tags = set(config["filtered_tags"])
+        self.__negative_prompt = config["negative_prompt"]
 
     def choose_prompts(self, n=1):
         return choices(self.__prompts, k=n)
@@ -63,8 +63,14 @@ class LazyPonyPrompter():
         )
 
     def __load_config(self):
-        with open(os.path.join(self.__working_path, "config.json")) as f:
-            return json.load(f)
+        p = self.__working_path
+        config = get_merged_config_entry("lpp", p)
+        config["prioritized_tags"] = get_merged_config_entry(
+            "prioritized_tags", p
+        )
+        config["character_tags"] = get_merged_config_entry("character_tags", p)
+        config["filtered_tags"] = get_merged_config_entry("filtered_tags", p)
+        return config
 
     def __load_prompt_cache(self):
         cache_file = os.path.join(self.__working_path, "cache.json")
@@ -122,7 +128,7 @@ class LazyPonyPrompter():
             prompt_tail = []
             for tag in tag_list:
                 if (tag.startswith("artist:")
-                        or tag in self.__blacklisted_tags
+                        or tag in self.__filtered_tags
                         or tag in tag_filter):
                     continue
                 if rating is None and tag in self.__ratings.keys():

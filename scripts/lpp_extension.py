@@ -1,8 +1,7 @@
 import gradio as gr
 import modules.scripts as scripts
 from lpp import LazyPonyPrompter as LPP
-import json
-import os
+from lpp_utils import get_merged_config_entry
 
 base_dir = scripts.basedir()
 
@@ -10,8 +9,7 @@ base_dir = scripts.basedir()
 class Scripts(scripts.Script):
     def __init__(self):
         self.lpp = LPP(base_dir)
-        with open(os.path.join(base_dir, "ui_config.json")) as f:
-            self.config = json.load(f)
+        self.config = get_merged_config_entry("a1111_ui", base_dir)
 
     def title(self):
         return "Lazy Pony Prompter"
@@ -29,7 +27,7 @@ class Scripts(scripts.Script):
 
         with gr.Accordion(
             "Lazy Pony Prompter",
-            open=self.config["start unfolded"]
+            open=self.config["start_unfolded"]
         ):
             enabled = gr.Checkbox(
                 label="Enabled",
@@ -37,7 +35,7 @@ class Scripts(scripts.Script):
             )
             auto_negative_prompt = gr.Checkbox(
                 label="Include Standard Negative Prompt",
-                value=self.config["include standard negative prompt"]
+                value=self.config["include_standard_negative_prompt"]
             )
 
             # Derpibooru Query Panel ------------------------------------------
@@ -48,16 +46,16 @@ class Scripts(scripts.Script):
                 )
                 with gr.Accordion(
                     "Extra Options",
-                    open=self.config["extra options start unfolded"]
+                    open=self.config["extra_options_start_unfolded"]
                 ):
                     with gr.Row():
                         with gr.Column():
                             prompts_count = gr.Slider(
                                 label="Number of Prompts to Load",
-                                minimum=self.config["prompts count"]["min"],
-                                maximum=self.config["prompts count"]["max"],
-                                step=self.config["prompts count"]["step"],
-                                value=self.config["prompts count"]["default"]
+                                minimum=self.config["prompts_count"]["min"],
+                                maximum=self.config["prompts_count"]["max"],
+                                step=self.config["prompts_count"]["step"],
+                                value=self.config["prompts_count"]["default"]
                             )
                         with gr.Column():
                             with gr.Row():
