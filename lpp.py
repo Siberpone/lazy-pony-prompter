@@ -17,9 +17,9 @@ class LazyPonyPrompter():
             self.__fetch_user_filters()
         self.__sort_params = config["sort_params"]
         self.__ratings = config["ratings"]
-        self.__character_tags = set(config["character_tags"])
-        self.__prioritized_tags = set(config["prioritized_tags"])
-        self.__filtered_tags = set(config["filtered_tags"])
+        self.__character_tags = config["character_tags"]
+        self.__prioritized_tags = config["prioritized_tags"]
+        self.__filtered_tags = config["filtered_tags"]
         self.__negative_prompt = config["negative_prompt"]
 
     def choose_prompts(self, n=1):
@@ -64,6 +64,10 @@ class LazyPonyPrompter():
 
     def __load_config(self):
         p = self.__working_path
+
+        # convert user tag filter to new format
+        update_legacy_tag_filter(p)
+
         config = get_merged_config_entry("lpp", p)
         config["prioritized_tags"] = get_merged_config_entry(
             "prioritized_tags", p
@@ -117,7 +121,7 @@ class LazyPonyPrompter():
 
     def __process_raw_tags(self, raw_image_tags, prepend, append, tag_filter_str):
         result = []
-        tag_filter = set(
+        extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
         )
 
@@ -127,9 +131,10 @@ class LazyPonyPrompter():
             prioritized_tags = []
             prompt_tail = []
             for tag in tag_list:
-                if (tag.startswith("artist:")
-                        or tag in self.__filtered_tags
-                        or tag in tag_filter):
+                if (any([tag.startswith(x) for x in self.__filtered_tags["starts_with"]])
+                        or any([tag.endswith(x) for x in self.__filtered_tags["ends_with"]])
+                        or tag in self.__filtered_tags["exact"]
+                        or tag in extra_tag_filter):
                     continue
                 if rating is None and tag in self.__ratings.keys():
                     rating = self.__ratings[tag]

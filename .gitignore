@@ -1,3 +1,4 @@
 .nvimrc
 api_key
 __pycache__
+my_*.json

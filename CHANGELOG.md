@@ -1,3 +1,7 @@
+### 2023-07-26
+
+* Refined and expanded tag filtering
+
 ### 2023-07-22
 
 * Refined config system

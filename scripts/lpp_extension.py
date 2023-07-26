@@ -47,7 +47,7 @@ class Scripts(scripts.Script):
                         show_label=False
                     )
                 with gr.Column(scale=1):
-                    fetch_tags_btn = gr.Button(value="Send")
+                    send_btn = gr.Button(value="Send")
 
             # Extra Options Panel ---------------------------------------------
             with gr.Accordion(
@@ -121,12 +121,12 @@ class Scripts(scripts.Script):
 
             set_no_config(enabled, auto_negative_prompt, query_textbox,
                           prompts_count, filter_type, sort_type, prepend,
-                          append, tag_filter, fetch_tags_btn, status_bar,
+                          append, tag_filter, send_btn, status_bar,
                           save_prompts_name, load_prompts_name,
                           save_prompts_btn, load_prompts_btn)
 
             # Button Click Handlers -------------------------------------------
-            # "Fetch Tags"
+            # "Send"
             def build_prompts(*args, **kwargs):
                 try:
                     self.lpp.build_prompts(*args, **kwargs)
@@ -134,7 +134,7 @@ class Scripts(scripts.Script):
                 except Exception as e:
                     return f"&nbsp;&nbsp;Filed to fetch tags: {str(e)}"
 
-            fetch_tags_btn.click(
+            send_btn.click(
                 lambda *args: build_prompts(*args),
                 inputs=[query_textbox, prompts_count, filter_type, sort_type,
                         prepend, append, tag_filter],

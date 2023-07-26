@@ -95,12 +95,13 @@ Extend filtered tags list:
 *my_filtered_tags.json*
 
 ```
-[
-    "freckles",
-    "fat",
-    "large butt"
-]
-
+{
+    "exact": [
+        "freckles",
+        "fat",
+        "large butt"
+    ]
+}
 ```
 
 ### ✅ Pro Tips & Potential Pitfalls

@@ -57,6 +57,20 @@ def send_paged_api_request(endpoint,
     return items if max_items is None or max_items >= total else items[:max_items]
 
 
+def update_legacy_tag_filter(working_path):
+    user_config_file = os.path.join(
+        working_path, "config", "my_filtered_tags.json"
+    )
+    if os.path.exists(user_config_file):
+        with open(user_config_file, "r+") as f:
+            user_config_entry = json.load(f)
+            if isinstance(user_config_entry, list):
+                f.seek(0)
+                f.truncate()
+                user_config_entry = {"exact": user_config_entry}
+                json.dump(user_config_entry, f, indent=4)
+
+
 def get_merged_config_entry(entry, working_path):
     def merge_dicts(target, replacement):
         for key, val in replacement.items():
@@ -67,7 +81,11 @@ def get_merged_config_entry(entry, working_path):
             if isinstance(val, dict):
                 merge_dicts(target[key], val)
             else:
-                target[key] = val
+                if isinstance(target[key], list):
+                    target[key] += val
+                    target[key] = set(target[key])
+                else:
+                    target[key] = val
         return target
 
     config_file = os.path.join(
@@ -81,8 +99,5 @@ def get_merged_config_entry(entry, working_path):
     if os.path.exists(user_config_file):
         with open(user_config_file) as f:
             user_config_entry = json.load(f)
-            if isinstance(user_config_entry, list):
-                config_entry += user_config_entry
-            else:
-                config_entry = merge_dicts(config_entry, user_config_entry)
+            config_entry = merge_dicts(config_entry, user_config_entry)
     return config_entry
