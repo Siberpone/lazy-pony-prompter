@@ -71,6 +71,26 @@ def update_legacy_tag_filter(working_path):
                 json.dump(user_config_entry, f, indent=4)
 
 
+def update_legacy_prompt_cache(working_path):
+    cache_file = os.path.join(working_path, "cache.json")
+    if os.path.exists(cache_file):
+        with open(cache_file, "r+") as f:
+            cache_json = json.load(f)
+            keys = list(cache_json.keys())
+            if isinstance(cache_json[keys[0]], list):
+                updated_cache = {}
+                for entry in cache_json:
+                    updated_cache[entry] = {
+                        "query": "",
+                        "filter_type": "",
+                        "sort_type": "",
+                        "core": [tag.split(", ") for tag in cache_json[entry]]
+                    }
+                f.seek(0)
+                f.truncate()
+                json.dump(updated_cache, f, indent=4)
+
+
 def get_merged_config_entry(entry, working_path):
     def merge_dicts(target, replacement):
         for key, val in replacement.items():

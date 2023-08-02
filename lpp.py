@@ -123,6 +123,10 @@ class LazyPonyPrompter():
         return config
 
     def __load_prompt_cache(self):
+
+        # convert legacy cache file to new format
+        update_legacy_prompt_cache(self.__working_path)
+
         cache_file = os.path.join(self.__working_path, "cache.json")
         if os.path.exists(cache_file):
             with open(cache_file) as f:
