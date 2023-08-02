@@ -9,7 +9,12 @@ class LazyPonyPrompter():
         self.__working_path = working_path
         self.__api_key = self.__get_api_key()
         self.__prompt_cache = self.__load_prompt_cache()
-        self.__prompts = []
+        self.__prompts = {
+            "quiery": "",
+            "filter_type": "",
+            "sort_type": "",
+            "core": []
+        }
 
         config = self.__load_config()
         self.__filters = config["system_filters"]
@@ -22,11 +27,36 @@ class LazyPonyPrompter():
         self.__filtered_tags = config["filtered_tags"]
         self.__negative_prompt = config["negative_prompt"]
 
-    def choose_prompts(self, n=1):
-        return choices(self.__prompts, k=n)
+    def choose_prompts(self, n=1, prefix=None, suffix=None, tag_filter_str=""):
+        extra_tag_filter = set(
+            filter(None, [t.strip() for t in tag_filter_str.split(",")])
+        )
+
+        chosen_prompts = choices(self.__prompts["core"], k=n)
+        processed_prompts = []
+        for prompt_core in chosen_prompts:
+            filtered_prompt = filter(
+                lambda tag: tag not in extra_tag_filter,
+                prompt_core
+            )
+            processed_prompts.append(
+                ", ".join(
+                    filter(
+                        None,
+                        [
+                            prefix,
+                            ", ".join(filtered_prompt)
+                                .replace("(", "\\(")
+                                .replace(")", "\\)"),
+                            suffix
+                        ]
+                    )
+                )
+            )
+        return processed_prompts
 
     def get_loaded_prompts_count(self):
-        return len(self.__prompts)
+        return len(self.__prompts["core"])
 
     def get_negative_prompt(self):
         return self.__negative_prompt
@@ -53,14 +83,30 @@ class LazyPonyPrompter():
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
         self.__prompts = self.__prompt_cache[name]
 
-    def build_prompts(self, query, count=50, filter_type=None, sort_type=None,
-                      prepend=None, append=None, tag_filter_str=''):
-        self.__prompts = self.__process_raw_tags(
-            self.__fetch_tags(query, count, filter_type, sort_type),
-            prepend,
-            append,
-            tag_filter_str
+    def send_derpibooru_request(self, query, count, filter_type, sort_type):
+        query_params = {
+            "q": query
+        }
+        if self.__api_key is not None:
+            query_params["key"] = self.__api_key
+        if filter_type is not None and filter_type in self.__filters.keys():
+            query_params["filter_id"] = self.__filters[filter_type]
+        if sort_type is not None and sort_type in self.__sort_params.keys():
+            query_params["sf"] = self.__sort_params[sort_type]
+
+        raw_tags = send_paged_api_request(
+            "https://derpibooru.org/api/v1/json/search/images",
+            query_params,
+            lambda x: x["images"],
+            lambda x: x["tags"],
+            count
         )
+        self.__prompts = {
+            "query": query,
+            "filter_type": filter_type,
+            "sort_type": sort_type,
+            "core": self.__process_raw_tags(raw_tags)
+        }
 
     def __load_config(self):
         p = self.__working_path
@@ -100,31 +146,8 @@ class LazyPonyPrompter():
         for filter in json_response["filters"]:
             self.__filters[filter["name"]] = filter["id"]
 
-    def __fetch_tags(self, query, count, filter_type, sort_type):
-        query_params = {
-            "q": query
-        }
-        if self.__api_key is not None:
-            query_params["key"] = self.__api_key
-        if filter_type is not None and filter_type in self.__filters.keys():
-            query_params["filter_id"] = self.__filters[filter_type]
-        if sort_type is not None and sort_type in self.__sort_params.keys():
-            query_params["sf"] = self.__sort_params[sort_type]
-
-        return send_paged_api_request(
-            "https://derpibooru.org/api/v1/json/search/images",
-            query_params,
-            lambda x: x["images"],
-            lambda x: x["tags"],
-            count
-        )
-
-    def __process_raw_tags(self, raw_image_tags, prepend, append, tag_filter_str):
-        result = []
-        extra_tag_filter = set(
-            filter(None, [t.strip() for t in tag_filter_str.split(",")])
-        )
-
+    def __process_raw_tags(self, raw_image_tags):
+        processed_tags = []
         for tag_list in raw_image_tags:
             rating = None
             characters = []
@@ -133,8 +156,7 @@ class LazyPonyPrompter():
             for tag in tag_list:
                 if (any([tag.startswith(x) for x in self.__filtered_tags["starts_with"]])
                         or any([tag.endswith(x) for x in self.__filtered_tags["ends_with"]])
-                        or tag in self.__filtered_tags["exact"]
-                        or tag in extra_tag_filter):
+                        or tag in self.__filtered_tags["exact"]):
                     continue
                 if rating is None and tag in self.__ratings.keys():
                     rating = self.__ratings[tag]
@@ -146,22 +168,6 @@ class LazyPonyPrompter():
                     prioritized_tags.append(tag)
                     continue
                 prompt_tail.append(tag)
-
-            result.append(
-                ", ".join(
-                    filter(
-                        None,
-                        [
-                            prepend,
-                            rating,
-                            ", ".join(characters),
-                            ", ".join(prioritized_tags),
-                            ", ".join(prompt_tail),
-                            append
-                        ]
-                    )
-                )
-                .replace("(", "\\(")
-                .replace(")", "\\)")
-            )
-        return result
+            processed_tags.append(([] if rating is None else [rating])
+                                  + characters + prioritized_tags + prompt_tail)
+        return processed_tags

@@ -76,15 +76,15 @@ class Scripts(scripts.Script):
                             )
                             sort_type.value = sort_type.choices[0]
                 with gr.Row():
-                    prepend = gr.Textbox(
-                        label="Prepend Prompts with:",
+                    prefix = gr.Textbox(
+                        label="Prompts Prefix:",
                         interactive=True,
-                        value=self.config["prepend"],
+                        value=self.config["prefix"],
                         placeholder="Prompts will begin with this text"
                     )
-                    append = gr.Textbox(
-                        label="Append to Prompts:",
-                        value=self.config["append"],
+                    suffix = gr.Textbox(
+                        label="Prompts Suffix:",
+                        value=self.config["suffix"],
                         interactive=True,
                         placeholder="Prompts will end with this text"
                     )
@@ -120,24 +120,23 @@ class Scripts(scripts.Script):
                     setattr(control, "do_not_save_to_config", True)
 
             set_no_config(enabled, auto_negative_prompt, query_textbox,
-                          prompts_count, filter_type, sort_type, prepend,
-                          append, tag_filter, send_btn, status_bar,
+                          prompts_count, filter_type, sort_type, prefix,
+                          suffix, tag_filter, send_btn, status_bar,
                           save_prompts_name, load_prompts_name,
                           save_prompts_btn, load_prompts_btn)
 
             # Button Click Handlers -------------------------------------------
             # "Send"
-            def build_prompts(*args, **kwargs):
+            def send_derpibooru_request(*args, **kwargs):
                 try:
-                    self.lpp.build_prompts(*args, **kwargs)
+                    self.lpp.send_derpibooru_request(*args, **kwargs)
                     return f"&nbsp;&nbsp;Successfully fetched tags from Derpibooru. {get_lpp_status()}"
                 except Exception as e:
                     return f"&nbsp;&nbsp;Filed to fetch tags: {str(e)}"
 
             send_btn.click(
-                lambda *args: build_prompts(*args),
-                inputs=[query_textbox, prompts_count, filter_type, sort_type,
-                        prepend, append, tag_filter],
+                lambda *args: send_derpibooru_request(*args),
+                inputs=[query_textbox, prompts_count, filter_type, sort_type],
                 outputs=[status_bar],
                 show_progress="full"
             )
@@ -179,14 +178,14 @@ class Scripts(scripts.Script):
                 inputs=[load_prompts_name],
                 outputs=[status_bar]
             )
-        return [enabled, auto_negative_prompt]
+        return [enabled, auto_negative_prompt, prefix, suffix, tag_filter]
 
-    def process(self, p, enabled, auto_negative_prompt):
+    def process(self, p, enabled, auto_negative_prompt, prefix, suffix, tag_filter):
         if not enabled:
             return p
 
         n_images = p.batch_size * p.n_iter
-        p.all_prompts = self.lpp.choose_prompts(n_images)
+        p.all_prompts = self.lpp.choose_prompts(n_images, prefix, suffix, tag_filter)
 
         if auto_negative_prompt:
             for i, np in enumerate(p.all_negative_prompts):

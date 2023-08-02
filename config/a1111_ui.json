@@ -9,6 +9,6 @@
         "default": 100
     },
     "extra_options_start_unfolded": true,
-    "prepend": "source_pony, score_9",
-    "append": ""
+    "prefix": "source_pony, score_9",
+    "suffix": ""
 }
