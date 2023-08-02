@@ -43,8 +43,8 @@ First thing you would do is type in or paste your query into the "Derpibooru Que
 * **Number of prompts to load** - will attempt to fetch tag data from this number of images in the query;
 * **Derpibooru Filter** - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
 * **Sort by** - type of sorting to apply to the query. Wilson Score is the default;
-* **Prepend Prompts with** - this text will prepend all prompts;
-* **Append to Prompts** - this text will be appended to all prompts;
+* **Prompts Prefix** - this text will prepend all prompts;
+* **Prompts Suffix** - this text will be appended to all prompts;
 * **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated). *Note:* this doesn't affect the actual query.
 
 Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
@@ -59,7 +59,9 @@ LPP includes "standard" V5 negative prompt by default. This can be disabled by u
 
 ### 💾 Saving and Loading Prompts
 
-You can save your currently loaded prompts for future use by typing in the desired name in the "Save Current Prompts As" textbox and clicking the `Save` button underneath. You can load previously saved prompts by selecting the desired collection from the "Load Saved Prompts" dropdown and clicking the `Load` button underneath. Success or failure of these operations will be reported in the status bar at the very bottom of the LPP interface.
+![saving and loading panel](save_load.jpg)
+
+You can save your currently loaded prompts for future use by typing in the desired name in the "Save Current Prompts As" textbox and clicking the `Save` button underneath. You can load previously saved prompts by selecting the desired collection from the "Load Saved Prompts" dropdown and clicking the `Load` button underneath.Previously saved prompts can be deleted by selecting the desired collection from the "Load Saved Prompts" dropdown and clicking the `Delete` button underneath.  Success or failure of these operations will be reported in the status bar at the very bottom of the LPP interface.
 
 ### 🔑 API Key
 
@@ -81,7 +83,7 @@ Make LPP start unfolded and change max prompts count to 400:
 
 *my_a1111_ui.json*
 
-```
+```json
 {
     "start_unfolded": true,
     "prompts_count": {
@@ -94,7 +96,7 @@ Extend filtered tags list:
 
 *my_filtered_tags.json*
 
-```
+```json
 {
     "exact": [
         "freckles",
@@ -107,9 +109,11 @@ Extend filtered tags list:
 ### ✅ Pro Tips & Potential Pitfalls
 * 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
 * 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/lazy-pony-prompter/discussions).
+* You can see the latest additions to LPP in the [Changelog](CHANGELOG.md).
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions.
 * LPP is very light on traffic since it uses the Derpibooru API and only pulls necessary text data and not the actual webpages or images.
+* Your saved prompts are stored in `cache.json` file in the root extension directory.
 * Useful links:
     * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
     * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.
