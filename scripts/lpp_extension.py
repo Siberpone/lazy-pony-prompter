@@ -107,6 +107,12 @@ class Scripts(scripts.Script):
                 with gr.Row():
                     save_prompts_btn = gr.Button(value="Save")
                     load_prompts_btn = gr.Button(value="Load")
+                with gr.Row():
+                    load_prompts_metadata = gr.JSON(
+                        label="Prompts Info",
+                        show_label=True,
+                        visible=False
+                    )
 
             # Status Bar ------------------------------------------------------
             status_bar = gr.Markdown(
@@ -123,10 +129,11 @@ class Scripts(scripts.Script):
                           prompts_count, filter_type, sort_type, prefix,
                           suffix, tag_filter, send_btn, status_bar,
                           save_prompts_name, load_prompts_name,
-                          save_prompts_btn, load_prompts_btn)
+                          save_prompts_btn, load_prompts_btn,
+                          load_prompts_metadata)
 
-            # Button Click Handlers -------------------------------------------
-            # "Send"
+            # Event Handlers ---------------------------------------------------
+            # Send Button Click
             def send_derpibooru_request(*args, **kwargs):
                 try:
                     self.lpp.send_derpibooru_request(*args, **kwargs)
@@ -141,7 +148,7 @@ class Scripts(scripts.Script):
                 show_progress="full"
             )
 
-            # "Save"
+            # Save Button Click
             def save_prompts(name):
                 try:
                     self.lpp.cache_current_prompts(name)
@@ -165,18 +172,40 @@ class Scripts(scripts.Script):
                 outputs=[status_bar, load_prompts_name]
             )
 
-            # "Load"
+            # Load Button Click
             def load_prompts(name):
                 try:
                     self.lpp.load_cached_prompts(name)
-                    return f"&nbsp;&nbsp;Loaded \"{name}\". {get_lpp_status()}"
+                    return (
+                        f"&nbsp;&nbsp;Loaded \"{name}\". {get_lpp_status()}",
+                        gr.JSON.update(visible=False)
+                    )
                 except Exception as e:
-                    return f"&nbsp;&nbsp;Failed to load prompts: {str(e)}. {get_lpp_status()}"
+                    return (
+                        f"&nbsp;&nbsp;Failed to load prompts: {str(e)}. {get_lpp_status()}",
+                        gr.JSON.update(visible=False)
+                    )
 
             load_prompts_btn.click(
                 lambda name: load_prompts(name),
                 inputs=[load_prompts_name],
-                outputs=[status_bar]
+                outputs=[status_bar, load_prompts_metadata]
+            )
+
+            # Load Prompts Dropdown Change
+            def load_prompts_metadata_update(name):
+                try:
+                    return gr.JSON.update(
+                        value=self.lpp.get_cached_prompts_metadata(name),
+                        visible=True
+                    )
+                except Exception as e:
+                    return gr.JSON.update(visible=False)
+
+            load_prompts_name.change(
+                lambda name: load_prompts_metadata_update(name),
+                inputs=[load_prompts_name],
+                outputs=[load_prompts_metadata]
             )
         return [enabled, auto_negative_prompt, prefix, suffix, tag_filter]
 

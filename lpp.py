@@ -83,6 +83,17 @@ class LazyPonyPrompter():
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
         self.__prompts = self.__prompt_cache[name]
 
+    def get_cached_prompts_metadata(self, name):
+        if name not in self.__prompt_cache.keys():
+            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+        cache_entry = self.__prompt_cache[name]
+        return {
+            "query": cache_entry["query"],
+            "filter_type": cache_entry["filter_type"],
+            "sort_type": cache_entry["sort_type"],
+            "prompts_count": len(cache_entry["core"])
+        }
+
     def send_derpibooru_request(self, query, count, filter_type, sort_type):
         query_params = {
             "q": query
