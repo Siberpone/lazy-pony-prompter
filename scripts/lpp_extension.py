@@ -97,16 +97,25 @@ class Scripts(scripts.Script):
             # Save/Load Prompts Panel -----------------------------------------
             with gr.Accordion("Saving & Loading", open=False):
                 with gr.Row():
-                    save_prompts_name = gr.Textbox(
-                        label="Save Current Prompts as"
-                    )
-                    load_prompts_name = gr.Dropdown(
-                        label="Load Saved Prompts",
-                        choices=self.lpp.get_cached_prompts_names()
-                    )
-                with gr.Row():
-                    save_prompts_btn = gr.Button(value="Save")
-                    load_prompts_btn = gr.Button(value="Load")
+                    with gr.Column():
+                        save_prompts_name = gr.Textbox(
+                            label="Save Current Prompts as"
+                        )
+                        save_prompts_btn = gr.Button(value="Save")
+                    with gr.Column():
+                        load_prompts_name = gr.Dropdown(
+                            label="Load Saved Prompts",
+                            choices=self.lpp.get_cached_prompts_names()
+                        )
+                        with gr.Row():
+                            with gr.Column():
+                                load_prompts_btn = gr.Button(value="Load")
+                            with gr.Column():
+                                with gr.Row():
+                                    delete_prompts_btn = gr.Button("Delete")
+                                    confirm_delete_prompts_btn = gr.Button("Confirm delete", variant="stop", visible=False)
+                                    cancel_delete_prompts_btn = gr.Button("Cancel", visible=False)
+
                 with gr.Row():
                     load_prompts_metadata = gr.JSON(
                         label="Prompts Info",
@@ -130,7 +139,8 @@ class Scripts(scripts.Script):
                           suffix, tag_filter, send_btn, status_bar,
                           save_prompts_name, load_prompts_name,
                           save_prompts_btn, load_prompts_btn,
-                          load_prompts_metadata)
+                          load_prompts_metadata, delete_prompts_btn,
+                          confirm_delete_prompts_btn, cancel_delete_prompts_btn)
 
             # Event Handlers ---------------------------------------------------
             # Send Button Click
@@ -152,39 +162,31 @@ class Scripts(scripts.Script):
             def save_prompts(name):
                 try:
                     self.lpp.cache_current_prompts(name)
-                    return (
-                        f"&nbsp;&nbsp;Prompts saved as \"{name}\". {get_lpp_status()}",
-                        gr.Dropdown.update(
-                            choices=list(self.lpp.get_cached_prompts_names())
-                        )
-                    )
+                    msg = f"&nbsp;&nbsp;Prompts saved as \"{name}\". {get_lpp_status()}"
                 except Exception as e:
-                    return (
-                        f"&nbsp;&nbsp;Failed to save prompts: {str(e)}. {get_lpp_status()}",
-                        gr.Dropdown.update(
-                            choices=list(self.lpp.get_cached_prompts_names())
-                        )
-                    )
+                    msg = f"&nbsp;&nbsp;Failed to save prompts: {str(e)}. {get_lpp_status()}"
+                return (
+                    msg,
+                    gr.Dropdown.update(
+                        choices=list(self.lpp.get_cached_prompts_names())
+                    ),
+                    gr.Textbox.update(value="")
+                )
 
             save_prompts_btn.click(
                 lambda name: save_prompts(name),
                 inputs=[save_prompts_name],
-                outputs=[status_bar, load_prompts_name]
+                outputs=[status_bar, load_prompts_name, save_prompts_name]
             )
 
             # Load Button Click
             def load_prompts(name):
                 try:
                     self.lpp.load_cached_prompts(name)
-                    return (
-                        f"&nbsp;&nbsp;Loaded \"{name}\". {get_lpp_status()}",
-                        gr.JSON.update(visible=False)
-                    )
+                    msg = f"&nbsp;&nbsp;Loaded \"{name}\". {get_lpp_status()}"
                 except Exception as e:
-                    return (
-                        f"&nbsp;&nbsp;Failed to load prompts: {str(e)}. {get_lpp_status()}",
-                        gr.JSON.update(visible=False)
-                    )
+                    msg = f"&nbsp;&nbsp;Failed to load prompts: {str(e)}. {get_lpp_status()}"
+                return (msg, gr.JSON.update(visible=False))
 
             load_prompts_btn.click(
                 lambda name: load_prompts(name),
@@ -206,6 +208,46 @@ class Scripts(scripts.Script):
                 lambda name: load_prompts_metadata_update(name),
                 inputs=[load_prompts_name],
                 outputs=[load_prompts_metadata]
+            )
+
+            # Delete Prompts Buttons
+            def delete_prompts(name):
+                try:
+                    self.lpp.delete_cached_prompts(name)
+                    msg = f"&nbsp;&nbsp;\"{name}\" deleted. {get_lpp_status()}"
+                except Exception as e:
+                    msg = f"&nbsp;&nbsp;Failed to delete prompts: {str(e)}. {get_lpp_status()}"
+                return (
+                    msg,
+                    gr.Dropdown.update(
+                        choices=list(self.lpp.get_cached_prompts_names()),
+                        value=""
+                    ),
+                    gr.update(visible=True),
+                    gr.update(visible=False),
+                    gr.update(visible=False)
+                )
+            delete_prompts_buttons = [delete_prompts_btn,
+                                      confirm_delete_prompts_btn,
+                                      cancel_delete_prompts_btn]
+            confirm_delete_prompts_btn.click(
+                lambda name: delete_prompts(name),
+                [load_prompts_name],
+                [status_bar, load_prompts_name] + delete_prompts_buttons
+            )
+            delete_prompts_btn.click(
+                lambda: [gr.update(visible=False),
+                         gr.update(visible=True),
+                         gr.update(visible=True)],
+                None,
+                delete_prompts_buttons
+            )
+            cancel_delete_prompts_btn.click(
+                lambda: [gr.update(visible=True),
+                         gr.update(visible=False),
+                         gr.update(visible=False)],
+                None,
+                delete_prompts_buttons
             )
         return [enabled, auto_negative_prompt, prefix, suffix, tag_filter]
 

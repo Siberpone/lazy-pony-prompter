@@ -74,14 +74,18 @@ class LazyPonyPrompter():
         if not name:
             raise ValueError("Empty \"name\" parameter")
         self.__prompt_cache[name] = self.__prompts
-        cache_file = os.path.join(self.__working_path, "cache.json")
-        with open(cache_file, "w") as f:
-            json.dump(self.__prompt_cache, f, indent=4)
+        self.__dump_prompts_cache()
 
     def load_cached_prompts(self, name):
         if name not in self.__prompt_cache.keys():
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
         self.__prompts = self.__prompt_cache[name]
+
+    def delete_cached_prompts(self, name):
+        if name not in self.__prompt_cache.keys():
+            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+        del self.__prompt_cache[name]
+        self.__dump_prompts_cache()
 
     def get_cached_prompts_metadata(self, name):
         if name not in self.__prompt_cache.keys():
@@ -160,6 +164,11 @@ class LazyPonyPrompter():
         )
         for filter in json_response["filters"]:
             self.__filters[filter["name"]] = filter["id"]
+
+    def __dump_prompts_cache(self):
+        cache_file = os.path.join(self.__working_path, "cache.json")
+        with open(cache_file, "w") as f:
+            json.dump(self.__prompt_cache, f, indent=4)
 
     def __process_raw_tags(self, raw_image_tags):
         processed_tags = []

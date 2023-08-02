@@ -1,7 +1,8 @@
 ### 2023-08-02
 
-* Renamed append/prepend to prefix/suffix respectively. **NOTE :** this affects `a1111_ui.json` config options. Rename manually if you created a custom `my_a1111_ui.json`config
+* Renamed append/prepend to prefix/suffix respectively. **NOTE :** this affects `a1111_ui.json` config options. Rename manually if you created a custom `my_a1111_ui.json` config
 * Prefix, Suffix and User Tag Filters are now applied dynamically on each generation
+* Previously saved prompts can now be deleted from cache via `Delete` button
 * Added extra metadata to saved prompts (query, filter and sorting type). Could be useful if you want to rerun a query
 * Parentheses are now only escaped in the core prompt (you can now properly use attention syntax in prefix and suffix)
 
