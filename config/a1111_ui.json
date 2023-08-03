@@ -1,5 +1,8 @@
 {
     "start_unfolded": false,
+    "derpibooru_query_start_unfolded": true,
+    "extra_options_start_unfolded": false,
+    "prompt_manager_start_unfolded": false,
     "enabled": false,
     "include_standard_negative_prompt": true,
     "prompts_count": {
@@ -8,7 +11,6 @@
         "step": 5,
         "default": 100
     },
-    "extra_options_start_unfolded": true,
     "prefix": "source_pony, score_9",
     "suffix": ""
 }

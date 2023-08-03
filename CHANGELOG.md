@@ -1,3 +1,7 @@
+### 2023-08-03
+
+* Refined UI layout
+
 ### 2023-08-02
 
 * Renamed append/prepend to prefix/suffix respectively. **NOTE :** this affects `a1111_ui.json` config options. Rename manually if you created a custom `my_a1111_ui.json` config
