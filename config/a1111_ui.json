@@ -12,5 +12,6 @@
         "default": 100
     },
     "prefix": "source_pony, score_9",
-    "suffix": ""
+    "suffix": "",
+    "autofill_extra_options": true
 }

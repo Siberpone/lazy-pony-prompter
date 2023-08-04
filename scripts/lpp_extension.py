@@ -34,9 +34,9 @@ def try_send_derpi_request(lpp, *args):
         )
 
 
-def try_save_prompts(lpp, name):
+def try_save_prompts(lpp, name, prefix, suffix, tag_filter):
     try:
-        lpp.cache_current_prompts(name)
+        lpp.cache_current_prompts(name, prefix, suffix, tag_filter)
         return format_status_msg(
             lpp, f"Prompts saved as \"{name}\"."
         )
@@ -155,11 +155,17 @@ class Scripts(scripts.Script):
                 # Save/Load Prompts Panel -------------------------------------
                 with gr.Accordion("Prompts Manager", open=False):
                     with gr.Row():
-                        prompts_manager_input = gr.Dropdown(
-                            label="Prompts Collection Name",
-                            choices=self.lpp.get_cached_prompts_names(),
-                            allow_custom_value=True
-                        )
+                        with gr.Column(scale=2):
+                            prompts_manager_input = gr.Dropdown(
+                                label="Prompts Collection Name",
+                                choices=self.lpp.get_cached_prompts_names(),
+                                allow_custom_value=True
+                            )
+                        with gr.Column(scale=0, min_width=200):
+                            autofill_extra_options = gr.Checkbox(
+                                label="Autofill Extra Options",
+                                value=self.config["autofill_extra_options"]
+                            )
                     with gr.Row():
                         save_prompts_btn = gr.Button(value="Save")
                         load_prompts_btn = gr.Button(value="Load")
@@ -192,11 +198,11 @@ class Scripts(scripts.Script):
             set_no_config(enabled, auto_negative_prompt, query_textbox,
                           prompts_count, filter_type, sort_type, prefix,
                           suffix, tag_filter, send_btn, status_bar,
-                          prompts_manager_input,
-                          save_prompts_btn, load_prompts_btn,
-                          prompts_manager_metadata, delete_prompts_btn,
-                          confirm_action_btn, cancel_action_btn,
-                          confirm_action_type, confirm_action_name)
+                          prompts_manager_input, save_prompts_btn,
+                          load_prompts_btn, prompts_manager_metadata,
+                          delete_prompts_btn, confirm_action_btn,
+                          cancel_action_btn, confirm_action_type,
+                          confirm_action_name, autofill_extra_options)
 
             # Event Handlers --------------------------------------------------
             # Send Button Click
@@ -208,7 +214,7 @@ class Scripts(scripts.Script):
             )
 
             # Save Button Click
-            def save_prompts_click(name):
+            def save_prompts_click(name, prefix, suffix, tag_filter):
                 if name in self.lpp.get_cached_prompts_names():
                     return (
                         format_status_msg(self.lpp),
@@ -222,7 +228,8 @@ class Scripts(scripts.Script):
                     )
                 else:
                     return (
-                        try_save_prompts(self.lpp, name),
+                        try_save_prompts(self.lpp, name, prefix,
+                                         suffix, tag_filter),
                         gr.Dropdown.update(
                             choices=self.lpp.get_cached_prompts_names()
                         ),
@@ -231,18 +238,42 @@ class Scripts(scripts.Script):
 
             save_prompts_btn.click(
                 save_prompts_click,
-                [prompts_manager_input],
+                [prompts_manager_input, prefix, suffix, tag_filter],
                 [status_bar, prompts_manager_input, confirm_action_msg,
                  confirm_action_type, confirm_action_name,
                  confirm_action_dialog]
             )
 
             # Load Button Click
+            def load_prompts_click(name, autofill_extra_opts):
+                try:
+                    prompts_data = self.lpp.get_prompts_metadata(name)
+                except Exception as e:
+                    prompts_data = {}
+
+                def get_param(key):
+                    if autofill_extra_opts:
+                        return gr.update(value=prompts_data[key]) \
+                            if key in prompts_data.keys() \
+                            else gr.update(value="")
+                    else:
+                        return gr.update()
+
+                prefix_update = get_param("prefix")
+                suffix_update = get_param("suffix")
+                tag_filter_update = get_param("tag_filter")
+                return (
+                    try_load_prompts(self.lpp, name),
+                    gr.update(visible=False),
+                    prefix_update,
+                    suffix_update,
+                    tag_filter_update,
+                )
             load_prompts_btn.click(
-                lambda name: [try_load_prompts(self.lpp, name),
-                              gr.update(visible=False)],
-                [prompts_manager_input],
-                [status_bar, prompts_manager_metadata]
+                load_prompts_click,
+                [prompts_manager_input, autofill_extra_options],
+                [status_bar, prompts_manager_metadata,
+                 prefix, suffix, tag_filter]
             )
 
             # Delete Button Click
@@ -260,7 +291,7 @@ class Scripts(scripts.Script):
             def load_prompts_metadata_update(name):
                 try:
                     return gr.JSON.update(
-                        value=self.lpp.get_cached_prompts_metadata(name),
+                        value=self.lpp.get_prompts_metadata(name),
                         visible=True
                     )
                 except Exception as e:
@@ -273,12 +304,14 @@ class Scripts(scripts.Script):
             )
 
             # Action Confirmation Dialog
-            def invoke_action(name, action_type):
+            def invoke_action(name, action_type, prefix, suffix, tag_filter):
                 if action_type == "delete":
                     msg = try_delete_prompts(self.lpp, name)
                     selected_val = ""
                 if action_type == "overwrite":
-                    msg = try_save_prompts(self.lpp, name)
+                    msg = try_save_prompts(
+                        self.lpp, name, prefix, suffix, tag_filter
+                    )
                     selected_val = name
                 return (
                     msg,
@@ -291,7 +324,8 @@ class Scripts(scripts.Script):
                 )
             confirm_action_btn.click(
                 invoke_action,
-                [confirm_action_name, confirm_action_type],
+                [confirm_action_name, confirm_action_type,
+                 prefix, suffix, tag_filter],
                 [status_bar, prompts_manager_input,
                  confirm_action_dialog, prompts_manager_metadata]
             )

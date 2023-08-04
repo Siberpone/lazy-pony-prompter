@@ -3,6 +3,7 @@
 * Renamed "Saving & Loading" to "Prompts Manager"
 * Refined Prompts Manager UI
 * Added confirmation dialog for deleting/overwriting prompt collections
+* Added option to autofill Suffix, Prefix and Tag Filter when loading prompts
 
 ### 2023-08-03
 

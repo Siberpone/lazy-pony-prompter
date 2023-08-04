@@ -70,10 +70,19 @@ class LazyPonyPrompter():
     def get_sort_option_names(self):
         return list(self.__sort_params.keys())
 
-    def cache_current_prompts(self, name):
+    def cache_current_prompts(self, name, prefix=None,
+                              suffix=None, tag_filter=None):
         if not name:
             raise ValueError("Empty \"name\" parameter")
-        self.__prompt_cache[name] = self.__prompts
+        prompts_data = self.__prompts
+
+        def set_param(param, key):
+            prompts_data[key] = param if param else ""
+
+        set_param(prefix, "prefix")
+        set_param(suffix, "suffix")
+        set_param(tag_filter, "tag_filter")
+        self.__prompt_cache[name] = prompts_data
         self.__dump_prompts_cache()
 
     def load_cached_prompts(self, name):
@@ -87,16 +96,17 @@ class LazyPonyPrompter():
         del self.__prompt_cache[name]
         self.__dump_prompts_cache()
 
-    def get_cached_prompts_metadata(self, name):
-        if name not in self.__prompt_cache.keys():
-            raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        cache_entry = self.__prompt_cache[name]
-        return {
-            "query": cache_entry["query"],
-            "filter_type": cache_entry["filter_type"],
-            "sort_type": cache_entry["sort_type"],
-            "prompts_count": len(cache_entry["core"])
-        }
+    def get_prompts_metadata(self, name=None):
+        if name is None:
+            prompts_data = dict(self.__prompts)
+        else:
+            if name in self.__prompt_cache.keys():
+                prompts_data = dict(self.__prompt_cache[name])
+            else:
+                raise KeyError(f"Can't find \"{name}\" in prompts cache")
+        prompts_data["prompts_count"] = len(prompts_data["core"])
+        del prompts_data["core"]
+        return prompts_data
 
     def send_derpibooru_request(self, query, count, filter_type, sort_type):
         query_params = {
