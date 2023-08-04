@@ -2,7 +2,7 @@
 
 A [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) that utilizes the full power of [Derpibooru](https://derpibooru.org) query syntax and filters.
 
-![showcase](showcase.jpg)
+![showcase](images/showcase.jpg)
 
 *\* images generated on recommended V5 settings from query `sweet dreams fuel, solo, safe, pony, -anthro`*
 
@@ -36,32 +36,53 @@ or click the "code" button in the top right, then click "Download ZIP" and unzip
 # Usage
 LPP operates by making a prompt list from a [Derpibooru search query](https://derpibooru.org/pages/search_syntax) and then generating images using that list. Basically, it fetches tag data from a specified number of images in the query and converts it into "sensible" V5 prompts (character and important meta data tags are pushed closer to the beginning of the prompt; useless tags like `artist:*` or `dead source` are pruned; derpi rating is replaced with appropriate `rating_*` and so on...) and then randomly picks them to generate images. Now, lets take a look at the interface:
 
-![LPP interface](extension.jpg)
+![LPP interface](images/extension.jpg)
 
-First thing you would do is type in or paste your query into the "Derpibooru Query" textbox (you can preliminarily tune your query on the actual website) using the [Derpibooru search syntax](https://derpibooru.org/pages/search_syntax). Then, below the textbox you can set a number of additional options:
+The LPP controls are grouped into three foldable panels that are described below.
+
+### 💬 Derpibooru Query
+
+![Derpibooru Query Panel](images/derpi_query.jpg)
+
+On this panel you can pull tag data from Derpibooru by typing in or pasting your query into the "Derpibooru Query" textbox (you can preliminarily tune your query on the actual website) using the [Derpibooru search syntax](https://derpibooru.org/pages/search_syntax). You can also set a number of additional options:
 
 * **Number of prompts to load** - will attempt to fetch tag data from this number of images in the query;
 * **Derpibooru Filter** - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
 * **Sort by** - type of sorting to apply to the query. Wilson Score is the default;
-* **Prompts Prefix** - this text will prepend all prompts;
-* **Prompts Suffix** - this text will be appended to all prompts;
-* **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated). *Note:* this doesn't affect the actual query.
 
 Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
 
 > **Note**
 >
-> You can customize LPP behavior and prompt processing via configuration files. See [Advanced Configuration](#-advanced-configuration).
+> You can customize LPP behavior and prompt processing via configuration files. See [Advanced Configuration](#%EF%B8%8F-advanced-configuration).
+
+### ✅ Extra Options
+
+![Extra Options Panel](images/extra_options.jpg)
+
+This panel allows you to set some additional prompt processing when generating images:
+
+* **Prompts Prefix** - all prompts will begin with this text;
+* **Prompts Suffix** - all prompts will end with this text;
+* **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated).
+
+These options are evaluated before every generation, so you can use it to tweak your currently loaded prompt collection.
+
+### 💾 Prompts Manager
+
+![Prompts Manager Panel](images/prompts_manager.jpg)
+
+This panel is used to manage your prompt collections locally.
+
+You can save your currently loaded prompts for future use by typing in the desired name in the `Prompts Collection Name` textbox and clicking the `Save` button.
+
+You can load previously saved prompts by selecting the desired collection from `Prompts Collection Name` textbox (just start typing the name or select it from the dropdown hint) and clicking the `Load` button. If you have the `Autofill Extra Options` checkbox ticked, it will also populate the `Prefix`, `Suffix` and `Tag Filter` textboxes automatically if available (values of these textboxes are written to the prompts collection info when you save it).
+
+To delete unwanted collection, select it from the `Prompts Collection Name` textbox and click the `Delete` button.
 
 ### 🚫 Negative Prompt Handling
 
 LPP includes "standard" V5 negative prompt by default. This can be disabled by unticking the "Include Standard Negative Prompt" checkbox. The "standard" negative prompt is appended to whatever you type in the normal webui negative prompt textbox.
-
-### 💾 Saving and Loading Prompts
-
-![saving and loading panel](save_load.jpg)
-
-You can save your currently loaded prompts for future use by typing in the desired name in the "Save Current Prompts As" textbox and clicking the `Save` button underneath. You can load previously saved prompts by selecting the desired collection from the "Load Saved Prompts" dropdown and clicking the `Load` button underneath.Previously saved prompts can be deleted by selecting the desired collection from the "Load Saved Prompts" dropdown and clicking the `Delete` button underneath.  Success or failure of these operations will be reported in the status bar at the very bottom of the LPP interface.
 
 ### 🔑 API Key
 
@@ -106,7 +127,7 @@ Extend filtered tags list:
 }
 ```
 
-### ✅ Pro Tips & Potential Pitfalls
+# Pro Tips & Potential Pitfalls
 * 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
 * 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/lazy-pony-prompter/discussions).
 * You can see the latest additions to LPP in the [Changelog](CHANGELOG.md).
@@ -118,4 +139,4 @@ Extend filtered tags list:
     * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
     * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.
     * [Stable Diffusion Guides Collection](https://rentry.org/sdgoldmine)
-* 🐎 Please, poni responsibly 🐴.
+* 🐎 Please, poni responsibly 🐴🦄🪶.
