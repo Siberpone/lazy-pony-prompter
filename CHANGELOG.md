@@ -1,3 +1,9 @@
+### 2023-08-04
+
+* Renamed "Saving & Loading" to "Prompts Manager"
+* Refined Prompts Manager UI
+* Added confirmation dialog for deleting/overwriting prompt collections
+
 ### 2023-08-03
 
 * Refined UI layout
