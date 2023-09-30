@@ -22,9 +22,9 @@ def set_no_config(*args):
         setattr(control, "do_not_save_to_config", True)
 
 
-def try_send_derpi_request(lpp, *args):
+def try_send_request(lpp, *args):
     try:
-        lpp.send_derpibooru_request(*args)
+        lpp.request_prompts(*args)
         return format_status_msg(
             lpp, "Successfully fetched tags from Derpibooru."
         )
@@ -89,9 +89,14 @@ class Scripts(scripts.Script):
                     label="Enabled",
                     value=self.config["enabled"]
                 )
-                auto_negative_prompt = gr.Checkbox(
-                    label="Include Standard Negative Prompt",
-                    value=self.config["include_standard_negative_prompt"]
+                source = gr.Dropdown(
+                    label="Tags Source",
+                    choices=self.lpp.get_sources()
+                )
+                source.value = source.choices[0]
+                prompts_format = gr.Dropdown(
+                    label="Prompts Format",
+                    choices=["PDv5", "EasyFluff"]
                 )
             with gr.Column(variant="compact"):
                 # Derpibooru Query Panel --------------------------------------
@@ -117,12 +122,12 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.get_filter_names()
+                                    choices=self.lpp.sources["derpi"].get_filters()
                                 )
                                 filter_type.value = filter_type.choices[0]
                                 sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.get_sort_option_names()
+                                    choices=self.lpp.sources["derpi"].get_sort_options()
                                 )
                                 sort_type.value = sort_type.choices[0]
                     with gr.Row():
@@ -195,7 +200,7 @@ class Scripts(scripts.Script):
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
-            set_no_config(enabled, auto_negative_prompt, query_textbox,
+            set_no_config(enabled, query_textbox, source, prompts_format,
                           prompts_count, filter_type, sort_type, prefix,
                           suffix, tag_filter, send_btn, status_bar,
                           prompts_manager_input, save_prompts_btn,
@@ -207,8 +212,8 @@ class Scripts(scripts.Script):
             # Event Handlers --------------------------------------------------
             # Send Button Click
             send_btn.click(
-                lambda *args: try_send_derpi_request(self.lpp, *args),
-                [query_textbox, prompts_count, filter_type, sort_type],
+                lambda *args: try_send_request(self.lpp, *args),
+                [source, query_textbox, prompts_count, filter_type, sort_type],
                 [status_bar],
                 show_progress="full"
             )
@@ -334,20 +339,12 @@ class Scripts(scripts.Script):
                 None,
                 [confirm_action_dialog]
             )
-        return [enabled, auto_negative_prompt, prefix, suffix, tag_filter]
+        return [enabled, prefix, suffix, tag_filter]
 
-    def process(self, p, enabled, auto_negative_prompt,
-                prefix, suffix, tag_filter):
+    def process(self, p, enabled, prefix, suffix, tag_filter):
         if not enabled:
             return p
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = self.lpp.choose_prompts(n_images, prefix,
                                                 suffix, tag_filter)
-        if auto_negative_prompt:
-            for i, np in enumerate(p.all_negative_prompts):
-                p.all_negative_prompts[i] = ", ".join(
-                    [x for x in
-                        [p.negative_prompt, self.lpp.get_negative_prompt()]
-                        if x]
-                )
