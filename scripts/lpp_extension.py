@@ -2,6 +2,7 @@ import gradio as gr
 import modules.scripts as scripts
 from lpp import LazyPonyPrompter as LPP
 from lpp_utils import get_merged_config_entry
+import os
 
 base_dir = scripts.basedir()
 
@@ -71,7 +72,8 @@ def try_delete_prompts(lpp, name):
 class Scripts(scripts.Script):
     def __init__(self):
         self.lpp = LPP(base_dir)
-        self.config = get_merged_config_entry("a1111_ui", base_dir)
+        self.config = get_merged_config_entry("a1111_ui", os.path.join(
+                                              base_dir, "config"))
 
     def title(self):
         return "Lazy Pony Prompter"
@@ -96,9 +98,10 @@ class Scripts(scripts.Script):
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(
                     label="Prompts Format",
-                    choices=["PDv5", "EasyFluff"]
+                    choices=self.lpp.get_formatters()
                 )
-            with gr.Column(variant="compact"):
+                prompts_format.value = prompts_format.choices[0]
+            with gr.Column():
                 # Derpibooru Query Panel --------------------------------------
                 with gr.Accordion(
                     "Derpibooru Query",
@@ -122,12 +125,14 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.sources["derpi"].get_filters()
+                                    choices=self.lpp.sources["derpi"].get_filters(
+                                    )
                                 )
                                 filter_type.value = filter_type.choices[0]
                                 sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.sources["derpi"].get_sort_options()
+                                    choices=self.lpp.sources["derpi"].get_sort_options(
+                                    )
                                 )
                                 sort_type.value = sort_type.choices[0]
                     with gr.Row():
@@ -339,12 +344,12 @@ class Scripts(scripts.Script):
                 None,
                 [confirm_action_dialog]
             )
-        return [enabled, prefix, suffix, tag_filter]
+        return [enabled, prompts_format, prefix, suffix, tag_filter]
 
-    def process(self, p, enabled, prefix, suffix, tag_filter):
+    def process(self, p, enabled, prompts_format, prefix, suffix, tag_filter):
         if not enabled:
             return p
 
         n_images = p.batch_size * p.n_iter
-        p.all_prompts = self.lpp.choose_prompts(n_images, prefix,
-                                                suffix, tag_filter)
+        p.all_prompts = self.lpp.choose_prompts(prompts_format, n_images,
+                                                prefix, suffix, tag_filter)

@@ -1,4 +1,3 @@
-from lpp_utils import *
 from random import choices
 import json
 import importlib.util
@@ -7,12 +6,28 @@ import os
 
 
 class LazyPonyPrompter():
-    def __init__(self, working_path="."):
-        self.__working_path = working_path
+    def __init__(self, work_dir="."):
+        self.__work_dir = work_dir
         self.__prompt_cache = self.__load_prompt_cache()
+
         self.sources = {}
         self.source_names = {}
-        self.__load_sources()
+        self.__load_modules(
+            os.path.join(self.__work_dir, "sources"),
+            self.sources,
+            self.source_names,
+            lambda m: m.TagSource(self.__work_dir)
+        )
+
+        self.formatters = {}
+        self.formatter_names = {}
+        self.__load_modules(
+            os.path.join(self.__work_dir, "formatters"),
+            self.formatters,
+            self.formatter_names,
+            lambda m: m.PromptFormatter(self.__work_dir)
+        )
+
         self.__prompts = {
             "source": "",
             "quiery": "",
@@ -21,45 +36,60 @@ class LazyPonyPrompter():
             "raw_tags": []
         }
 
-        config = self.__load_config()
-        self.__ratings = config["ratings"]
-        self.__character_tags = config["character_tags"]
-        self.__prioritized_tags = config["prioritized_tags"]
-        self.__filtered_tags = config["filtered_tags"]
-        self.__negative_prompt = config["negative_prompt"]
+    def __load_prompt_cache(self):
+        cache_file = os.path.join(self.__work_dir, "cache.json")
+        if os.path.exists(cache_file):
+            with open(cache_file) as f:
+                return json.load(f)
+        else:
+            return {}
 
-    def __load_sources(self):
-        source_dir = os.path.join(self.__working_path, "sources")
-        source_files = glob.glob("*.py", root_dir=source_dir)
-        for file in source_files:
-            source_name = file.split(".")[0]
-            filepath = os.path.join(source_dir, file)
+    def __load_modules(self, modules_dir, modules,
+                       module_names, class_init_func):
+        module_files = glob.glob("*.py", root_dir=modules_dir)
+        for file in module_files:
+            module_name = file.split(".")[0]
+            filepath = os.path.join(modules_dir, file)
             print(filepath)
             spec = importlib.util.spec_from_file_location(
-                source_name,
+                module_name,
                 filepath
             )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            self.sources[source_name] = module.TagSource(self.__working_path)
-            self.source_names[self.sources[source_name].pretty_name] = source_name
+            modules[module_name] = class_init_func(module)
+            module_names[modules[module_name].pretty_name] = module_name
 
     def get_sources(self):
         return list(self.source_names.keys())
 
-    def choose_prompts(self, n=1, prefix=None, suffix=None, tag_filter_str=""):
+    def get_formatters(self):
+        return list(self.formatter_names.keys())
+
+    def request_prompts(self, source, *args):
+        self.__prompts = self.sources[self.source_names[source]].request_tags(
+            *args)
+
+    def choose_prompts(self, formatter, n=1,
+                       prefix=None, suffix=None, tag_filter_str=""):
         extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
         )
 
         chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
         processed_prompts = []
+        f = self.formatters[self.formatter_names[formatter]]
+
+        # TODO: Need better way to hadle this
+        format_func = getattr(f, f"{self.__prompts['source']}_format",
+                              lambda _: ["no_formatter_found"])
+
         for prompt_core in chosen_prompts:
-            kek = self.__process_raw_tags(prompt_core)
+            formatted_prompt = format_func(prompt_core)
             filtered_prompt = filter(
                 lambda tag: tag not in extra_tag_filter,
-                kek
+                formatted_prompt
             )
             processed_prompts.append(
                 ", ".join(
@@ -79,9 +109,6 @@ class LazyPonyPrompter():
 
     def get_loaded_prompts_count(self):
         return len(self.__prompts["raw_tags"])
-
-    def get_negative_prompt(self):
-        return self.__negative_prompt
 
     def get_cached_prompts_names(self):
         return list(self.__prompt_cache.keys())
@@ -124,52 +151,7 @@ class LazyPonyPrompter():
         del prompts_data["raw_tags"]
         return prompts_data
 
-    def request_prompts(self, source, *args):
-        self.__prompts = self.sources[self.source_names[source]].request_tags(
-            *args)
-
-    def __load_config(self):
-        p = self.__working_path
-        config = get_merged_config_entry("lpp", p)
-        config["prioritized_tags"] = get_merged_config_entry(
-            "prioritized_tags", p
-        )
-        config["character_tags"] = get_merged_config_entry("character_tags", p)
-        config["filtered_tags"] = get_merged_config_entry("filtered_tags", p)
-        return config
-
-    def __load_prompt_cache(self):
-        cache_file = os.path.join(self.__working_path, "cache.json")
-        if os.path.exists(cache_file):
-            with open(cache_file) as f:
-                return json.load(f)
-        else:
-            return {}
-
     def __dump_prompts_cache(self):
-        cache_file = os.path.join(self.__working_path, "cache.json")
+        cache_file = os.path.join(self.__work_dir, "cache.json")
         with open(cache_file, "w") as f:
             json.dump(self.__prompt_cache, f, indent=4)
-
-    def __process_raw_tags(self, raw_image_tags):
-        rating = None
-        characters = []
-        prioritized_tags = []
-        prompt_tail = []
-        for tag in raw_image_tags:
-            if (any([tag.startswith(x) for x in self.__filtered_tags["starts_with"]])
-                    or any([tag.endswith(x) for x in self.__filtered_tags["ends_with"]])
-                    or tag in self.__filtered_tags["exact"]):
-                continue
-            if rating is None and tag in self.__ratings.keys():
-                rating = self.__ratings[tag]
-                continue
-            if tag in self.__character_tags:
-                characters.append(tag)
-                continue
-            if tag in self.__prioritized_tags:
-                prioritized_tags.append(tag)
-                continue
-            prompt_tail.append(tag)
-        return ([] if rating is None else [rating]) \
-            + characters + prioritized_tags + prompt_tail

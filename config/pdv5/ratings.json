@@ -1,0 +1,9 @@
+{
+    "safe": "rating_safe",
+    "suggestive": "rating_questionable",
+    "questionable": "rating_questionable",
+    "explicit": "rating_explicit",
+    "semi-grimdark": "rating_explicit, semi-grimdark",
+    "grimdark": "rating_explicit, grimdark",
+    "grotesque": "rating_explicit, grotesque"
+}

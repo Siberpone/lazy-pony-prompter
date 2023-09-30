@@ -13,7 +13,7 @@ def send_api_request(endpoint, query_params,
         return json.load(response)
 
 
-def get_merged_config_entry(entry, working_path):
+def get_merged_config_entry(entry, work_dir="config"):
     def merge_dicts(target, replacement):
         for key, val in replacement.items():
             if key not in target:
@@ -31,10 +31,10 @@ def get_merged_config_entry(entry, working_path):
         return target
 
     config_file = os.path.join(
-        working_path, "config", f"{entry}.json"
+        work_dir, f"{entry}.json"
     )
     user_config_file = os.path.join(
-        working_path, "config", f"my_{entry}.json"
+        work_dir, f"my_{entry}.json"
     )
     with open(config_file) as f:
         config_entry = json.load(f)
