@@ -50,7 +50,6 @@ class LazyPonyPrompter():
         for file in module_files:
             module_name = file.split(".")[0]
             filepath = os.path.join(modules_dir, file)
-            print(filepath)
             spec = importlib.util.spec_from_file_location(
                 module_name,
                 filepath
@@ -68,8 +67,7 @@ class LazyPonyPrompter():
         return list(self.formatter_names.keys())
 
     def request_prompts(self, source, *args):
-        self.__prompts = self.sources[self.source_names[source]].request_tags(
-            *args)
+        self.__prompts = self.sources[self.source_names[source]].request_tags(*args)
 
     def choose_prompts(self, formatter, n=1,
                        prefix=None, suffix=None, tag_filter_str=""):

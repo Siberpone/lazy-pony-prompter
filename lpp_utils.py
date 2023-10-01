@@ -5,7 +5,7 @@ import os
 
 
 def send_api_request(endpoint, query_params,
-                     user_agent="lazy-pony-prompter/v1.0 (by user Siberpone)"):
+                     user_agent="lazy-pony-prompter (by user Siberpone)"):
     url = "?".join([endpoint, urlencode(query_params)])
     req = Request(url)
     req.add_header("User-Agent", user_agent)

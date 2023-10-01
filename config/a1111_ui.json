@@ -11,7 +11,7 @@
         "step": 5,
         "default": 100
     },
-    "prefix": "source_pony, score_9",
+    "prefix": "",
     "suffix": "",
     "autofill_extra_options": true
 }
