@@ -50,10 +50,7 @@ class LazyPonyPrompter():
         for file in module_files:
             module_name = file.split(".")[0]
             filepath = os.path.join(modules_dir, file)
-            spec = importlib.util.spec_from_file_location(
-                module_name,
-                filepath
-            )
+            spec = importlib.util.spec_from_file_location(module_name, filepath)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -97,7 +94,8 @@ class LazyPonyPrompter():
                             prefix,
                             ", ".join(filtered_prompt)
                                 .replace("(", "\\(")
-                                .replace(")", "\\)"),
+                                .replace(")", "\\)")
+                                .replace("_", " "),
                             suffix
                         ]
                     )

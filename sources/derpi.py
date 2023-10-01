@@ -4,9 +4,9 @@ import time
 
 
 class TagSource():
-    def __init__(self, workdir="."):
+    def __init__(self, work_dir="."):
         self.pretty_name = "Derpibooru"
-        self.__workdir = workdir
+        self.__workdir = work_dir
         self.__api_key = self.__get_api_key()
 
         self.PER_PAGE_MAX = 50

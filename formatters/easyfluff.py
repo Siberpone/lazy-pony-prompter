@@ -35,3 +35,8 @@ class PromptFormatter():
                 continue
             prompt_tail.append(tag)
         return characters + prioritized_tags + artists + prompt_tail
+
+    def e621_format(self, raw_image_tags):
+        t = raw_image_tags
+        return t["character"] + t["species"] + t["artist"] \
+            + t["general"] + t["copyright"] + t["meta"]

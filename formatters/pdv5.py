@@ -38,3 +38,7 @@ class PromptFormatter():
             prompt_tail.append(tag)
         return ([] if rating is None else [rating]) \
             + characters + prioritized_tags + prompt_tail
+
+    def e621_format(self, raw_image_tags):
+        t = raw_image_tags
+        return t["character"] + t["species"] + t["general"] + t["meta"]
