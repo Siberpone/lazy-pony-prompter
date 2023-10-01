@@ -1,3 +1,11 @@
+### 2023-10-01
+
+* Added different tag sources and prompt formats support
+* Added support for e632.net as tag source
+* Added basic support for EasyFluff model
+* Added support for standard [A1111 styles feature](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles)
+* Removed Prefix and Suffix textboxes since A1111 styles can be used for the same purpose
+
 ### 2023-08-04
 
 * Renamed "Saving & Loading" to "Prompts Manager"

@@ -66,8 +66,7 @@ class LazyPonyPrompter():
     def request_prompts(self, source, *args):
         self.__prompts = self.sources[self.source_names[source]].request_tags(*args)
 
-    def choose_prompts(self, formatter, n=1,
-                       prefix=None, suffix=None, tag_filter_str=""):
+    def choose_prompts(self, formatter, n=1, tag_filter_str=""):
         extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
         )
@@ -87,19 +86,10 @@ class LazyPonyPrompter():
                 formatted_prompt
             )
             processed_prompts.append(
-                ", ".join(
-                    filter(
-                        None,
-                        [
-                            prefix,
-                            ", ".join(filtered_prompt)
-                                .replace("(", "\\(")
-                                .replace(")", "\\)")
-                                .replace("_", " "),
-                            suffix
-                        ]
-                    )
-                )
+                ", ".join(filtered_prompt)
+                    .replace("(", "\\(")
+                    .replace(")", "\\)")
+                    .replace("_", " "),
             )
         return processed_prompts
 
@@ -109,8 +99,7 @@ class LazyPonyPrompter():
     def get_cached_prompts_names(self):
         return list(self.__prompt_cache.keys())
 
-    def cache_current_prompts(self, name, prefix=None,
-                              suffix=None, tag_filter=None):
+    def cache_current_prompts(self, name, tag_filter=None):
         if not name:
             raise ValueError("Empty \"name\" parameter")
         prompts_data = self.__prompts
@@ -118,8 +107,6 @@ class LazyPonyPrompter():
         def set_param(param, key):
             prompts_data[key] = param if param else ""
 
-        set_param(prefix, "prefix")
-        set_param(suffix, "suffix")
         set_param(tag_filter, "tag_filter")
         self.__prompt_cache[name] = prompts_data
         self.__dump_prompts_cache()

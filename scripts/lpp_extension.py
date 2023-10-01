@@ -1,7 +1,9 @@
-import gradio as gr
-import modules.scripts as scripts
 from lpp import LazyPonyPrompter as LPP
 from lpp_utils import get_merged_config_entry
+from modules.styles import merge_prompts as merge_prompt_as_style
+import gradio as gr
+import modules.scripts as scripts
+import modules.shared as shared
 import os
 
 base_dir = scripts.basedir()
@@ -35,9 +37,9 @@ def try_send_request(lpp, *args):
         )
 
 
-def try_save_prompts(lpp, name, prefix, suffix, tag_filter):
+def try_save_prompts(lpp, name, tag_filter):
     try:
-        lpp.cache_current_prompts(name, prefix, suffix, tag_filter)
+        lpp.cache_current_prompts(name, tag_filter)
         return format_status_msg(
             lpp, f"Prompts saved as \"{name}\"."
         )
@@ -101,6 +103,7 @@ class Scripts(scripts.Script):
                     choices=self.lpp.get_formatters()
                 )
                 prompts_format.value = prompts_format.choices[0]
+
             with gr.Column():
                 # Derpibooru Query Panel --------------------------------------
                 with gr.Accordion(
@@ -125,42 +128,23 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.sources["derpi"].get_filters(
-                                    )
+                                    choices=self.lpp.sources["derpi"].get_filters()
                                 )
                                 filter_type.value = filter_type.choices[0]
                                 sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.sources["derpi"].get_sort_options(
-                                    )
+                                    choices=self.lpp.sources["derpi"].get_sort_options()
                                 )
                                 sort_type.value = sort_type.choices[0]
                     with gr.Row():
                         send_btn = gr.Button(value="Send")
 
-                # Extra Options Panel -----------------------------------------
-                with gr.Accordion(
-                    "Extra Options",
-                    open=self.config["extra_options_start_unfolded"]
-                ):
-                    with gr.Row():
-                        prefix = gr.Textbox(
-                            label="Prompts Prefix:",
-                            interactive=True,
-                            value=self.config["prefix"],
-                            placeholder="Prompts will begin with this text"
-                        )
-                        suffix = gr.Textbox(
-                            label="Prompts Suffix:",
-                            value=self.config["suffix"],
-                            interactive=True,
-                            placeholder="Prompts will end with this text"
-                        )
-                    with gr.Row():
-                        tag_filter = gr.Textbox(
-                            label="Prune These Tags from Prompts:",
-                            placeholder="These tags (comma separated) will be pruned from prompts"
-                        )
+                # Extra Tags Filter -------------------------------------------
+                with gr.Row():
+                    tag_filter = gr.Textbox(
+                        label="Extra Tags Filter",
+                        placeholder="These tags (comma separated) will be pruned from prompts"
+                    )
 
                 # Save/Load Prompts Panel -------------------------------------
                 with gr.Accordion("Prompts Manager", open=False):
@@ -206,8 +190,8 @@ class Scripts(scripts.Script):
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
             set_no_config(enabled, query_textbox, source, prompts_format,
-                          prompts_count, filter_type, sort_type, prefix,
-                          suffix, tag_filter, send_btn, status_bar,
+                          prompts_count, filter_type, sort_type,
+                          tag_filter, send_btn, status_bar,
                           prompts_manager_input, save_prompts_btn,
                           load_prompts_btn, prompts_manager_metadata,
                           delete_prompts_btn, confirm_action_btn,
@@ -224,7 +208,7 @@ class Scripts(scripts.Script):
             )
 
             # Save Button Click
-            def save_prompts_click(name, prefix, suffix, tag_filter):
+            def save_prompts_click(name, tag_filter):
                 if name in self.lpp.get_cached_prompts_names():
                     return (
                         format_status_msg(self.lpp),
@@ -238,8 +222,7 @@ class Scripts(scripts.Script):
                     )
                 else:
                     return (
-                        try_save_prompts(self.lpp, name, prefix,
-                                         suffix, tag_filter),
+                        try_save_prompts(self.lpp, name, tag_filter),
                         gr.Dropdown.update(
                             choices=self.lpp.get_cached_prompts_names()
                         ),
@@ -248,7 +231,7 @@ class Scripts(scripts.Script):
 
             save_prompts_btn.click(
                 save_prompts_click,
-                [prompts_manager_input, prefix, suffix, tag_filter],
+                [prompts_manager_input, tag_filter],
                 [status_bar, prompts_manager_input, confirm_action_msg,
                  confirm_action_type, confirm_action_name,
                  confirm_action_dialog]
@@ -269,21 +252,16 @@ class Scripts(scripts.Script):
                     else:
                         return gr.update()
 
-                prefix_update = get_param("prefix")
-                suffix_update = get_param("suffix")
                 tag_filter_update = get_param("tag_filter")
                 return (
                     try_load_prompts(self.lpp, name),
                     gr.update(visible=False),
-                    prefix_update,
-                    suffix_update,
                     tag_filter_update,
                 )
             load_prompts_btn.click(
                 load_prompts_click,
                 [prompts_manager_input, autofill_extra_options],
-                [status_bar, prompts_manager_metadata,
-                 prefix, suffix, tag_filter]
+                [status_bar, prompts_manager_metadata, tag_filter]
             )
 
             # Delete Button Click
@@ -314,13 +292,13 @@ class Scripts(scripts.Script):
             )
 
             # Action Confirmation Dialog
-            def invoke_action(name, action_type, prefix, suffix, tag_filter):
+            def invoke_action(name, action_type, tag_filter):
                 if action_type == "delete":
                     msg = try_delete_prompts(self.lpp, name)
                     selected_val = ""
                 if action_type == "overwrite":
                     msg = try_save_prompts(
-                        self.lpp, name, prefix, suffix, tag_filter
+                        self.lpp, name, tag_filter
                     )
                     selected_val = name
                 return (
@@ -334,8 +312,7 @@ class Scripts(scripts.Script):
                 )
             confirm_action_btn.click(
                 invoke_action,
-                [confirm_action_name, confirm_action_type,
-                 prefix, suffix, tag_filter],
+                [confirm_action_name, confirm_action_type, tag_filter],
                 [status_bar, prompts_manager_input,
                  confirm_action_dialog, prompts_manager_metadata]
             )
@@ -344,12 +321,23 @@ class Scripts(scripts.Script):
                 None,
                 [confirm_action_dialog]
             )
-        return [enabled, prompts_format, prefix, suffix, tag_filter]
+        return [enabled, prompts_format, tag_filter]
 
-    def process(self, p, enabled, prompts_format, prefix, suffix, tag_filter):
+    def process(self, p, enabled, prompts_format, tag_filter):
         if not enabled:
             return p
 
         n_images = p.batch_size * p.n_iter
-        p.all_prompts = self.lpp.choose_prompts(prompts_format, n_images,
-                                                prefix, suffix, tag_filter)
+        p.all_prompts = self.lpp.choose_prompts(
+            prompts_format, n_images, tag_filter
+        )
+
+        if p.prompt:
+            p.all_prompts = [
+                merge_prompt_as_style(p.prompt, x) for x in p.all_prompts
+            ]
+
+        p.all_prompts = [
+            shared.prompt_styles.apply_styles_to_prompt(x, p.styles)
+            for x in p.all_prompts
+        ]
