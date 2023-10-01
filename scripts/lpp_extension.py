@@ -85,7 +85,7 @@ class Scripts(scripts.Script):
 
     def ui(self, is_img2img):
         with gr.Accordion(
-            "Lazy Pony Prompter",
+            "💤 Lazy Pony Prompter",
             open=self.config["start_unfolded"]
         ):
             with gr.Row():
@@ -107,17 +107,19 @@ class Scripts(scripts.Script):
             with gr.Column():
                 # Derpibooru Query Panel --------------------------------------
                 with gr.Accordion(
-                    "Derpibooru Query",
-                    open=self.config["derpibooru_query_start_unfolded"]
-                ):
+                    "💬 Derpibooru Query",
+                    open=self.config["derpibooru_query_start_unfolded"],
+                    visible=(source.value == "Derpibooru")
+                ) as derpi_panel:
+                    gr.Markdown("[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
                     with gr.Row():
-                        query_textbox = gr.Textbox(
+                        d_query = gr.Textbox(
                             placeholder="Type in your Derpibooru query here",
                             show_label=False
                         )
                     with gr.Row():
                         with gr.Column():
-                            prompts_count = gr.Slider(
+                            d_prompts_count = gr.Slider(
                                 label="Number of Prompts to Load",
                                 minimum=self.config["prompts_count"]["min"],
                                 maximum=self.config["prompts_count"]["max"],
@@ -126,28 +128,52 @@ class Scripts(scripts.Script):
                             )
                         with gr.Column():
                             with gr.Row():
-                                filter_type = gr.Dropdown(
+                                d_filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
                                     choices=self.lpp.sources["derpi"].get_filters()
                                 )
-                                filter_type.value = filter_type.choices[0]
-                                sort_type = gr.Dropdown(
+                                d_filter_type.value = d_filter_type.choices[0]
+                                d_sort_type = gr.Dropdown(
                                     label="Sort by",
                                     choices=self.lpp.sources["derpi"].get_sort_options()
                                 )
-                                sort_type.value = sort_type.choices[0]
+                                d_sort_type.value = d_sort_type.choices[0]
                     with gr.Row():
-                        send_btn = gr.Button(value="Send")
+                        d_send_btn = gr.Button(value="Send")
+
+                # E621 Query Panel --------------------------------------------
+                with gr.Accordion(
+                    "💬 E621 Query",
+                    open=False,
+                    visible=(source.value == "E621")
+                ) as e621_panel:
+                    gr.Markdown("[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
+                    with gr.Row():
+                        with gr.Column(scale=2):
+                            e_query = gr.Textbox(
+                                placeholder="Type in Your E621 query here",
+                                show_label=False
+                            )
+                        with gr.Column(scale=1):
+                            e_prompts_count = gr.Slider(
+                                label="Number of Prompts to Load",
+                                minimum=self.config["prompts_count"]["min"],
+                                maximum=self.config["prompts_count"]["max"],
+                                step=self.config["prompts_count"]["step"],
+                                value=self.config["prompts_count"]["default"]
+                            )
+                    with gr.Row():
+                        e_send_btn = gr.Button(value="Send")
 
                 # Extra Tags Filter -------------------------------------------
                 with gr.Row():
                     tag_filter = gr.Textbox(
-                        label="Extra Tags Filter",
+                        label="🏷 Tags Filter",
                         placeholder="These tags (comma separated) will be pruned from prompts"
                     )
 
                 # Save/Load Prompts Panel -------------------------------------
-                with gr.Accordion("Prompts Manager", open=False):
+                with gr.Accordion("📊 Prompts Manager", open=False):
                     with gr.Row():
                         with gr.Column(scale=2):
                             prompts_manager_input = gr.Dropdown(
@@ -189,9 +215,10 @@ class Scripts(scripts.Script):
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
-            set_no_config(enabled, query_textbox, source, prompts_format,
-                          prompts_count, filter_type, sort_type,
-                          tag_filter, send_btn, status_bar,
+            set_no_config(enabled, d_query, source, prompts_format,
+                          d_prompts_count, d_filter_type, d_sort_type,
+                          e_query, e_prompts_count, e_send_btn,
+                          tag_filter, d_send_btn, status_bar,
                           prompts_manager_input, save_prompts_btn,
                           load_prompts_btn, prompts_manager_metadata,
                           delete_prompts_btn, confirm_action_btn,
@@ -199,12 +226,33 @@ class Scripts(scripts.Script):
                           confirm_action_name, autofill_extra_options)
 
             # Event Handlers --------------------------------------------------
-            # Send Button Click
-            send_btn.click(
+            # Derpi Send Button Click
+            d_send_btn.click(
                 lambda *args: try_send_request(self.lpp, *args),
-                [source, query_textbox, prompts_count, filter_type, sort_type],
+                [source, d_query, d_prompts_count, d_filter_type, d_sort_type],
                 [status_bar],
                 show_progress="full"
+            )
+
+            # E621 Send Button Click
+            e_send_btn.click(
+                lambda *args: try_send_request(self.lpp, *args),
+                [source, e_query, e_prompts_count],
+                [status_bar],
+                show_progress="full"
+            )
+
+            # Source Dropdown Change
+            def source_update(name):
+                if name == "Derpibooru":
+                    return (gr.update(visible=True), gr.update(visible=False))
+                if name == "E621":
+                    return (gr.update(visible=False), gr.update(visible=True))
+
+            source.change(
+                source_update,
+                [source],
+                [derpi_panel, e621_panel]
             )
 
             # Save Button Click
