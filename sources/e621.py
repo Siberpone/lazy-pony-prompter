@@ -15,18 +15,14 @@ class TagSource():
             "limit": count if count < PER_PAGE_MAX else PER_PAGE_MAX
         }
 
-        json_response = send_api_request(ENDPOINT, query_params,)
+        json_response = send_api_request(ENDPOINT, query_params)
+        for post in json_response["posts"]:
+            post["tags"]["rating"] = post["rating"]
         return {
             "source": "e621",
             "query": query,
             "raw_tags": [x["tags"] for x in json_response["posts"]]
         }
-
-    @formatter("Pony Diffusion V5")
-    def pdv5_format(self, raw_image_tags):
-        t = raw_image_tags
-        return [x.replace("_", " ") for x in t["character"] + t["species"]
-                + t["general"] + t["meta"]]
 
     @formatter("EasyFluff")
     def easyfluff_format(self, raw_image_tags):

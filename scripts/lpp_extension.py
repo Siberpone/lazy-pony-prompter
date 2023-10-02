@@ -170,11 +170,12 @@ class Scripts(scripts.Script):
                         e_send_btn = gr.Button(value="Send")
 
                 # Extra Tags Filter -------------------------------------------
-                with gr.Row():
-                    tag_filter = gr.Textbox(
-                        label="🏷 Tags Filter",
-                        placeholder="These tags (comma separated) will be pruned from prompts"
-                    )
+                with gr.Accordion("🏷 Tags Filter", open=False):
+                    with gr.Row():
+                        tag_filter = gr.Textbox(
+                            show_label=False,
+                            placeholder="These tags (comma separated) will be pruned from prompts"
+                        )
 
                 # Save/Load Prompts Panel -------------------------------------
                 with gr.Accordion("💾 Prompts Manager", open=False):
