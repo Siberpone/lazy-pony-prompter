@@ -1,4 +1,4 @@
-from lpp_utils import send_api_request, get_merged_config_entry
+from lpp_utils import send_api_request, get_merged_config_entry, formatter
 import os
 import time
 
@@ -107,12 +107,20 @@ class TagSource():
         return ([] if rating is None else [rating]), characters, \
             prioritized_tags, artists, prompt_tail
 
+    @formatter("Pony Diffusion V5")
     def pdv5_format(self, raw_image_tags):
         rating, characters, prioritized_tags, _, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return rating + characters + prioritized_tags + prompt_tail
 
+    @formatter("EasyFluff")
     def easyfluff_format(self, raw_image_tags):
         _, characters, prioritized_tags, artists, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return characters + prioritized_tags + artists + prompt_tail
+
+    @formatter("EasyFluff (no artist names)")
+    def easyfluff_no_artists_format(self, raw_image_tags):
+        _, characters, prioritized_tags, artists, prompt_tail = \
+            self.__filter_tags(raw_image_tags)
+        return characters + prioritized_tags + prompt_tail

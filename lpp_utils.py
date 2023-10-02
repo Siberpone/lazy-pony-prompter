@@ -43,3 +43,11 @@ def get_merged_config_entry(entry, work_dir="config"):
             user_config_entry = json.load(f)
             config_entry = merge_dicts(config_entry, user_config_entry)
     return config_entry
+
+
+def formatter(pretty_model_name):
+    def inner(func):
+        func.is_formatter = True
+        func.pretty_model_name = pretty_model_name
+        return func
+    return inner

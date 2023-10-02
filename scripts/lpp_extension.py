@@ -100,7 +100,7 @@ class Scripts(scripts.Script):
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(
                     label="Prompts Format",
-                    choices=self.lpp.get_models()
+                    choices=self.lpp.get_models(source.value)
                 )
                 prompts_format.value = prompts_format.choices[0]
 
@@ -131,13 +131,13 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 d_filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.sources["derpi"].get_filters(
+                                    choices=self.lpp.sources["derpi"]["instance"].get_filters(
                                     )
                                 )
                                 d_filter_type.value = d_filter_type.choices[0]
                                 d_sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.sources["derpi"].get_sort_options(
+                                    choices=self.lpp.sources["derpi"]["instance"].get_sort_options(
                                     )
                                 )
                                 d_sort_type.value = d_sort_type.choices[0]
@@ -177,7 +177,7 @@ class Scripts(scripts.Script):
                     )
 
                 # Save/Load Prompts Panel -------------------------------------
-                with gr.Accordion("📊 Prompts Manager", open=False):
+                with gr.Accordion("💾 Prompts Manager", open=False):
                     with gr.Row():
                         with gr.Column(scale=2):
                             prompts_manager_input = gr.Dropdown(
@@ -186,8 +186,8 @@ class Scripts(scripts.Script):
                                 allow_custom_value=True
                             )
                         with gr.Column(scale=0, min_width=200):
-                            autofill_extra_options = gr.Checkbox(
-                                label="Autofill Extra Options",
+                            autofill_tags_filter = gr.Checkbox(
+                                label="Autofill Tags Filter",
                                 value=self.config["autofill_extra_options"]
                             )
                     with gr.Row():
@@ -227,7 +227,7 @@ class Scripts(scripts.Script):
                           load_prompts_btn, prompts_manager_metadata,
                           delete_prompts_btn, confirm_action_btn,
                           cancel_action_btn, confirm_action_type,
-                          confirm_action_name, autofill_extra_options)
+                          confirm_action_name, autofill_tags_filter)
 
             # Event Handlers --------------------------------------------------
             # Derpi Send Button Click
@@ -248,15 +248,24 @@ class Scripts(scripts.Script):
 
             # Source Dropdown Change
             def source_update(name):
+                models = self.lpp.get_models(name)
                 if name == "Derpibooru":
-                    return (gr.update(visible=True), gr.update(visible=False))
+                    return (
+                        gr.update(choices=models, value=models[0]),
+                        gr.update(visible=True),
+                        gr.update(visible=False)
+                    )
                 if name == "E621":
-                    return (gr.update(visible=False), gr.update(visible=True))
+                    return (
+                        gr.update(choices=models, value=models[0]),
+                        gr.update(visible=False),
+                        gr.update(visible=True)
+                    )
 
             source.change(
                 source_update,
                 [source],
-                [derpi_panel, e621_panel]
+                [prompts_format, derpi_panel, e621_panel]
             )
 
             # Save Button Click
@@ -311,11 +320,12 @@ class Scripts(scripts.Script):
                     try_load_prompts(self.lpp, name),
                     gr.update(visible=False),
                     tag_filter_update,
+                    gr.update(value=self.lpp.sources[prompts_data["source"]]["pretty_name"])
                 )
             load_prompts_btn.click(
                 load_prompts_click,
-                [prompts_manager_input, autofill_extra_options],
-                [status_bar, prompts_manager_metadata, tag_filter]
+                [prompts_manager_input, autofill_tags_filter],
+                [status_bar, prompts_manager_metadata, tag_filter, source]
             )
 
             # Delete Button Click

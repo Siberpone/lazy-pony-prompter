@@ -1,4 +1,4 @@
-from lpp_utils import send_api_request
+from lpp_utils import send_api_request, formatter
 
 
 class TagSource():
@@ -22,12 +22,20 @@ class TagSource():
             "raw_tags": [x["tags"] for x in json_response["posts"]]
         }
 
+    @formatter("Pony Diffusion V5")
     def pdv5_format(self, raw_image_tags):
         t = raw_image_tags
         return [x.replace("_", " ") for x in t["character"] + t["species"]
                 + t["general"] + t["meta"]]
 
+    @formatter("EasyFluff")
     def easyfluff_format(self, raw_image_tags):
         t = raw_image_tags
         return [x.replace("_", " ") for x in t["character"] + t["species"]
                 + t["artist"] + t["general"] + t["copyright"] + t["meta"]]
+
+    @formatter("EasyFluff (no aritst names)")
+    def easyfluff_no_artist_format(self, raw_image_tags):
+        t = raw_image_tags
+        return [x.replace("_", " ") for x in t["character"] + t["species"]
+                + t["general"] + t["copyright"] + t["meta"]]

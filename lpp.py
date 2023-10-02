@@ -9,23 +9,10 @@ class LazyPonyPrompter():
     def __init__(self, work_dir="."):
         self.__work_dir = work_dir
         self.__prompt_cache = self.__load_prompt_cache()
-
-        self.sources = {}
-        self.__load_modules(
-            os.path.join(self.__work_dir, "sources"),
-            self.sources,
-            lambda m: m.TagSource(self.__work_dir)
-        )
+        self.sources = self.__load_sources()
         self.source_names = {
-            self.sources[x].pretty_name: x for x in self.sources.keys()
+            self.sources[x]["pretty_name"]: x for x in self.sources.keys()
         }
-
-        # TODO: Detect supported models programmatically
-        self.models = {
-            "Pony Diffusion V5": "pdv5",
-            "EasyFluff": "easyfluff"
-        }
-
         self.__prompts = {
             "source": "",
             "quiery": "",
@@ -42,40 +29,51 @@ class LazyPonyPrompter():
         else:
             return {}
 
-    def __load_modules(self, modules_dir, modules, class_init_func):
-        module_files = glob.glob("*.py", root_dir=modules_dir)
-        for file in module_files:
-            module_name = file.split(".")[0]
-            filepath = os.path.join(modules_dir, file)
+    def __load_sources(self):
+        sources_dir = os.path.join(self.__work_dir, "sources")
+        source_files = glob.glob("*.py", root_dir=sources_dir)
+        sources = {}
+        for file in source_files:
+            source_name = file.split(".")[0]
+            filepath = os.path.join(sources_dir, file)
             spec = importlib.util.spec_from_file_location(
-                module_name, filepath)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+                source_name, filepath)
+            source = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(source)
+            instance = source.TagSource(self.__work_dir)
 
-            modules[module_name] = class_init_func(module)
+            source_models = {}
+            for attr in filter(lambda x: not x.startswith("_"), dir(instance)):
+                obj = getattr(instance, attr)
+                if hasattr(obj, "is_formatter"):
+                    source_models[obj.pretty_model_name] = obj
+
+            sources[source_name] = {
+                "instance": instance,
+                "pretty_name": instance.pretty_name,
+                "models": source_models
+            }
+        return sources
 
     def get_sources(self):
-        return list(self.source_names.keys())
+        return [x["pretty_name"] for x in self.sources.values()]
 
-    def get_models(self):
-        return list(self.models.keys())
+    def get_models(self, source):
+        return list(self.sources[self.source_names[source]]["models"].keys())
 
     def request_prompts(self, source, *args):
-        self.__prompts = self.sources[self.source_names[source]].request_tags(
+        self.__prompts = self.sources[self.source_names[source]]["instance"].request_tags(
             *args)
 
     def choose_prompts(self, model, n=1, tag_filter_str=""):
+        chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
+
+        source = self.__prompts["source"]
+        format_func = self.sources[source]["models"][model]
+
         extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
         )
-
-        chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
-        m = self.models[model]
-        f = self.sources[self.__prompts["source"]]
-
-        # TODO: Need better way to hadle this
-        format_func = getattr(f, f"{m}_format",
-                              lambda _: ["no_formatter_found"])
 
         processed_prompts = []
         for prompt_core in chosen_prompts:
