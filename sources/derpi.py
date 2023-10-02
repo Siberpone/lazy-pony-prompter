@@ -65,8 +65,12 @@ class TagSource():
         }
 
     def __get_api_key(self):
-        api_key_file = os.path.join(self.__work_dir, "api_key")
-        if os.path.exists(api_key_file):
+        old_api_key_file = os.path.join(self.__work_dir, "api_key")
+        api_key_file = os.path.join(self.__work_dir, "auth", "derpi")
+        if os.path.exists(old_api_key_file):
+            with open(old_api_key_file) as f:
+                return f.readline().strip('\n')
+        elif os.path.exists(api_key_file):
             with open(api_key_file) as f:
                 return f.readline().strip('\n')
         else:
