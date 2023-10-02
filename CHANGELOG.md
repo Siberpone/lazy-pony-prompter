@@ -1,3 +1,7 @@
+### 2023-10-02
+
+* Added simple globbing support to tag filter
+
 ### 2023-10-01
 
 * Added different tag sources and prompt formats support

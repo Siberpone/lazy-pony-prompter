@@ -1,4 +1,5 @@
 from random import choices
+import fnmatch
 import json
 import importlib.util
 import glob
@@ -79,7 +80,9 @@ class LazyPonyPrompter():
         for prompt_core in chosen_prompts:
             formatted_prompt = format_func(prompt_core)
             filtered_prompt = filter(
-                lambda tag: tag not in extra_tag_filter,
+                lambda tag: not any(
+                    [fnmatch.fnmatch(tag, x) for x in extra_tag_filter]
+                ),
                 formatted_prompt
             )
             processed_prompts.append(
