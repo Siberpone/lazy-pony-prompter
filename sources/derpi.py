@@ -1,4 +1,4 @@
-from lpp_utils import send_api_request
+from lpp_utils import send_api_request, get_merged_config_entry
 import os
 import time
 
@@ -6,27 +6,20 @@ import time
 class TagSource():
     def __init__(self, work_dir="."):
         self.pretty_name = "Derpibooru"
-        self.__workdir = work_dir
+        self.__work_dir = work_dir
         self.__api_key = self.__get_api_key()
-
-        self.PER_PAGE_MAX = 50
-        self.QUERY_DELAY = 0.5
-
-        self.__filter_ids = {
-            "Default (System)": 100073,
-            "Everything (System)": 56027
-        }
+        config = get_merged_config_entry(
+            "derpi",
+            os.path.join(self.__work_dir, "config")
+        )
+        self.__filter_ids = config["filter_ids"]
+        self.__sort_params = config["sort_params"]
+        self.__pdv5_ratings = config["ratings"]["pdv5"]
+        self.__character_tags = config["character_tags"]
+        self.__prioritized_tags = config["prioritized_tags"]
+        self.__filtered_tags = config["filtered_tags"]
         if self.__api_key is not None:
             self.__fetch_user_filters()
-
-        self.__sort_params = {
-            "Wilson Score": "wilson_score",
-            "Score": "score",
-            "Upvotes": "upvotes",
-            "Fave Count": "faves",
-            "Upload Date": "first_seen_at",
-            "Tag Count": "tag_count"
-        }
 
     def get_filters(self):
         return list(self.__filter_ids.keys())
@@ -35,10 +28,13 @@ class TagSource():
         return list(self.__sort_params.keys())
 
     def request_tags(self, query, count, filter_type=None, sort_type=None):
-        endpoint = "https://derpibooru.org/api/v1/json/search/images"
+        ENDPOINT = "https://derpibooru.org/api/v1/json/search/images"
+        PER_PAGE_MAX = 50
+        QUERY_DELAY = 0.5
+
         query_params = {
             "q": query,
-            "per_page": self.PER_PAGE_MAX
+            "per_page": PER_PAGE_MAX
         }
         if self.__api_key is not None:
             query_params["key"] = self.__api_key
@@ -47,17 +43,17 @@ class TagSource():
         if sort_type is not None and sort_type in self.__sort_params.keys():
             query_params["sf"] = self.__sort_params[sort_type]
 
-        json_response = send_api_request(endpoint, query_params)
+        json_response = send_api_request(ENDPOINT, query_params)
         response_total = json_response["total"]
         items_total = count if count < response_total else response_total
-        pages_to_load = (items_total // self.PER_PAGE_MAX) + \
-            (1 if items_total % self.PER_PAGE_MAX > 0 else 0)
+        pages_to_load = (items_total // PER_PAGE_MAX) + \
+            (1 if items_total % PER_PAGE_MAX > 0 else 0)
 
         raw_tags = []
         for p in range(1, pages_to_load + 1):
-            time.sleep(self.QUERY_DELAY)
+            time.sleep(QUERY_DELAY)
             query_params["page"] = p
-            json_response = send_api_request(endpoint, query_params)
+            json_response = send_api_request(ENDPOINT, query_params)
             raw_tags += [x["tags"] for x in json_response["images"]]
 
         return {
@@ -69,7 +65,7 @@ class TagSource():
         }
 
     def __get_api_key(self):
-        api_key_file = os.path.join(self.__workdir, "api_key")
+        api_key_file = os.path.join(self.__work_dir, "api_key")
         if os.path.exists(api_key_file):
             with open(api_key_file) as f:
                 return f.readline().strip('\n')
@@ -83,3 +79,40 @@ class TagSource():
         )
         for filter in json_response["filters"]:
             self.__filter_ids[filter["name"]] = filter["id"]
+
+    def __filter_tags(self, raw_image_tags):
+        rating = None
+        characters = []
+        prioritized_tags = []
+        artists = []
+        prompt_tail = []
+        for tag in raw_image_tags:
+            if (any([tag.startswith(x) for x in self.__filtered_tags["starts_with"]])
+                    or any([tag.endswith(x) for x in self.__filtered_tags["ends_with"]])
+                    or tag in self.__filtered_tags["exact"]):
+                continue
+            if rating is None and tag in self.__pdv5_ratings.keys():
+                rating = self.__pdv5_ratings[tag]
+                continue
+            if tag in self.__character_tags:
+                characters.append(tag)
+                continue
+            if tag in self.__prioritized_tags:
+                prioritized_tags.append(tag)
+                continue
+            if tag.startswith("artist:"):
+                artists.append(tag[7:])
+                continue
+            prompt_tail.append(tag)
+        return ([] if rating is None else [rating]), characters, \
+            prioritized_tags, artists, prompt_tail
+
+    def pdv5_format(self, raw_image_tags):
+        rating, characters, prioritized_tags, _, prompt_tail = \
+            self.__filter_tags(raw_image_tags)
+        return rating + characters + prioritized_tags + prompt_tail
+
+    def easyfluff_format(self, raw_image_tags):
+        _, characters, prioritized_tags, artists, prompt_tail = \
+            self.__filter_tags(raw_image_tags)
+        return characters + prioritized_tags + artists + prompt_tail

@@ -100,7 +100,7 @@ class Scripts(scripts.Script):
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(
                     label="Prompts Format",
-                    choices=self.lpp.get_formatters()
+                    choices=self.lpp.get_models()
                 )
                 prompts_format.value = prompts_format.choices[0]
 
@@ -111,7 +111,8 @@ class Scripts(scripts.Script):
                     open=self.config["derpibooru_query_start_unfolded"],
                     visible=(source.value == "Derpibooru")
                 ) as derpi_panel:
-                    gr.Markdown("[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
+                    gr.Markdown(
+                        "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
                     with gr.Row():
                         d_query = gr.Textbox(
                             placeholder="Type in your Derpibooru query here",
@@ -130,12 +131,14 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 d_filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.sources["derpi"].get_filters()
+                                    choices=self.lpp.sources["derpi"].get_filters(
+                                    )
                                 )
                                 d_filter_type.value = d_filter_type.choices[0]
                                 d_sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.sources["derpi"].get_sort_options()
+                                    choices=self.lpp.sources["derpi"].get_sort_options(
+                                    )
                                 )
                                 d_sort_type.value = d_sort_type.choices[0]
                     with gr.Row():
@@ -144,10 +147,11 @@ class Scripts(scripts.Script):
                 # E621 Query Panel --------------------------------------------
                 with gr.Accordion(
                     "💬 E621 Query",
-                    open=False,
+                    open=self.config["derpibooru_query_start_unfolded"],
                     visible=(source.value == "E621")
                 ) as e621_panel:
-                    gr.Markdown("[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
+                    gr.Markdown(
+                        "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
                     with gr.Row():
                         with gr.Column(scale=2):
                             e_query = gr.Textbox(
@@ -290,7 +294,9 @@ class Scripts(scripts.Script):
                 try:
                     prompts_data = self.lpp.get_prompts_metadata(name)
                 except Exception as e:
-                    prompts_data = {}
+                    prompts_data = {
+                        "error": f"{e=}"
+                    }
 
                 def get_param(key):
                     if autofill_extra_opts:

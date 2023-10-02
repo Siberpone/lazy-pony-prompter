@@ -6,20 +6,28 @@ class TagSource():
         self.pretty_name = "E621"
         self.__work_dir = work_dir
 
-        self.PER_PAGE_MAX = 320
-        self.QUERY_DELAY = 1
-
-    # HACK: remove *args after fixing UI
-    def request_tags(self, query, count, *args):
-        endpoint = "https://e621.net/posts.json"
+    def request_tags(self, query, count):
+        ENDPOINT = "https://e621.net/posts.json"
+        PER_PAGE_MAX = 320
+        QUERY_DELAY = 1
         query_params = {
             "tags": query,
-            "limit": count if count < self.PER_PAGE_MAX else self.PER_PAGE_MAX
+            "limit": count if count < PER_PAGE_MAX else PER_PAGE_MAX
         }
 
-        json_response = send_api_request(endpoint, query_params,)
+        json_response = send_api_request(ENDPOINT, query_params,)
         return {
             "source": "e621",
             "query": query,
             "raw_tags": [x["tags"] for x in json_response["posts"]]
         }
+
+    def pdv5_format(self, raw_image_tags):
+        t = raw_image_tags
+        return [x.replace("_", " ") for x in t["character"] + t["species"]
+                + t["general"] + t["meta"]]
+
+    def easyfluff_format(self, raw_image_tags):
+        t = raw_image_tags
+        return [x.replace("_", " ") for x in t["character"] + t["species"]
+                + t["artist"] + t["general"] + t["copyright"] + t["meta"]]

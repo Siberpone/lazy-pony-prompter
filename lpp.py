@@ -11,22 +11,20 @@ class LazyPonyPrompter():
         self.__prompt_cache = self.__load_prompt_cache()
 
         self.sources = {}
-        self.source_names = {}
         self.__load_modules(
             os.path.join(self.__work_dir, "sources"),
             self.sources,
-            self.source_names,
             lambda m: m.TagSource(self.__work_dir)
         )
+        self.source_names = {
+            self.sources[x].pretty_name: x for x in self.sources.keys()
+        }
 
-        self.formatters = {}
-        self.formatter_names = {}
-        self.__load_modules(
-            os.path.join(self.__work_dir, "formatters"),
-            self.formatters,
-            self.formatter_names,
-            lambda m: m.PromptFormatter(self.__work_dir)
-        )
+        # TODO: Detect supported models programmatically
+        self.models = {
+            "Pony Diffusion V5": "pdv5",
+            "EasyFluff": "easyfluff"
+        }
 
         self.__prompts = {
             "source": "",
@@ -44,41 +42,42 @@ class LazyPonyPrompter():
         else:
             return {}
 
-    def __load_modules(self, modules_dir, modules,
-                       module_names, class_init_func):
+    def __load_modules(self, modules_dir, modules, class_init_func):
         module_files = glob.glob("*.py", root_dir=modules_dir)
         for file in module_files:
             module_name = file.split(".")[0]
             filepath = os.path.join(modules_dir, file)
-            spec = importlib.util.spec_from_file_location(module_name, filepath)
+            spec = importlib.util.spec_from_file_location(
+                module_name, filepath)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
             modules[module_name] = class_init_func(module)
-            module_names[modules[module_name].pretty_name] = module_name
 
     def get_sources(self):
         return list(self.source_names.keys())
 
-    def get_formatters(self):
-        return list(self.formatter_names.keys())
+    def get_models(self):
+        return list(self.models.keys())
 
     def request_prompts(self, source, *args):
-        self.__prompts = self.sources[self.source_names[source]].request_tags(*args)
+        self.__prompts = self.sources[self.source_names[source]].request_tags(
+            *args)
 
-    def choose_prompts(self, formatter, n=1, tag_filter_str=""):
+    def choose_prompts(self, model, n=1, tag_filter_str=""):
         extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
         )
 
         chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
-        processed_prompts = []
-        f = self.formatters[self.formatter_names[formatter]]
+        m = self.models[model]
+        f = self.sources[self.__prompts["source"]]
 
         # TODO: Need better way to hadle this
-        format_func = getattr(f, f"{self.__prompts['source']}_format",
+        format_func = getattr(f, f"{m}_format",
                               lambda _: ["no_formatter_found"])
 
+        processed_prompts = []
         for prompt_core in chosen_prompts:
             formatted_prompt = format_func(prompt_core)
             filtered_prompt = filter(
@@ -89,7 +88,6 @@ class LazyPonyPrompter():
                 ", ".join(filtered_prompt)
                     .replace("(", "\\(")
                     .replace(")", "\\)")
-                    .replace("_", " "),
             )
         return processed_prompts
 
