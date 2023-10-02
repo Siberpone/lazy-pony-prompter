@@ -1,4 +1,5 @@
 from random import choices
+from lpp_utils import update_legacy_prompt_cache
 import fnmatch
 import json
 import importlib.util
@@ -23,6 +24,10 @@ class LazyPonyPrompter():
         }
 
     def __load_prompt_cache(self):
+
+        # Update legacy cache file format
+        update_legacy_prompt_cache(self.__work_dir)
+
         cache_file = os.path.join(self.__work_dir, "cache.json")
         if os.path.exists(cache_file):
             with open(cache_file) as f:
