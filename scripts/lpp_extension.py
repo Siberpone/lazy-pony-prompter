@@ -29,7 +29,7 @@ def try_send_request(lpp, *args):
     try:
         lpp.request_prompts(*args)
         return format_status_msg(
-            lpp, "Successfully fetched tags from Derpibooru."
+            lpp, f"Successfully fetched tags from {args[0]}."
         )
     except Exception as e:
         return format_status_msg(
@@ -74,8 +74,9 @@ def try_delete_prompts(lpp, name):
 class Scripts(scripts.Script):
     def __init__(self):
         self.lpp = LPP(base_dir)
-        self.config = get_merged_config_entry("a1111_ui", os.path.join(
-                                              base_dir, "config"))
+        self.config = get_merged_config_entry(
+            "a1111_ui", os.path.join(base_dir, "config")
+        )
 
     def title(self):
         return "Lazy Pony Prompter"
@@ -131,14 +132,12 @@ class Scripts(scripts.Script):
                             with gr.Row():
                                 d_filter_type = gr.Dropdown(
                                     label="Derpibooru Filter",
-                                    choices=self.lpp.sources["derpi"]["instance"].get_filters(
-                                    )
+                                    choices=self.lpp.sources["derpi"]["instance"].get_filters()
                                 )
                                 d_filter_type.value = d_filter_type.choices[0]
                                 d_sort_type = gr.Dropdown(
                                     label="Sort by",
-                                    choices=self.lpp.sources["derpi"]["instance"].get_sort_options(
-                                    )
+                                    choices=self.lpp.sources["derpi"]["instance"].get_sort_options()
                                 )
                                 d_sort_type.value = d_sort_type.choices[0]
                     with gr.Row():

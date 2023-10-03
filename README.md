@@ -1,18 +1,34 @@
 # Lazy Pony Prompter
 
-A [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) that utilizes the full power of [Derpibooru](https://derpibooru.org) query syntax and filters.
+A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru/org) and [E621](https://e621.net).
 
-![showcase](images/showcase.jpg)
+> **✨ October update new features highligh:**
+> * You can now choose between Derpibooru and E621 as tag sources
+> * [A1111 Styles](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles) are now fully supported and should be correctly applied to LPP-generated prompts
+> * [EasyFluff](https://civitai.com/models/129996/easyfluff) is now supported (I haven't had much experience with it yet, so prompt formatting is very basic for now)
+> * Simple [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) support for tag filter
 
-*\* images generated on recommended V5 settings from query `sweet dreams fuel, solo, safe, pony, -anthro`*
+E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
+
+![EasyFluff Showcase](images/ef-showcase.jpg)
+
+*\* images generated on EasyFluff V11.2 from query `my_little_pony solo -anthro -meme order:score -animated -text rating:safe -multiple_images`*
+
+Derpibooru + [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) samples:
+
+![PDV5 Showcase](images/pdv5-showcase.jpg)
+
+*\* images generated on Pony Diffusion V5 from query `sweet dreams fuel, solo, safe, pony, -anthro`*
 
 # Installation
 
 ### ❗Requirements
 * [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui);
-* [AstraliteHeart's Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5) model;
-* Active internet connection for communication with [Derpibooru](https://derpibooru.org);
-* *(optional)* [Derpibooru](https://derpibooru.org) account.
+* One of recommended models (may work on other, less pony-capable models, too):
+  * [EasyFluff](https://civitai.com/models/129996/easyfluff);
+  * [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5);
+* Active internet connection for communication with boorus;
+* *(optional)* [Derpibooru](https://derpibooru.org) account for extra functionality.
 
 ### 🖵 From Web UI
 
@@ -34,39 +50,36 @@ or click the "code" button in the top right, then click "Download ZIP" and unzip
 ```
 
 # Usage
-LPP operates by making a prompt list from a [Derpibooru search query](https://derpibooru.org/pages/search_syntax) and then generating images using that list. Basically, it fetches tag data from a specified number of images in the query and converts it into "sensible" V5 prompts (character and important meta data tags are pushed closer to the beginning of the prompt; useless tags like `artist:*` or `dead source` are pruned; derpi rating is replaced with appropriate `rating_*` and so on...) and then randomly picks them to generate images. Now, lets take a look at the interface:
+LPP operates by making a prompt list from a search query to one of the supported booru sites and then generating images using that list. Basically, it fetches tag data from a specified number of images in the query and converts it into "sensible" model-specific prompts (useless meta tags are pruned; "important" tags, like character name, are pushed closer to the beginning of the prompt, and so on...) and then randomly picks them to generate images. Now, lets take a look at the interface:
 
 ![LPP interface](images/extension.jpg)
 
-The LPP controls are grouped into three foldable panels that are described below.
+A the very top you'll find the main controls for LPP: the`🗹 Enabled` checkbox, that controls whether LPP is active or not; the `Tag Source` dropdown, that selects one of the supported booru sites as the sorce for prompts and the `Prompts Format` dropdown that selects model-specific prompt formatting. Below you'll find other LPP controls grouped into three foldable panels:
 
-### 💬 Derpibooru Query
+### 💬 Query
 
-![Derpibooru Query Panel](images/derpi_query.jpg)
+> Warning
+>
+> EasyFluff formatter includes artist names in the prompt. Lets just say there's some potential for drama here, so use with caution. Use "EasyFluff (no artist names)" instead if you don't want artist names included.
 
-On this panel you can pull tag data from Derpibooru by typing in or pasting your query into the "Derpibooru Query" textbox (you can preliminarily tune your query on the actual website) using the [Derpibooru search syntax](https://derpibooru.org/pages/search_syntax). You can also set a number of additional options:
+> Note
+>
+> Look of this panel may vary slightly, depending on the selected tag source.
+
+![Query Panel](images/derpi_query.jpg)
+
+On this panel you can pull tag data from selected booru site by typing in or pasting your query into the query textbox (the syntax is exactly the same as on the actual website). You can also set a number of additional options:
 
 * **Number of prompts to load** - will attempt to fetch tag data from this number of images in the query;
-* **Derpibooru Filter** - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
-* **Sort by** - type of sorting to apply to the query. Wilson Score is the default;
+* **Derpibooru only:**
+  * *Derpibooru Filter* - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
+  * *Sort by* - type of sorting to apply to the query. Wilson Score is the default.
 
-Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to Derpibooru and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from Derpibooru. **X** prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
+Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to the site and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from *\<site\>*. *X* prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
 
-> **Note**
->
-> You can customize LPP behavior and prompt processing via configuration files. See [Advanced Configuration](#%EF%B8%8F-advanced-configuration).
+### 🏷 Tags Filter
 
-### ✅ Extra Options
-
-![Extra Options Panel](images/extra_options.jpg)
-
-This panel allows you to set some additional prompt processing when generating images:
-
-* **Prompts Prefix** - all prompts will begin with this text;
-* **Prompts Suffix** - all prompts will end with this text;
-* **Prune These Tags from Prompts** - you can specify additional tags to prune from prompts here (comma separated).
-
-These options are evaluated before every generation, so you can use it to tweak your currently loaded prompt collection.
+This panel allows you to filter out unwanted tags from generated prompts. Just type in a comma-separated list of tags you don't want to see in the generated prompts and they will be filtered out before image generation begins. Note, that simple [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) is supported (i. e. you can use `*` to match anything, for example `*butt*` will filter out any tags containing word "butt"). The filter textbox is evaluated before every generation, so you can use it to tweak your currently loaded prompts collection.
 
 ### 💾 Prompts Manager
 
@@ -76,27 +89,27 @@ This panel is used to manage your prompt collections locally.
 
 You can save your currently loaded prompts for future use by typing in the desired name in the `Prompts Collection Name` textbox and clicking the `Save` button.
 
-You can load previously saved prompts by selecting the desired collection from `Prompts Collection Name` textbox (just start typing the name or select it from the dropdown hint) and clicking the `Load` button. If you have the `Autofill Extra Options` checkbox ticked, it will also populate the `Prefix`, `Suffix` and `Tag Filter` textboxes automatically if available (values of these textboxes are written to the prompts collection info when you save it).
+You can load previously saved prompts by selecting the desired collection from `Prompts Collection Name` textbox (just start typing the name or select it from the dropdown hint) and clicking the `Load` button. If you have the `Autofill Tags Filter` checkbox ticked, it will also populate the `Tag Filter` textboxe automatically if available (tag filter text is written to the prompts collection info when you save it).
 
 To delete unwanted collection, select it from the `Prompts Collection Name` textbox and click the `Delete` button.
 
-### 🚫 Negative Prompt Handling
+### ✨ Prompts Styling
 
-LPP includes "standard" V5 negative prompt by default. This can be disabled by unticking the "Include Standard Negative Prompt" checkbox. The "standard" negative prompt is appended to whatever you type in the normal webui negative prompt textbox.
+LPP fully supports [A1111 styles feature](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles). Any styles you select in the style box will be correctly applied to LPP-generated prompts. Furthermore, you can use the standard A1111 prompt textbox in the same way. By default, the prompt textbox content will be appended to LPP prompts, but you can alter that by including the special `{prompt}` token in a place where you want the LPP-generated prompts to be pasted. Examples:
+
+* *Place special Pony Diffusion V5 tags at the front:* `source_pony, score_9, {prompt}`;
+* *Pad EasyFluff prompt with some quality tags:* `best quality, {prompt}, by ivan shishkin`.
 
 ### 🔑 API Key
 
-To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list. To provide the API key, you must create the `api_key` file in the root LPP extension directory (normally this would be `.../stable-diffusion-webui/extentions/lazy-pony-prompter`) with a text editor of your choice and paste your personal API key into that file. The API key must be the first line in the file. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
+To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list. To provide an API key, you must create a file named `derpi` (no extension) in the `.../stable-diffusion-webui/extentions/lazy-pony-prompter/auth` directory (create it if it doesn't exist) with a text editor of your choice and paste your personal API key into that file. The API key must be the first line in the file. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
 
 ### ⚙️ Advanced Configuration
 
-LPP can be customized to suit you personal preferences via [JSON](https://en.wikipedia.org/wiki/JSON) configuration files located in `.../stable-diffusion-webui/extensions/lazy-pony-prompter/config/`. If you navigate to that directory, you'll see it already contains a number of JSON files. **Do not edit these.** They will be overwritten any time you update LPP. Instead, create a file of the same name, but prefixed with `my_`. For example, if you want to add more filtered tags, create `my_filtered_tags.json` file. You only need to specify the values you want to override - user config files are merged to the default ones (lists are concatenated). Purpose of the files are as follows:
+LPP can be customized to suit you personal preferences via [JSON](https://en.wikipedia.org/wiki/JSON) configuration files located in `.../stable-diffusion-webui/extensions/lazy-pony-prompter/config/`. If you navigate to that directory, you'll see it already contains a number of JSON files. **Do not edit these.** They will be overwritten any time you update LPP. Instead, create a file of the same name, but prefixed with `my_`. For example, if you want to customize Derpibooru related configuration, create `my_derpi.json` file. You only need to specify the values you want to override - user config files are merged to the default ones (lists are concatenated). Purpose of the files are as follows:
 
 * **a1111_ui.json** - controls the user interface starting/default values, such as prompt count slider min/max values, whether the extension should start folded or unfolded and so on;
-* **lpp.json** - contains general system lookups and parameters (generally, these shoud not be changed by the user, except for `negative_prompt`);
-* **character_tags.json** - contains a list of character tags (these are pushed to the beginning of the prompt);
-* **prioritized_tags.json** - contains a list of "important" tags that are pushed to the beginning of the prompt, right after character tags;
-* **filtered_tags.json** - contains a list of tags that are pruned from prompts.
+* **derpi.json** - contains configuration related to Derpibooru.
 
 #### Examples
 
@@ -113,17 +126,18 @@ Make LPP start unfolded and change max prompts count to 400:
 }
 ```
 
-Extend filtered tags list:
+Extend filtered tags list for Derpibooru:
 
-*my_filtered_tags.json*
+*my_derpi.json*
 
 ```json
 {
-    "exact": [
-        "freckles",
-        "fat",
-        "large butt"
-    ]
+    "filtered_tags":
+        "exact": [
+            "freckles",
+            "fat",
+            "large butt"
+        ]
 }
 ```
 
@@ -132,11 +146,12 @@ Extend filtered tags list:
 * 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/lazy-pony-prompter/discussions).
 * You can see the latest additions to LPP in the [Changelog](CHANGELOG.md).
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
-* LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions.
-* LPP is very light on traffic since it uses the Derpibooru API and only pulls necessary text data and not the actual webpages or images.
+* LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions (you don't have to uninstall them or anything, just don't run them simultaneously with LPP).
+* LPP is very light on traffic since it uses the website's API and only pulls necessary text data and not the actual webpages or images.
 * Your saved prompts are stored in `cache.json` file in the root extension directory.
 * Useful links:
     * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
     * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.
+    * [EasyFluff](https://civitai.com/models/129996/easyfluff)
     * [Stable Diffusion Guides Collection](https://rentry.org/sdgoldmine)
 * 🐎 Please, poni responsibly 🐴🦄🪶.
