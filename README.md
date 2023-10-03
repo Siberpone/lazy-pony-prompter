@@ -54,15 +54,15 @@ LPP operates by making a prompt list from a search query to one of the supported
 
 ![LPP interface](images/extension.jpg)
 
-A the very top you'll find the main controls for LPP: the`🗹 Enabled` checkbox, that controls whether LPP is active or not; the `Tag Source` dropdown, that selects one of the supported booru sites as the sorce for prompts and the `Prompts Format` dropdown that selects model-specific prompt formatting. Below you'll find other LPP controls grouped into three foldable panels:
+At the very top you'll find the main controls for LPP: the`🗹 Enabled` checkbox, that controls whether LPP is active or not; the `Tag Source` dropdown, that selects one of the supported booru sites as the sorce for prompts and the `Prompts Format` dropdown that selects model-specific prompt formatting. Below you'll find other LPP controls grouped into three foldable panels:
 
 ### 💬 Query
 
-> Warning
+> **Warning**
 >
 > EasyFluff formatter includes artist names in the prompt. Lets just say there's some potential for drama here, so use with caution. Use "EasyFluff (no artist names)" instead if you don't want artist names included.
 
-> Note
+> **Note**
 >
 > Look of this panel may vary slightly, depending on the selected tag source.
 
@@ -95,7 +95,7 @@ To delete unwanted collection, select it from the `Prompts Collection Name` text
 
 ### ✨ Prompts Styling
 
-LPP fully supports [A1111 styles feature](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles). Any styles you select in the style box will be correctly applied to LPP-generated prompts. Furthermore, you can use the standard A1111 prompt textbox in the same way. By default, the prompt textbox content will be appended to LPP prompts, but you can alter that by including the special `{prompt}` token in a place where you want the LPP-generated prompts to be pasted. Examples:
+LPP fully supports [A1111 styles feature](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles). Any styles you select in the style box will be correctly applied to LPP-generated prompts. Furthermore, you can use the standard A1111 prompt textbox in the same way. By default, the prompt textbox content will be appended to LPP prompts, but you can alter that by including the special `{prompt}` token in a place where you want LPP-generated prompts to be pasted. Examples:
 
 * *Place special Pony Diffusion V5 tags at the front:* `source_pony, score_9, {prompt}`;
 * *Pad EasyFluff prompt with some quality tags:* `best quality, {prompt}, by ivan shishkin`.
