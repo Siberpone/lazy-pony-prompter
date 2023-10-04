@@ -56,20 +56,26 @@ def formatter(pretty_model_name):
 
 def update_legacy_prompt_cache(working_path):
     cache_file = os.path.join(working_path, "cache.json")
-    backup_file = os.path.join(working_path, "cache.231002.bak.json")
+    if not os.path.exists(cache_file):
+        return
 
+    backup_file = os.path.join(working_path, "cache.231002.bak.json")
     if not os.path.exists(backup_file):
         shutil.copy(cache_file, backup_file)
 
     if os.path.exists(cache_file):
         with open(cache_file, "r+") as f:
-            cache_json = json.load(f)
+            try:
+                cache_json = json.load(f)
+            except Exception as e:
+                return
             if "source" not in next(iter(cache_json.values())):
                 for key in cache_json.keys():
                     if "source" not in cache_json[key].keys():
                         cache_json[key]["source"] = "derpi"
                     if "core" in cache_json[key].keys():
-                        cache_json[key]["raw_tags"] = cache_json[key].pop("core")
+                        cache_json[key]["raw_tags"] = cache_json[key].pop(
+                            "core")
                 f.seek(0)
                 f.truncate()
                 json.dump(cache_json, f, indent=4)

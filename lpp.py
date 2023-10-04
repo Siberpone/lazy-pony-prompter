@@ -31,7 +31,11 @@ class LazyPonyPrompter():
         cache_file = os.path.join(self.__work_dir, "cache.json")
         if os.path.exists(cache_file):
             with open(cache_file) as f:
-                return json.load(f)
+                try:
+                    cache = json.load(f)
+                except Exception as e:
+                    cache = {}
+                return cache
         else:
             return {}
 
