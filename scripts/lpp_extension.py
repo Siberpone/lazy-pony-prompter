@@ -1,5 +1,5 @@
 from lpp import LazyPonyPrompter as LPP
-from lpp_utils import get_merged_config_entry
+from lpp_utils import get_merged_config_entry, LPPWrapper
 from modules.styles import merge_prompts as merge_prompt_as_style
 import gradio as gr
 import modules.scripts as scripts
@@ -9,71 +9,15 @@ import os
 base_dir = scripts.basedir()
 
 
-def get_lpp_status(lpp):
-    n_prompts = lpp.get_loaded_prompts_count()
-    return f"**{n_prompts}** prompts loaded. Ready to generate." \
-        if n_prompts > 0 \
-        else "No prompts loaded. Not ready to generate."
-
-
-def format_status_msg(lpp, msg=""):
-    return f"&nbsp;&nbsp;{msg} {get_lpp_status(lpp)}"
-
-
 def set_no_config(*args):
     for control in args:
         setattr(control, "do_not_save_to_config", True)
 
 
-def try_send_request(lpp, *args):
-    try:
-        lpp.request_prompts(*args)
-        return format_status_msg(
-            lpp, f"Successfully fetched tags from {args[0]}."
-        )
-    except Exception as e:
-        return format_status_msg(
-            lpp, f"Filed to fetch tags: {str(e)}"
-        )
-
-
-def try_save_prompts(lpp, name, tag_filter):
-    try:
-        lpp.cache_current_prompts(name, tag_filter)
-        return format_status_msg(
-            lpp, f"Prompts saved as \"{name}\"."
-        )
-    except Exception as e:
-        return format_status_msg(
-            lpp, f"Failed to save prompts: {str(e)}."
-        )
-
-
-def try_load_prompts(lpp, name):
-    try:
-        lpp.load_cached_prompts(name)
-        return format_status_msg(lpp, f"Loaded \"{name}\".")
-    except Exception as e:
-        return format_status_msg(
-            lpp, f"Failed to load prompts: {str(e)}."
-        )
-
-
-def try_delete_prompts(lpp, name):
-    try:
-        lpp.delete_cached_prompts(name)
-        return format_status_msg(
-            lpp, f"\"{name}\" deleted."
-        )
-    except Exception as e:
-        return format_status_msg(
-            lpp, f"Failed to delete prompts: {str(e)}."
-        )
-
-
 class Scripts(scripts.Script):
     def __init__(self):
         self.lpp = LPP(base_dir)
+        self.lpp_wrapper = LPPWrapper(self.lpp)
         self.config = get_merged_config_entry(
             "a1111_ui", os.path.join(base_dir, "config")
         )
@@ -214,7 +158,7 @@ class Scripts(scripts.Script):
             # Status Bar ------------------------------------------------------
             with gr.Box():
                 status_bar = gr.Markdown(
-                    value=format_status_msg(self.lpp)
+                    value=self.lpp_wrapper.format_status_msg()
                 )
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
@@ -232,7 +176,7 @@ class Scripts(scripts.Script):
             # Event Handlers --------------------------------------------------
             # Derpi Send Button Click
             d_send_btn.click(
-                lambda *args: try_send_request(self.lpp, *args),
+                self.lpp_wrapper.try_send_request,
                 [source, d_query, d_prompts_count, d_filter_type, d_sort_type],
                 [status_bar],
                 show_progress="full"
@@ -240,7 +184,7 @@ class Scripts(scripts.Script):
 
             # E621 Send Button Click
             e_send_btn.click(
-                lambda *args: try_send_request(self.lpp, *args),
+                self.lpp_wrapper.try_send_request,
                 [source, e_query, e_prompts_count],
                 [status_bar],
                 show_progress="full"
@@ -272,7 +216,7 @@ class Scripts(scripts.Script):
             def save_prompts_click(name, tag_filter):
                 if name in self.lpp.get_cached_prompts_names():
                     return (
-                        format_status_msg(self.lpp),
+                        self.lpp_wrapper.format_status_msg(),
                         gr.Dropdown.update(
                             choices=self.lpp.get_cached_prompts_names()
                         ),
@@ -283,7 +227,7 @@ class Scripts(scripts.Script):
                     )
                 else:
                     return (
-                        try_save_prompts(self.lpp, name, tag_filter),
+                        self.lpp_wrapper.try_save_prompts(name, tag_filter),
                         gr.Dropdown.update(
                             choices=self.lpp.get_cached_prompts_names()
                         ),
@@ -302,10 +246,12 @@ class Scripts(scripts.Script):
             def load_prompts_click(name, autofill_extra_opts):
                 try:
                     prompts_data = self.lpp.get_prompts_metadata(name)
+                    source_update = gr.update(
+                        value=self.lpp.sources[prompts_data["source"]]["pretty_name"]
+                    )
                 except Exception as e:
-                    prompts_data = {
-                        "error": f"{e=}"
-                    }
+                    prompts_data = {}
+                    source_update = gr.update()
 
                 def get_param(key):
                     if autofill_extra_opts:
@@ -317,10 +263,10 @@ class Scripts(scripts.Script):
 
                 tag_filter_update = get_param("tag_filter")
                 return (
-                    try_load_prompts(self.lpp, name),
+                    self.lpp_wrapper.try_load_prompts(name),
                     gr.update(visible=False),
                     tag_filter_update,
-                    gr.update(value=self.lpp.sources[prompts_data["source"]]["pretty_name"])
+                    source_update
                 )
             load_prompts_btn.click(
                 load_prompts_click,
@@ -358,12 +304,10 @@ class Scripts(scripts.Script):
             # Action Confirmation Dialog
             def invoke_action(name, action_type, tag_filter):
                 if action_type == "delete":
-                    msg = try_delete_prompts(self.lpp, name)
+                    msg = self.lpp_wrapper.try_delete_prompts(name)
                     selected_val = ""
                 if action_type == "overwrite":
-                    msg = try_save_prompts(
-                        self.lpp, name, tag_filter
-                    )
+                    msg = self.lpp_wrapper.try_save_prompts(name, tag_filter)
                     selected_val = name
                 return (
                     msg,

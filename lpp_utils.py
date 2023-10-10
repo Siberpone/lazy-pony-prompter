@@ -79,3 +79,64 @@ def update_legacy_prompt_cache(working_path):
                 f.seek(0)
                 f.truncate()
                 json.dump(cache_json, f, indent=4)
+
+
+class LPPWrapper():
+    def __init__(self, lpp):
+        self.__lpp = lpp
+
+    def __get_lpp_status(self):
+        n_prompts = self.__lpp.get_loaded_prompts_count()
+        return f"**{n_prompts}** prompts loaded. Ready to generate." \
+            if n_prompts > 0 \
+            else "No prompts loaded. Not ready to generate."
+
+    def format_status_msg(self, msg=""):
+        return f"&nbsp;&nbsp;{msg} {self.__get_lpp_status()}"
+
+    def __try_exec_command(self, lpp_method, success_msg, failure_msg, *args):
+        try:
+            lpp_method(*args)
+            return success_msg
+        except Exception as e:
+            return failure_msg + f" {str(e)}"
+
+    def try_save_prompts(self, name, tag_filter):
+        return self.format_status_msg(
+            self.__try_exec_command(
+                self.__lpp.cache_current_prompts,
+                f"Successfully saved \"{name}\".",
+                f"Failed to save \"{name}\":",
+                name, tag_filter
+            )
+        )
+
+    def try_load_prompts(self, name):
+        return self.format_status_msg(
+            self.__try_exec_command(
+                self.__lpp.load_cached_prompts,
+                f"Successfully loaded \"{name}\".",
+                f"Failed to load \"{name}\":",
+                name
+            )
+        )
+
+    def try_delete_prompts(self, name):
+        return self.format_status_msg(
+            self.__try_exec_command(
+                self.__lpp.delete_cached_prompts,
+                f"Successfully deleted \"{name}\".",
+                f"Failed to delete \"{name}\":",
+                name
+            )
+        )
+
+    def try_send_request(self, *args):
+        return self.format_status_msg(
+            self.__try_exec_command(
+                self.__lpp.request_prompts,
+                f"Successfully deleted \"{args[0]}\".",
+                f"Failed to delete \"{args[0]}\":",
+                *args
+            )
+        )

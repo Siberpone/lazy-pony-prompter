@@ -15,13 +15,7 @@ class LazyPonyPrompter():
         self.source_names = {
             self.sources[x]["pretty_name"]: x for x in self.sources.keys()
         }
-        self.__prompts = {
-            "source": "",
-            "quiery": "",
-            "filter_type": "",
-            "sort_type": "",
-            "raw_tags": []
-        }
+        self.__prompts = None
 
     def __load_prompt_cache(self):
 
@@ -29,15 +23,14 @@ class LazyPonyPrompter():
         update_legacy_prompt_cache(self.__work_dir)
 
         cache_file = os.path.join(self.__work_dir, "cache.json")
-        if os.path.exists(cache_file):
-            with open(cache_file) as f:
-                try:
-                    cache = json.load(f)
-                except Exception as e:
-                    cache = {}
-                return cache
-        else:
+        if not os.path.exists(cache_file):
             return {}
+
+        with open(cache_file) as f:
+            try:
+                return json.load(f)
+            except Exception as e:
+                return {}
 
     def __load_sources(self):
         sources_dir = os.path.join(self.__work_dir, "sources")
@@ -72,8 +65,9 @@ class LazyPonyPrompter():
         return list(self.sources[self.source_names[source]]["models"].keys())
 
     def request_prompts(self, source, *args):
-        self.__prompts = self.sources[self.source_names[source]]["instance"].request_tags(
-            *args)
+        self.__prompts = self.sources[
+            self.source_names[source]
+        ]["instance"].request_tags(*args)
 
     def choose_prompts(self, model, n=1, tag_filter_str=""):
         chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
@@ -102,7 +96,9 @@ class LazyPonyPrompter():
         return processed_prompts
 
     def get_loaded_prompts_count(self):
-        return len(self.__prompts["raw_tags"])
+        return len(self.__prompts["raw_tags"]) \
+            if self.__prompts and "raw_tags" in self.__prompts.keys() \
+            else 0
 
     def get_cached_prompts_names(self):
         return list(self.__prompt_cache.keys())
@@ -132,6 +128,8 @@ class LazyPonyPrompter():
 
     def get_prompts_metadata(self, name=None):
         if name is None:
+            if not self.__prompts:
+                return {}
             prompts_data = dict(self.__prompts)
         else:
             if name in self.__prompt_cache.keys():
