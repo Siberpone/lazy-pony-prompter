@@ -208,10 +208,10 @@ class Scripts(scripts.Script):
             # Source Dropdown Change
             def source_update(name):
                 models = self.lpp.get_models(name)
-                # HACK: need to make global lookups for "pretty names"
-                kek = {"derpi": "Derpibooru", "e621": "E621"}
                 visibility = [
-                    gr.update(visible=(name == kek[x])) for x in self.query_panels.keys()
+                    gr.update(visible=(
+                        name == self.lpp.sources[x]["pretty_name"])
+                    ) for x in self.query_panels.keys()
                 ]
                 return (
                     gr.update(choices=models, value=models[0]), *visibility
