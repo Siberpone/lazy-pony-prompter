@@ -121,7 +121,8 @@ class TagSource():
     def easyfluff_format(self, raw_image_tags):
         _, characters, prioritized_tags, artists, prompt_tail = \
             self.__filter_tags(raw_image_tags)
-        return characters + prioritized_tags + artists + prompt_tail
+        return characters + prioritized_tags \
+            + [f"by {x}" for x in artists] + prompt_tail
 
     @formatter("EasyFluff (no artist names)")
     def easyfluff_no_artists_format(self, raw_image_tags):

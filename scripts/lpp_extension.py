@@ -193,7 +193,7 @@ class Scripts(scripts.Script):
                           confirm_action_name, autofill_tags_filter)
 
             # Event Handlers --------------------------------------------------
-            # Send Query Buttlons
+            # Send Query Buttons
             for panel in self.query_panels.values():
                 panel["send_btn"].click(
                     lambda s, *params: (

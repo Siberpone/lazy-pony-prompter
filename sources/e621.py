@@ -28,7 +28,8 @@ class TagSource():
     def easyfluff_format(self, raw_image_tags):
         t = raw_image_tags
         return [x.replace("_", " ") for x in t["character"] + t["species"]
-                + t["artist"] + t["general"] + t["copyright"] + t["meta"]]
+                + t["general"] + [f"by {x}" for x in t["artist"]]
+                + t["copyright"] + t["meta"]]
 
     @formatter("EasyFluff (no aritst names)")
     def easyfluff_no_artist_format(self, raw_image_tags):
