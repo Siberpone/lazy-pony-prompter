@@ -122,11 +122,7 @@ class Scripts(scripts.Script):
                     choices=self.lpp.get_sources()
                 )
                 source.value = source.choices[0]
-                prompts_format = gr.Dropdown(
-                    label="Prompts Format",
-                    choices=self.lpp.get_models(source.value)
-                )
-                prompts_format.value = prompts_format.choices[0]
+                prompts_format = gr.Dropdown(label="Prompts Format")
 
             with gr.Column():
                 # Query Panels ------------------------------------------------
@@ -197,30 +193,30 @@ class Scripts(scripts.Script):
                           confirm_action_name, autofill_tags_filter)
 
             # Event Handlers --------------------------------------------------
+            # Send Query Buttlons
             for panel in self.query_panels.values():
                 panel["send_btn"].click(
-                    self.lpp_wrapper.try_send_request,
+                    lambda s, *params: (
+                        self.lpp_wrapper.try_send_request(s, *params),
+                        gr.update(
+                            choices=self.lpp.get_models(s),
+                            value=self.lpp.get_models(s)[0]
+                        )
+                    ),
                     [source, *panel["params"]],
-                    [status_bar],
+                    [status_bar, prompts_format],
                     show_progress="full"
                 )
 
             # Source Dropdown Change
-            def source_update(name):
-                models = self.lpp.get_models(name)
-                visibility = [
-                    gr.update(visible=(
-                        name == self.lpp.sources[x]["pretty_name"])
-                    ) for x in self.query_panels.keys()
-                ]
-                return (
-                    gr.update(choices=models, value=models[0]), *visibility
-                )
-
             source.change(
-                source_update,
+                lambda s: [
+                    gr.update(visible=(
+                        s == self.lpp.sources[x]["pretty_name"])
+                    ) for x in self.query_panels.keys()
+                ],
                 [source],
-                [prompts_format] + [x["panel"] for x in self.query_panels.values()]
+                [x["panel"] for x in self.query_panels.values()]
             )
 
             # Save Button Click
@@ -257,12 +253,14 @@ class Scripts(scripts.Script):
             def load_prompts_click(name, autofill_extra_opts):
                 try:
                     prompts_data = self.lpp.get_prompts_metadata(name)
-                    source_update = gr.update(
-                        value=self.lpp.sources[prompts_data["source"]]["pretty_name"]
+                    models = self.lpp.get_models(prompts_data["source"])
+                    models_update = gr.update(
+                        choices=models,
+                        value=models[0]
                     )
                 except Exception as e:
                     prompts_data = {}
-                    source_update = gr.update()
+                    models_update = gr.update()
 
                 def get_param(key):
                     if autofill_extra_opts:
@@ -277,12 +275,12 @@ class Scripts(scripts.Script):
                     self.lpp_wrapper.try_load_prompts(name),
                     gr.update(visible=False),
                     tag_filter_update,
-                    source_update
+                    models_update
                 )
             load_prompts_btn.click(
                 load_prompts_click,
                 [prompts_manager_input, autofill_tags_filter],
-                [status_bar, prompts_manager_metadata, tag_filter, source]
+                [status_bar, prompts_manager_metadata, tag_filter, prompts_format]
             )
 
             # Delete Button Click
