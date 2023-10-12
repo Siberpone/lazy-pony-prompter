@@ -1,17 +1,33 @@
-from lpp_utils import send_api_request, formatter
+from lpp_utils import send_api_request, formatter, get_config
+import os
 
 
 class TagSource():
     def __init__(self, work_dir="."):
         self.pretty_name = "E621"
         self.__work_dir = work_dir
+        self.__config = get_config(
+            "e621", os.path.join(self.__work_dir, "config")
+        )
 
-    def request_tags(self, query, count):
+    def get_ratings(self):
+        return list(self.__config["ratings"]["lookup"].keys())
+
+    def get_sort_options(self):
+        return list(self.__config["sort_params"].keys())
+
+    def request_tags(self, query, count, rating=None, sort_type=None):
         ENDPOINT = "https://e621.net/posts.json"
         PER_PAGE_MAX = 320
         QUERY_DELAY = 1
+
+        p_rating = self.__config["ratings"]["lookup"][rating] if rating \
+            and rating in self.__config["ratings"]["lookup"] else None
+        p_sort = self.__config["sort_params"][sort_type] if sort_type \
+            and sort_type in self.__config["sort_params"] else None
+        p_query = " ".join(x for x in [query, p_rating, p_sort] if x)
         query_params = {
-            "tags": query,
+            "tags": p_query,
             "limit": count if count < PER_PAGE_MAX else PER_PAGE_MAX
         }
 
@@ -20,7 +36,7 @@ class TagSource():
             post["tags"]["rating"] = post["rating"]
         return {
             "source": "e621",
-            "query": query,
+            "query": p_query,
             "raw_tags": [x["tags"] for x in json_response["posts"]]
         }
 

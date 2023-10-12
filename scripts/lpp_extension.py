@@ -69,12 +69,12 @@ class QueryPanels():
             gr.Markdown(
                 "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
             with gr.Row():
-                with gr.Column(scale=2):
-                    query = gr.Textbox(
-                        placeholder="Type in Your E621 query here",
-                        show_label=False
-                    )
-                with gr.Column(scale=1):
+                query = gr.Textbox(
+                    placeholder="Type in Your E621 query here",
+                    show_label=False
+                )
+            with gr.Row():
+                with gr.Column():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
                         minimum=config["prompts_count"]["min"],
@@ -82,13 +82,25 @@ class QueryPanels():
                         step=config["prompts_count"]["step"],
                         value=config["prompts_count"]["default"]
                     )
+                with gr.Column():
+                    with gr.Row():
+                        rating = gr.Dropdown(
+                            label="Rating",
+                            choices=lpp.sources["e621"]["instance"].get_ratings()
+                        )
+                        rating.value = rating.choices[0]
+                        sort_type = gr.Dropdown(
+                            label="Sort by",
+                            choices=lpp.sources["e621"]["instance"].get_sort_options()
+                        )
+                        sort_type.value = sort_type.choices[0]
             with gr.Row():
                 send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count)
+            set_no_config(query, prompts_count, rating, sort_type)
             return {
                 "panel": panel,
                 "send_btn": send_btn,
-                "params": [query, prompts_count]
+                "params": [query, prompts_count, rating, sort_type]
             }
 
 

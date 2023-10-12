@@ -1,0 +1,24 @@
+{
+    "ratings": {
+        "lookup": {
+            "None": "",
+            "Safe": "rating:safe",
+            "Questionable": "rating:questionable",
+            "Explicit": "rating:explicit"
+        },
+        "pdv5": {
+            "safe": "rating_safe",
+            "questionable": "rating_questionable",
+            "explicit": "rating_explicit"
+        }
+    },
+    "sort_params": {
+        "None": "",
+        "Chronological": "order:id",
+        "Score": "order:score",
+        "Faves": "order:favcount",
+        "Tag Count": "order:tagcount",
+        "Comments": "order:comment_count"
+    },
+    "filtered_tags": null
+}

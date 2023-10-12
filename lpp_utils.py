@@ -143,7 +143,7 @@ class LPPWrapper():
         return self.format_status_msg(
             self.__try_exec_command(
                 self.__lpp.request_prompts,
-                f"Successfully deleted \"{args[0]}\".",
+                f"Successfully fetched tags from \"{args[0]}\".",
                 f"Failed to delete \"{args[0]}\":",
                 *args
             )
