@@ -1,4 +1,4 @@
-from lpp_utils import send_api_request, get_merged_config_entry, formatter
+from lpp_utils import send_api_request, get_config, formatter, glob_match
 import os
 import time
 
@@ -8,10 +8,7 @@ class TagSource():
         self.pretty_name = "Derpibooru"
         self.__work_dir = work_dir
         self.__api_key = self.__get_api_key()
-        config = get_merged_config_entry(
-            "derpi",
-            os.path.join(self.__work_dir, "config")
-        )
+        config = get_config("derpi", os.path.join(self.__work_dir, "config"))
         self.__filter_ids = config["filter_ids"]
         self.__sort_params = config["sort_params"]
         self.__pdv5_ratings = config["ratings"]["pdv5"]
@@ -91,9 +88,7 @@ class TagSource():
         artists = []
         prompt_tail = []
         for tag in raw_image_tags:
-            if (any([tag.startswith(x) for x in self.__filtered_tags["starts_with"]])
-                    or any([tag.endswith(x) for x in self.__filtered_tags["ends_with"]])
-                    or tag in self.__filtered_tags["exact"]):
+            if glob_match(tag, self.__filtered_tags):
                 continue
             if rating is None and tag in self.__pdv5_ratings.keys():
                 rating = self.__pdv5_ratings[tag]

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 import json
 import os
 import shutil
+import fnmatch
 
 
 def send_api_request(endpoint, query_params,
@@ -43,6 +44,13 @@ def get_merged_config_entry(entry, work_dir="config"):
         with open(user_config_file) as f:
             user_config_entry = json.load(f)
             config_entry = merge_dicts(config_entry, user_config_entry)
+    return config_entry
+
+
+def get_config(name, work_dir="config"):
+    config_file = os.path.join(work_dir, f"{name}.json")
+    with open(config_file) as f:
+        config_entry = json.load(f)
     return config_entry
 
 
@@ -140,3 +148,7 @@ class LPPWrapper():
                 *args
             )
         )
+
+
+def glob_match(term, patterns):
+    return any([fnmatch.fnmatch(term, x) for x in patterns])
