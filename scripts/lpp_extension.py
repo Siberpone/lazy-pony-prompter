@@ -100,6 +100,7 @@ class Scripts(scripts.Script):
             "a1111_ui", os.path.join(base_dir, "config")
         )
         self.query_panels = {}
+        self.prompt_manager_dialog_action = lambda: None
 
     def title(self):
         return "Lazy Pony Prompter"
@@ -160,16 +161,14 @@ class Scripts(scripts.Script):
                         save_prompts_btn = gr.Button(value="Save")
                         load_prompts_btn = gr.Button(value="Load")
                         delete_prompts_btn = gr.Button("Delete")
-                    with gr.Row(variant="panel", visible=False) as confirm_action_dialog:
+                    with gr.Row(variant="panel", visible=False) as prompt_manager_dialog:
                         with gr.Column():
                             with gr.Row():
-                                confirm_action_msg = gr.Markdown()
-                                confirm_action_type = gr.Textbox(visible=False)
-                                confirm_action_name = gr.Textbox(visible=False)
+                                pm_dialog_msg = gr.Markdown()
                             with gr.Row():
-                                confirm_action_btn = gr.Button(
+                                pm_dialog_confirm_btn = gr.Button(
                                     "Confirm", variant="stop")
-                                cancel_action_btn = gr.Button("Cancel")
+                                pm_dialog_cancel_btn = gr.Button("Cancel")
                     with gr.Row():
                         prompts_manager_metadata = gr.JSON(
                             label="Prompts Info",
@@ -188,9 +187,8 @@ class Scripts(scripts.Script):
             set_no_config(enabled, source, prompts_format, tag_filter,
                           status_bar, prompts_manager_input, save_prompts_btn,
                           load_prompts_btn, prompts_manager_metadata,
-                          delete_prompts_btn, confirm_action_btn,
-                          cancel_action_btn, confirm_action_type,
-                          confirm_action_name, autofill_tags_filter)
+                          delete_prompts_btn, pm_dialog_confirm_btn,
+                          pm_dialog_cancel_btn, autofill_tags_filter)
 
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
@@ -221,15 +219,14 @@ class Scripts(scripts.Script):
 
             # Save Button Click
             def save_prompts_click(name, tag_filter):
+                self.prompt_manager_dialog_action = lambda: \
+                    self.lpp_wrapper.try_save_prompts(name, tag_filter), \
+                    name
                 if name in self.lpp.get_cached_prompts_names():
                     return (
                         self.lpp_wrapper.format_status_msg(),
-                        gr.Dropdown.update(
-                            choices=self.lpp.get_cached_prompts_names()
-                        ),
+                        gr.update(),
                         f"Are you sure you want to overwrite \"{name}\"?",
-                        "overwrite",
-                        name,
                         gr.update(visible=True)
                     )
                 else:
@@ -238,15 +235,14 @@ class Scripts(scripts.Script):
                         gr.Dropdown.update(
                             choices=self.lpp.get_cached_prompts_names()
                         ),
-                        "", "", "", gr.update(visible=False)
+                        "", gr.update(visible=False)
                     )
 
             save_prompts_btn.click(
                 save_prompts_click,
                 [prompts_manager_input, tag_filter],
-                [status_bar, prompts_manager_input, confirm_action_msg,
-                 confirm_action_type, confirm_action_name,
-                 confirm_action_dialog]
+                [status_bar, prompts_manager_input, pm_dialog_msg,
+                 prompt_manager_dialog]
             )
 
             # Load Button Click
@@ -284,14 +280,16 @@ class Scripts(scripts.Script):
             )
 
             # Delete Button Click
+            def delete_click(name):
+                self.prompt_manager_dialog_action = lambda: \
+                    self.lpp_wrapper.try_delete_prompts(name), \
+                    ""
+                return [f"Are you sure you want to delete \"{name}\"?",
+                        gr.update(visible=True)]
             delete_prompts_btn.click(
-                lambda name: [f"Are you sure you want to delete \"{name}\"?",
-                              "delete",
-                              name,
-                              gr.update(visible=True)],
+                delete_click,
                 [prompts_manager_input],
-                [confirm_action_msg, confirm_action_type,
-                 confirm_action_name, confirm_action_dialog]
+                [pm_dialog_msg, prompt_manager_dialog]
             )
 
             # Load Prompts Dropdown Change
@@ -311,13 +309,9 @@ class Scripts(scripts.Script):
             )
 
             # Action Confirmation Dialog
-            def invoke_action(name, action_type, tag_filter):
-                if action_type == "delete":
-                    msg = self.lpp_wrapper.try_delete_prompts(name)
-                    selected_val = ""
-                if action_type == "overwrite":
-                    msg = self.lpp_wrapper.try_save_prompts(name, tag_filter)
-                    selected_val = name
+            def invoke_action():
+                msg = self.prompt_manager_dialog_action[0]()
+                selected_val = self.prompt_manager_dialog_action[1]
                 return (
                     msg,
                     gr.Dropdown.update(
@@ -327,16 +321,16 @@ class Scripts(scripts.Script):
                     gr.update(visible=False),
                     gr.update(visible=False)
                 )
-            confirm_action_btn.click(
+            pm_dialog_confirm_btn.click(
                 invoke_action,
-                [confirm_action_name, confirm_action_type, tag_filter],
+                None,
                 [status_bar, prompts_manager_input,
-                 confirm_action_dialog, prompts_manager_metadata]
+                 prompt_manager_dialog, prompts_manager_metadata]
             )
-            cancel_action_btn.click(
+            pm_dialog_cancel_btn.click(
                 lambda: gr.update(visible=False),
                 None,
-                [confirm_action_dialog]
+                [prompt_manager_dialog]
             )
         return [enabled, prompts_format, tag_filter]
 
