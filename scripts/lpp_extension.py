@@ -200,14 +200,15 @@ class Scripts(scripts.Script):
             # Send Query Buttons
             for panel in self.query_panels.values():
                 panel["send_btn"].click(
-                    lambda s, *params: (
+                    lambda s, m, *params: (
                         self.lpp_wrapper.try_send_request(s, *params),
                         gr.update(
                             choices=self.lpp.get_models(s),
-                            value=self.lpp.get_models(s)[0]
+                            value=m if m in self.lpp.get_models(s)
+                            else self.lpp.get_models(s)[0]
                         )
                     ),
-                    [source, *panel["params"]],
+                    [source, prompts_format, *panel["params"]],
                     [status_bar, prompts_format],
                     show_progress="full"
                 )
@@ -252,20 +253,21 @@ class Scripts(scripts.Script):
             )
 
             # Load Button Click
-            def load_prompts_click(name, autofill_extra_opts):
+            def load_prompts_click(name, autofill_tags_filter, current_model):
                 try:
                     prompts_data = self.lpp.get_prompts_metadata(name)
                     models = self.lpp.get_models(prompts_data["source"])
                     models_update = gr.update(
                         choices=models,
-                        value=models[0]
+                        value=current_model if current_model in models
+                        else models[0]
                     )
                 except Exception as e:
                     prompts_data = {}
                     models_update = gr.update()
 
                 def get_param(key):
-                    if autofill_extra_opts:
+                    if autofill_tags_filter:
                         return gr.update(value=prompts_data[key]) \
                             if key in prompts_data.keys() \
                             else gr.update(value="")
@@ -281,7 +283,7 @@ class Scripts(scripts.Script):
                 )
             load_prompts_btn.click(
                 load_prompts_click,
-                [prompts_manager_input, autofill_tags_filter],
+                [prompts_manager_input, autofill_tags_filter, prompts_format],
                 [status_bar, prompts_manager_metadata, tag_filter, prompts_format]
             )
 

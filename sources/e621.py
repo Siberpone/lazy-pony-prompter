@@ -56,7 +56,7 @@ class TagSource():
         return filtered_tags
 
     @formatter("Pony Diffusion V5")
-    def derpi(self, raw_image_tags):
+    def pdv5_format(self, raw_image_tags):
         t = self.__filter_raw_tags(
             ["character", "species", "general", "meta"],
             raw_image_tags
@@ -75,7 +75,7 @@ class TagSource():
                 + t["general"] + [f"by {x}" for x in t["artist"]]
                 + t["copyright"] + t["meta"]]
 
-    @formatter("EasyFluff (no aritst names)")
+    @formatter("EasyFluff (no artist names)")
     def easyfluff_no_artist_format(self, raw_image_tags):
         t = self.__filter_raw_tags(
             ["character", "species", "general", "copyright", "meta"],
