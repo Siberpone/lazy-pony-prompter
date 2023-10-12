@@ -20,5 +20,25 @@
         "Tag Count": "order:tagcount",
         "Comments": "order:comment_count"
     },
-    "filtered_tags": null
+    "filtered_tags": {
+        "meta": [
+            "webm",
+            "gif",
+            "animated",
+            "*animation",
+            "*_playtime",
+            "*_framerate",
+            "sound",
+            "no_sound",
+            "widescreen",
+            "*_filesize",
+            "voice acted",
+            "loop",
+            "*signature",
+            "*watermark"
+        ],
+        "copyright": [
+            "hasbro"
+        ]
+    }
 }
