@@ -19,7 +19,7 @@ class QueryPanels():
     def derpi(active_panel_name, lpp, config):
         with gr.Accordion(
             "💬 Derpibooru Query",
-            open=config["derpibooru_query_start_unfolded"],
+            open=config["query_panel_start_unfolded"],
             visible=(active_panel_name == "Derpibooru")
         ) as panel:
             gr.Markdown(
@@ -63,7 +63,7 @@ class QueryPanels():
     def e621(active_panel_name, lpp, config):
         with gr.Accordion(
             "💬 E621 Query",
-            open=config["derpibooru_query_start_unfolded"],
+            open=config["query_panel_start_unfolded"],
             visible=(active_panel_name == "E621")
         ) as panel:
             gr.Markdown(
@@ -114,10 +114,7 @@ class Scripts(scripts.Script):
             open=self.config["start_unfolded"]
         ):
             with gr.Row():
-                enabled = gr.Checkbox(
-                    label="Enabled",
-                    value=self.config["enabled"]
-                )
+                enabled = gr.Checkbox(label="Enabled")
                 source = gr.Dropdown(
                     label="Tags Source",
                     choices=self.lpp.get_sources()
@@ -135,7 +132,7 @@ class Scripts(scripts.Script):
                         source.value, self.lpp, self.config
                     )
 
-                # Extra Tags Filter -------------------------------------------
+                # Tags Filter -------------------------------------------------
                 with gr.Accordion("🏷 Tags Filter", open=False):
                     with gr.Row():
                         tag_filter = gr.Textbox(
@@ -154,8 +151,7 @@ class Scripts(scripts.Script):
                             )
                         with gr.Column(scale=0, min_width=200):
                             autofill_tags_filter = gr.Checkbox(
-                                label="Autofill Tags Filter",
-                                value=self.config["autofill_extra_options"]
+                                label="Autofill Tags Filter"
                             )
                     with gr.Row():
                         save_prompts_btn = gr.Button(value="Save")
@@ -184,11 +180,9 @@ class Scripts(scripts.Script):
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
-            set_no_config(enabled, source, prompts_format, tag_filter,
-                          status_bar, prompts_manager_input, save_prompts_btn,
-                          load_prompts_btn, prompts_manager_metadata,
-                          delete_prompts_btn, pm_dialog_confirm_btn,
-                          pm_dialog_cancel_btn, autofill_tags_filter)
+            set_no_config(
+                source, prompts_format, tag_filter, prompts_manager_input
+            )
 
             # Event Handlers --------------------------------------------------
             # Send Query Buttons

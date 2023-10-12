@@ -1,17 +1,12 @@
 {
     "start_unfolded": false,
-    "derpibooru_query_start_unfolded": true,
-    "extra_options_start_unfolded": false,
+    "query_panel_start_unfolded": true,
+    "tags_filter_start_unfolded": false,
     "prompt_manager_start_unfolded": false,
-    "enabled": false,
-    "include_standard_negative_prompt": true,
     "prompts_count": {
         "min": 5,
         "max": 300,
         "step": 5,
         "default": 100
-    },
-    "prefix": "",
-    "suffix": "",
-    "autofill_extra_options": true
+    }
 }
