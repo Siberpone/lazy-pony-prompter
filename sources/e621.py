@@ -43,8 +43,9 @@ class TagSource():
     @formatter("Pony Diffusion V5")
     def derpi(self, raw_image_tags):
         t = raw_image_tags
-        return [x.replace("_", " ") for x in t["character"] + t["species"]
-                + t["general"] + t["meta"]]
+        rating = self.__config["ratings"]["pdv5"][t["rating"]]
+        return [rating] + [x.replace("_", " ") for x in t["character"]
+                           + t["species"] + t["general"] + t["meta"]]
 
     @formatter("EasyFluff")
     def easyfluff_format(self, raw_image_tags):

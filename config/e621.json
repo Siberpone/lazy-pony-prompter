@@ -7,9 +7,9 @@
             "Explicit": "rating:explicit"
         },
         "pdv5": {
-            "safe": "rating_safe",
-            "questionable": "rating_questionable",
-            "explicit": "rating_explicit"
+            "s": "rating_safe",
+            "q": "rating_questionable",
+            "e": "rating_explicit"
         }
     },
     "sort_params": {
