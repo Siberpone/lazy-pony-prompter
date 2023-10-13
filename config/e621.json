@@ -32,13 +32,32 @@
             "no_sound",
             "widescreen",
             "*_filesize",
-            "voice acted",
+            "voice_acted",
             "loop",
             "*signature",
-            "*watermark"
+            "*watermark",
+            "artist_name",
+            "alpha_channel",
+            "1?:?",
+            "?:?",
+            "??:??",
+            "?:1?",
+            "20*",
+            "source_request",
+            "lol_comments",
+            "collaboration"
         ],
         "copyright": [
             "hasbro"
+        ],
+        "artist": [
+            "conditional_dnp",
+            "avoid_posting",
+            "unknown_artist",
+            "third-party_edit"
+        ],
+        "general": [
+            "transparent_background"
         ]
     }
 }
