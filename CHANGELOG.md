@@ -1,3 +1,10 @@
+### 2023-10-13
+
+* Small UI fixes and improvements
+* e621 formatters improvements
+* Improved formatting for EasyFluff
+* Added PDV5 formatter for e621
+
 ### 2023-10-02
 
 * Added simple globbing support to tag filter
@@ -5,7 +12,7 @@
 ### 2023-10-01
 
 * Added different tag sources and prompt formats support
-* Added support for e632.net as tag source
+* Added support for e621.net as tag source
 * Added basic support for EasyFluff model
 * Added support for standard [A1111 styles feature](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#styles)
 * Removed Prefix and Suffix textboxes since A1111 styles can be used for the same purpose
