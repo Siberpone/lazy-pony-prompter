@@ -147,10 +147,13 @@ class Scripts(scripts.Script):
                 # Tags Filter -------------------------------------------------
                 with gr.Accordion("🏷 Tags Filter", open=False):
                     with gr.Row():
-                        tag_filter = gr.Textbox(
-                            show_label=False,
-                            placeholder="These tags (comma separated) will be pruned from prompts"
-                        )
+                        with gr.Column(scale=2):
+                            tag_filter = gr.Textbox(
+                                show_label=False,
+                                placeholder="These tags (comma separated) will be pruned from prompts"
+                            )
+                        with gr.Column(scale=0, min_width=130):
+                            gr.ClearButton(components=[tag_filter])
 
                 # Prompts Manager Panel ---------------------------------------
                 with gr.Accordion("💾 Prompts Manager", open=False):
