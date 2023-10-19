@@ -1,5 +1,5 @@
 from random import choices
-from lpp_utils import glob_match
+from lpp.utils import glob_match
 from dataclasses import dataclass
 import pickle
 import importlib.util

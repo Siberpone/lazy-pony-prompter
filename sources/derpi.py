@@ -1,5 +1,5 @@
-from lpp_utils import send_api_request, get_config, formatter, glob_match
-from lpp import TagData
+from lpp.utils import send_api_request, get_config, formatter, glob_match
+from lpp.backend import TagData
 import os
 import time
 

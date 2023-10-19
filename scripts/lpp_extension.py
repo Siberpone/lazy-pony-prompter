@@ -1,5 +1,5 @@
-from a1111 import LPPWrapper
-from lpp_utils import get_merged_config_entry
+from lpp.a1111 import LPPWrapper
+from lpp.utils import get_merged_config_entry
 from modules.styles import merge_prompts as merge_prompt_as_style
 from dataclasses import dataclass
 import gradio as gr

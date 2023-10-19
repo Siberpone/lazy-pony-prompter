@@ -2,7 +2,6 @@ from urllib.request import urlopen, Request
 from urllib.parse import urlencode
 import json
 import os
-import shutil
 import fnmatch
 
 

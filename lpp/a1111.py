@@ -1,4 +1,4 @@
-from lpp import SourcesManager, CacheManager
+from lpp.backend import SourcesManager, CacheManager
 
 
 class LPPWrapper():
@@ -35,7 +35,8 @@ class LPPWrapper():
 
     def try_load_prompts(self, name):
         def load_new_tag_data(name):
-            self.sources_manager.tag_data = self.cache_manager.get_tag_data(name)
+            self.sources_manager.tag_data = self.cache_manager.get_tag_data(
+                name)
         return self.format_status_msg(
             self.__try_exec_command(
                 load_new_tag_data,
