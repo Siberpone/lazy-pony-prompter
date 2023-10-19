@@ -1,4 +1,5 @@
 from lpp_utils import send_api_request, get_config, formatter, glob_match
+from lpp import TagData
 import os
 import time
 
@@ -53,13 +54,15 @@ class TagSource():
             json_response = send_api_request(ENDPOINT, query_params)
             raw_tags += [x["tags"] for x in json_response["images"]]
 
-        return {
-            "source": "derpi",
-            "query": query,
-            "filter_type": filter_type,
-            "sort_type": sort_type,
-            "raw_tags": raw_tags[:items_total]
-        }
+        return TagData(
+            "derpi",
+            query,
+            raw_tags[:items_total],
+            {
+                "filter_type": filter_type,
+                "sort_type": sort_type,
+            }
+        )
 
     def __get_api_key(self):
         old_api_key_file = os.path.join(self.__work_dir, "api_key")

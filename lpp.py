@@ -1,10 +1,11 @@
 from random import choices
 from lpp_utils import glob_match
 from dataclasses import dataclass
-import json
+import pickle
 import importlib.util
 import glob
 import os
+import copy
 
 
 @dataclass
@@ -12,6 +13,14 @@ class SourceData():
     instance: object
     pretty_name: str
     models: dict
+
+
+@dataclass
+class TagData():
+    source: str
+    query: str
+    raw_tags: list
+    other_params: dict
 
 
 class LazyPonyPrompter():
@@ -22,16 +31,16 @@ class LazyPonyPrompter():
         self.__source_names = {
             self.sources[x].pretty_name: x for x in self.sources
         }
-        self.__prompts = None
+        self.__prompts: TagData = None
 
     def __load_prompt_cache(self):
-        cache_file = os.path.join(self.__work_dir, "cache.json")
+        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
         if not os.path.exists(cache_file):
             return {}
 
-        with open(cache_file) as f:
+        with open(cache_file, "rb") as f:
             try:
-                return json.load(f)
+                return pickle.load(f)
             except Exception as e:
                 return {}
 
@@ -71,8 +80,10 @@ class LazyPonyPrompter():
     def get_sources(self):
         return [x.pretty_name for x in self.sources.values()]
 
-    def get_models(self, source):
-        return list(self.sources[self.__resolve_source_name(source)].models.keys())
+    def get_models(self, source=None):
+        source_name = self.__prompts.source if source is None \
+            else self.__resolve_source_name(source)
+        return list(self.sources[source_name].models.keys())
 
     def request_prompts(self, source, *args):
         self.__prompts = self.sources[
@@ -80,9 +91,9 @@ class LazyPonyPrompter():
         ].instance.request_tags(*args)
 
     def choose_prompts(self, model, n=1, tag_filter_str=""):
-        chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
+        chosen_prompts = choices(self.__prompts.raw_tags, k=n)
 
-        source = self.__prompts["source"]
+        source = self.__prompts.source
         format_func = self.sources[source].models[model]
 
         extra_tag_filter = {
@@ -104,9 +115,7 @@ class LazyPonyPrompter():
         return processed_prompts
 
     def get_loaded_prompts_count(self):
-        return len(self.__prompts["raw_tags"]) \
-            if self.__prompts and "raw_tags" in self.__prompts.keys() \
-            else 0
+        return len(self.__prompts.raw_tags) if self.__prompts else 0
 
     def get_cached_prompts_names(self):
         return list(self.__prompt_cache.keys())
@@ -114,22 +123,19 @@ class LazyPonyPrompter():
     def cache_current_prompts(self, name, tag_filter=None):
         if not name:
             raise ValueError("Empty \"name\" parameter")
-        prompts_data = self.__prompts
+        prompts_data = copy.deepcopy(self.__prompts)
+        prompts_data.other_params["tag_filter"] = tag_filter if tag_filter else ""
 
-        def set_param(param, key):
-            prompts_data[key] = param if param else ""
-
-        set_param(tag_filter, "tag_filter")
         self.__prompt_cache[name] = prompts_data
         self.__dump_prompts_cache()
 
     def load_cached_prompts(self, name):
-        if name not in self.__prompt_cache.keys():
+        if name not in self.__prompt_cache:
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        self.__prompts = self.__prompt_cache[name]
+        self.__prompts = copy.deepcopy(self.__prompt_cache[name])
 
     def delete_cached_prompts(self, name):
-        if name not in self.__prompt_cache.keys():
+        if name not in self.__prompt_cache:
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
         del self.__prompt_cache[name]
         self.__dump_prompts_cache()
@@ -138,17 +144,20 @@ class LazyPonyPrompter():
         if name is None:
             if not self.__prompts:
                 return {}
-            prompts_data = dict(self.__prompts)
+            p = self.__prompts
         else:
-            if name in self.__prompt_cache.keys():
-                prompts_data = dict(self.__prompt_cache[name])
+            if name in self.__prompt_cache:
+                p = self.__prompt_cache[name]
             else:
                 raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        prompts_data["prompts_count"] = len(prompts_data["raw_tags"])
-        del prompts_data["raw_tags"]
-        return prompts_data
+        return {
+            "source": p.source,
+            "query": p.query,
+            "other_params": p.other_params,
+            "count": len(p.raw_tags)
+        }
 
     def __dump_prompts_cache(self):
-        cache_file = os.path.join(self.__work_dir, "cache.json")
-        with open(cache_file, "w") as f:
-            json.dump(self.__prompt_cache, f, indent=4)
+        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
+        with open(cache_file, "wb") as f:
+            pickle.dump(self.__prompt_cache, f)

@@ -1,4 +1,5 @@
 from lpp_utils import send_api_request, formatter, get_config, glob_match
+from lpp import TagData
 import os
 
 
@@ -37,11 +38,12 @@ class TagSource():
         json_response = send_api_request(ENDPOINT, query_params)
         for post in json_response["posts"]:
             post["tags"]["rating"] = post["rating"]
-        return {
-            "source": "e621",
-            "query": p_query,
-            "raw_tags": [x["tags"] for x in json_response["posts"]]
-        }
+        return TagData(
+            "e621",
+            p_query,
+            [x["tags"] for x in json_response["posts"]],
+            {}
+        )
 
     def __filter_raw_tags(self, categories, raw_image_tags):
         filtered_tags = {}

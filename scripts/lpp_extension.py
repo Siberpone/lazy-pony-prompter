@@ -205,9 +205,7 @@ class Scripts(scripts.Script):
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
-            set_no_config(
-                source, prompts_format, tag_filter, prompts_manager_input
-            )
+            set_no_config(source, prompts_format, prompts_manager_input)
 
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
@@ -267,29 +265,21 @@ class Scripts(scripts.Script):
 
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
-                try:
-                    prompts_data = self.lpp.get_prompts_metadata(name)
-                    models = self.lpp.get_models(prompts_data["source"])
-                    models_update = gr.update(
-                        choices=models,
-                        value=current_model if current_model in models
-                        else models[0]
-                    )
-                except Exception as e:
-                    prompts_data = {}
-                    models_update = gr.update()
+                msg = self.lpp_wrapper.try_load_prompts(name)
+                models = self.lpp.get_models()
+                models_update = gr.update(
+                    choices=models,
+                    value=current_model if current_model in models
+                    else models[0]
+                )
 
-                def get_param(key):
-                    if autofill_tags_filter:
-                        return gr.update(value=prompts_data[key]) \
-                            if key in prompts_data.keys() \
-                            else gr.update(value="")
-                    else:
-                        return gr.update()
+                metadata = self.lpp.get_prompts_metadata()["other_params"]
+                tag_filter_update = metadata["tag_filter"] \
+                    if "tag_filter" in metadata and autofill_tags_filter \
+                    else ""
 
-                tag_filter_update = get_param("tag_filter")
                 return (
-                    self.lpp_wrapper.try_load_prompts(name),
+                    msg,
                     gr.update(visible=False),
                     tag_filter_update,
                     models_update
