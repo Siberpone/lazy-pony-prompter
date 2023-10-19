@@ -1,3 +1,7 @@
+### 2023-10-19
+
+* Removed legacy cache format updater. Hopefully everyone updated at this point :)
+
 ### 2023-10-13
 
 * Small UI fixes and improvements

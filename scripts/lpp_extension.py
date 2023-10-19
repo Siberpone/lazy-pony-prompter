@@ -1,6 +1,7 @@
 from lpp import LazyPonyPrompter as LPP
 from lpp_utils import get_merged_config_entry, LPPWrapper
 from modules.styles import merge_prompts as merge_prompt_as_style
+from dataclasses import dataclass
 import gradio as gr
 import modules.scripts as scripts
 import modules.shared as shared
@@ -12,6 +13,12 @@ base_dir = scripts.basedir()
 def set_no_config(*args):
     for control in args:
         setattr(control, "do_not_save_to_config", True)
+
+
+class QueryPanelData():
+    panel: object
+    send_btn: object
+    params: list
 
 
 class QueryPanels():
@@ -42,22 +49,23 @@ class QueryPanels():
                     with gr.Row():
                         filter_type = gr.Dropdown(
                             label="Derpibooru Filter",
-                            choices=lpp.sources["derpi"]["instance"].get_filters()
+                            choices=lpp.sources["derpi"].instance.get_filters()
                         )
                         filter_type.value = filter_type.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources["derpi"]["instance"].get_sort_options()
+                            choices=lpp.sources["derpi"].instance.get_sort_options(
+                            )
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
                 send_btn = gr.Button(value="Send")
             set_no_config(query, prompts_count, filter_type, sort_type)
-            return {
-                "panel": panel,
-                "send_btn": send_btn,
-                "params": [query, prompts_count, filter_type, sort_type]
-            }
+            return QueryPanelData(
+                panel,
+                send_btn,
+                [query, prompts_count, filter_type, sort_type]
+            )
 
     @staticmethod
     def e621(active_panel_name, lpp, config):
@@ -86,22 +94,23 @@ class QueryPanels():
                     with gr.Row():
                         rating = gr.Dropdown(
                             label="Rating",
-                            choices=lpp.sources["e621"]["instance"].get_ratings()
+                            choices=lpp.sources["e621"].instance.get_ratings()
                         )
                         rating.value = rating.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources["e621"]["instance"].get_sort_options()
+                            choices=lpp.sources["e621"].instance.get_sort_options(
+                            )
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
                 send_btn = gr.Button(value="Send")
             set_no_config(query, prompts_count, rating, sort_type)
-            return {
-                "panel": panel,
-                "send_btn": send_btn,
-                "params": [query, prompts_count, rating, sort_type]
-            }
+            return QueryPanelData(
+                panel,
+                send_btn,
+                [query, prompts_count, rating, sort_type]
+            )
 
 
 class Scripts(scripts.Script):
@@ -202,7 +211,7 @@ class Scripts(scripts.Script):
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
             for panel in self.query_panels.values():
-                panel["send_btn"].click(
+                panel.send_btn.click(
                     lambda s, m, *params: (
                         self.lpp_wrapper.try_send_request(s, *params),
                         gr.update(
@@ -211,7 +220,7 @@ class Scripts(scripts.Script):
                             else self.lpp.get_models(s)[0]
                         )
                     ),
-                    [source, prompts_format, *panel["params"]],
+                    [source, prompts_format, *panel.params],
                     [status_bar, prompts_format],
                     show_progress="full"
                 )
@@ -220,11 +229,11 @@ class Scripts(scripts.Script):
             source.change(
                 lambda s: [
                     gr.update(visible=(
-                        s == self.lpp.sources[x]["pretty_name"])
+                        s == self.lpp.sources[x].pretty_name)
                     ) for x in self.query_panels.keys()
                 ],
                 [source],
-                [x["panel"] for x in self.query_panels.values()]
+                [x.panel for x in self.query_panels.values()]
             )
 
             # Save Button Click

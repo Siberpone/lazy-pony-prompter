@@ -1,9 +1,17 @@
 from random import choices
-from lpp_utils import update_legacy_prompt_cache, glob_match
+from lpp_utils import glob_match
+from dataclasses import dataclass
 import json
 import importlib.util
 import glob
 import os
+
+
+@dataclass
+class SourceData():
+    instance: object
+    pretty_name: str
+    models: dict
 
 
 class LazyPonyPrompter():
@@ -12,15 +20,11 @@ class LazyPonyPrompter():
         self.__prompt_cache = self.__load_prompt_cache()
         self.sources = self.__load_sources()
         self.__source_names = {
-            self.sources[x]["pretty_name"]: x for x in self.sources.keys()
+            self.sources[x].pretty_name: x for x in self.sources
         }
         self.__prompts = None
 
     def __load_prompt_cache(self):
-
-        # Update legacy cache file format
-        update_legacy_prompt_cache(self.__work_dir)
-
         cache_file = os.path.join(self.__work_dir, "cache.json")
         if not os.path.exists(cache_file):
             return {}
@@ -50,11 +54,11 @@ class LazyPonyPrompter():
                 if hasattr(obj, "is_formatter"):
                     source_models[obj.pretty_model_name] = obj
 
-            sources[source_name] = {
-                "instance": instance,
-                "pretty_name": instance.pretty_name,
-                "models": source_models
-            }
+            sources[source_name] = SourceData(
+                instance,
+                instance.pretty_name,
+                source_models
+            )
         return sources
 
     def __resolve_source_name(self, source_name):
@@ -65,21 +69,21 @@ class LazyPonyPrompter():
         raise KeyError("No such source: \"{source_name}\"")
 
     def get_sources(self):
-        return [x["pretty_name"] for x in self.sources.values()]
+        return [x.pretty_name for x in self.sources.values()]
 
     def get_models(self, source):
-        return list(self.sources[self.__resolve_source_name(source)]["models"].keys())
+        return list(self.sources[self.__resolve_source_name(source)].models.keys())
 
     def request_prompts(self, source, *args):
         self.__prompts = self.sources[
             self.__resolve_source_name(source)
-        ]["instance"].request_tags(*args)
+        ].instance.request_tags(*args)
 
     def choose_prompts(self, model, n=1, tag_filter_str=""):
         chosen_prompts = choices(self.__prompts["raw_tags"], k=n)
 
         source = self.__prompts["source"]
-        format_func = self.sources[source]["models"][model]
+        format_func = self.sources[source].models[model]
 
         extra_tag_filter = set(
             filter(None, [t.strip() for t in tag_filter_str.split(",")])
