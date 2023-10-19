@@ -23,28 +23,16 @@ class TagData():
     other_params: dict
 
 
-class LazyPonyPrompter():
-    def __init__(self, work_dir="."):
-        self.__work_dir = work_dir
-        self.__prompt_cache = self.__load_prompt_cache()
-        self.sources = self.__load_sources()
-        self.__source_names = {
+class SourcesManager():
+    def __init__(self, work_dir: str = "."):
+        self.__work_dir: str = work_dir
+        self.tag_data: TagData = None
+        self.sources: dict[str:SourceData] = self.__load_sources()
+        self.__source_names: dict[str:str] = {
             self.sources[x].pretty_name: x for x in self.sources
         }
-        self.__prompts: TagData = None
 
-    def __load_prompt_cache(self):
-        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
-        if not os.path.exists(cache_file):
-            return {}
-
-        with open(cache_file, "rb") as f:
-            try:
-                return pickle.load(f)
-            except Exception as e:
-                return {}
-
-    def __load_sources(self):
+    def __load_sources(self) -> dict[str:SourceData]:
         sources_dir = os.path.join(self.__work_dir, "sources")
         source_files = glob.glob("*.py", root_dir=sources_dir)
         sources = {}
@@ -70,30 +58,32 @@ class LazyPonyPrompter():
             )
         return sources
 
-    def __resolve_source_name(self, source_name):
+    def __resolve_source_name(self, source_name: str) -> str:
         if source_name in self.sources:
             return source_name
         if source_name in self.__source_names:
             return self.__source_names[source_name]
         raise KeyError("No such source: \"{source_name}\"")
 
-    def get_sources(self):
+    def get_sources(self) -> list[str]:
         return [x.pretty_name for x in self.sources.values()]
 
-    def get_models(self, source=None):
-        source_name = self.__prompts.source if source is None \
+    def get_models(self, source: str = None) -> list[str]:
+        source_name = self.tag_data.source if source is None \
             else self.__resolve_source_name(source)
         return list(self.sources[source_name].models.keys())
 
-    def request_prompts(self, source, *args):
-        self.__prompts = self.sources[
+    def request_prompts(self, source: str, *args) -> None:
+        self.tag_data = self.sources[
             self.__resolve_source_name(source)
         ].instance.request_tags(*args)
 
-    def choose_prompts(self, model, n=1, tag_filter_str=""):
-        chosen_prompts = choices(self.__prompts.raw_tags, k=n)
+    def choose_prompts(
+            self, model: str, n: int = 1, tag_filter_str: str = ""
+    ) -> list[list[str]]:
+        chosen_prompts = choices(self.tag_data.raw_tags, k=n)
 
-        source = self.__prompts.source
+        source = self.tag_data.source
         format_func = self.sources[source].models[model]
 
         extra_tag_filter = {
@@ -114,50 +104,51 @@ class LazyPonyPrompter():
             )
         return processed_prompts
 
-    def get_loaded_prompts_count(self):
-        return len(self.__prompts.raw_tags) if self.__prompts else 0
+    def get_loaded_prompts_count(self) -> int:
+        return len(self.tag_data.raw_tags) if self.tag_data else 0
 
-    def get_cached_prompts_names(self):
-        return list(self.__prompt_cache.keys())
 
-    def cache_current_prompts(self, name, tag_filter=None):
-        if not name:
-            raise ValueError("Empty \"name\" parameter")
-        prompts_data = copy.deepcopy(self.__prompts)
-        prompts_data.other_params["tag_filter"] = tag_filter if tag_filter else ""
+class CacheManager():
+    def __init__(self, work_dir: str = "."):
+        self.__work_dir: str = work_dir
+        self.__tag_data_cache: dict[str:list[TagData]] = self.__load_cache()
 
-        self.__prompt_cache[name] = prompts_data
-        self.__dump_prompts_cache()
+    def __load_cache(self) -> dict[str:list[TagData]]:
+        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
+        if not os.path.exists(cache_file):
+            return {}
 
-    def load_cached_prompts(self, name):
-        if name not in self.__prompt_cache:
-            raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        self.__prompts = copy.deepcopy(self.__prompt_cache[name])
-
-    def delete_cached_prompts(self, name):
-        if name not in self.__prompt_cache:
-            raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        del self.__prompt_cache[name]
-        self.__dump_prompts_cache()
-
-    def get_prompts_metadata(self, name=None):
-        if name is None:
-            if not self.__prompts:
+        with open(cache_file, "rb") as f:
+            try:
+                return pickle.load(f)
+            except Exception as e:
                 return {}
-            p = self.__prompts
-        else:
-            if name in self.__prompt_cache:
-                p = self.__prompt_cache[name]
-            else:
-                raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        return {
-            "source": p.source,
-            "query": p.query,
-            "other_params": p.other_params,
-            "count": len(p.raw_tags)
-        }
 
-    def __dump_prompts_cache(self):
+    def __dump_cache(self) -> None:
         cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
         with open(cache_file, "wb") as f:
-            pickle.dump(self.__prompt_cache, f)
+            pickle.dump(self.__tag_data_cache, f)
+
+    def get_collection_names(self) -> list[str]:
+        return list(self.__tag_data_cache.keys())
+
+    def cache_tag_data(
+            self, name: str, data: TagData, tag_filter: str = None) -> None:
+        if not name:
+            raise ValueError("Empty \"name\" parameter")
+        tag_data = copy.deepcopy(data)
+        tag_data.other_params["tag_filter"] = tag_filter if tag_filter else ""
+
+        self.__tag_data_cache[name] = tag_data
+        self.__dump_cache()
+
+    def get_tag_data(self, name: str) -> TagData:
+        if name not in self.__tag_data_cache:
+            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+        return copy.deepcopy(self.__tag_data_cache[name])
+
+    def delete_tag_data(self, name: str) -> None:
+        if name not in self.__tag_data_cache:
+            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+        del self.__tag_data_cache[name]
+        self.__dump_cache()

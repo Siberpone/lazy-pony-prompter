@@ -1,5 +1,5 @@
-from lpp import LazyPonyPrompter as LPP
-from lpp_utils import get_merged_config_entry, LPPWrapper
+from a1111 import LPPWrapper
+from lpp_utils import get_merged_config_entry
 from modules.styles import merge_prompts as merge_prompt_as_style
 from dataclasses import dataclass
 import gradio as gr
@@ -50,12 +50,13 @@ class QueryPanels():
                     with gr.Row():
                         filter_type = gr.Dropdown(
                             label="Derpibooru Filter",
-                            choices=lpp.sources["derpi"].instance.get_filters()
+                            choices=lpp.sources_manager.sources["derpi"].instance.get_filters(
+                            )
                         )
                         filter_type.value = filter_type.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources["derpi"].instance.get_sort_options(
+                            choices=lpp.sources_manager.sources["derpi"].instance.get_sort_options(
                             )
                         )
                         sort_type.value = sort_type.choices[0]
@@ -95,12 +96,13 @@ class QueryPanels():
                     with gr.Row():
                         rating = gr.Dropdown(
                             label="Rating",
-                            choices=lpp.sources["e621"].instance.get_ratings()
+                            choices=lpp.sources_manager.sources["e621"].instance.get_ratings(
+                            )
                         )
                         rating.value = rating.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources["e621"].instance.get_sort_options(
+                            choices=lpp.sources_manager.sources["e621"].instance.get_sort_options(
                             )
                         )
                         sort_type.value = sort_type.choices[0]
@@ -116,8 +118,7 @@ class QueryPanels():
 
 class Scripts(scripts.Script):
     def __init__(self):
-        self.lpp = LPP(base_dir)
-        self.lpp_wrapper = LPPWrapper(self.lpp)
+        self.lpp: LPPWrapper = LPPWrapper(base_dir)
         self.config = get_merged_config_entry(
             "a1111_ui", os.path.join(base_dir, "config")
         )
@@ -139,7 +140,7 @@ class Scripts(scripts.Script):
                 enabled = gr.Checkbox(label="Enabled")
                 source = gr.Dropdown(
                     label="Tags Source",
-                    choices=self.lpp.get_sources()
+                    choices=self.lpp.sources_manager.get_sources()
                 )
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(label="Prompts Format")
@@ -171,7 +172,7 @@ class Scripts(scripts.Script):
                         with gr.Column(scale=2):
                             prompts_manager_input = gr.Dropdown(
                                 label="Prompts Collection Name",
-                                choices=self.lpp.get_cached_prompts_names(),
+                                choices=self.lpp.cache_manager.get_collection_names(),
                                 allow_custom_value=True
                             )
                         with gr.Column(scale=0, min_width=200):
@@ -200,7 +201,7 @@ class Scripts(scripts.Script):
             # Status Bar ------------------------------------------------------
             with gr.Box():
                 status_bar = gr.Markdown(
-                    value=self.lpp_wrapper.format_status_msg()
+                    value=self.lpp.format_status_msg()
                 )
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
@@ -212,11 +213,11 @@ class Scripts(scripts.Script):
             for panel in self.query_panels.values():
                 panel.send_btn.click(
                     lambda s, m, *params: (
-                        self.lpp_wrapper.try_send_request(s, *params),
+                        self.lpp.try_send_request(s, *params),
                         gr.update(
-                            choices=self.lpp.get_models(s),
-                            value=m if m in self.lpp.get_models(s)
-                            else self.lpp.get_models(s)[0]
+                            choices=self.lpp.sources_manager.get_models(s),
+                            value=m if m in self.lpp.sources_manager.get_models(s)
+                            else self.lpp.sources_manager.get_models(s)[0]
                         )
                     ),
                     [source, prompts_format, *panel.params],
@@ -228,7 +229,7 @@ class Scripts(scripts.Script):
             source.change(
                 lambda s: [
                     gr.update(visible=(
-                        s == self.lpp.sources[x].pretty_name)
+                        s == self.lpp.sources_manager.sources[x].pretty_name)
                     ) for x in self.query_panels.keys()
                 ],
                 [source],
@@ -238,20 +239,20 @@ class Scripts(scripts.Script):
             # Save Button Click
             def save_prompts_click(name, tag_filter):
                 self.prompt_manager_dialog_action = lambda: \
-                    self.lpp_wrapper.try_save_prompts(name, tag_filter), \
+                    self.lpp.try_save_prompts(name, tag_filter), \
                     name
-                if name in self.lpp.get_cached_prompts_names():
+                if name in self.lpp.cache_manager.get_collection_names():
                     return (
-                        self.lpp_wrapper.format_status_msg(),
+                        self.lpp.format_status_msg(),
                         gr.update(),
                         f"Are you sure you want to overwrite \"{name}\"?",
                         gr.update(visible=True)
                     )
                 else:
                     return (
-                        self.lpp_wrapper.try_save_prompts(name, tag_filter),
+                        self.lpp.try_save_prompts(name, tag_filter),
                         gr.Dropdown.update(
-                            choices=self.lpp.get_cached_prompts_names()
+                            choices=self.lpp.cache_manager.get_collection_names()
                         ),
                         "", gr.update(visible=False)
                     )
@@ -265,15 +266,15 @@ class Scripts(scripts.Script):
 
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
-                msg = self.lpp_wrapper.try_load_prompts(name)
-                models = self.lpp.get_models()
+                msg = self.lpp.try_load_prompts(name)
+                models = self.lpp.sources_manager.get_models()
                 models_update = gr.update(
                     choices=models,
                     value=current_model if current_model in models
                     else models[0]
                 )
 
-                metadata = self.lpp.get_prompts_metadata()["other_params"]
+                metadata = self.lpp.sources_manager.tag_data.other_params
                 tag_filter_update = metadata["tag_filter"] \
                     if "tag_filter" in metadata and autofill_tags_filter \
                     else ""
@@ -293,7 +294,7 @@ class Scripts(scripts.Script):
             # Delete Button Click
             def delete_click(name):
                 self.prompt_manager_dialog_action = lambda: \
-                    self.lpp_wrapper.try_delete_prompts(name), \
+                    self.lpp.try_delete_prompts(name), \
                     ""
                 return [f"Are you sure you want to delete \"{name}\"?",
                         gr.update(visible=True)]
@@ -305,12 +306,10 @@ class Scripts(scripts.Script):
 
             # Load Prompts Dropdown Change
             def load_prompts_metadata_update(name):
-                try:
-                    return gr.JSON.update(
-                        value=self.lpp.get_prompts_metadata(name),
-                        visible=True
-                    )
-                except Exception as e:
+                success, metadata = self.lpp.try_get_tag_data_json(name)
+                if success:
+                    return gr.JSON.update(value=metadata, visible=True)
+                else:
                     return gr.JSON.update(visible=False)
 
             prompts_manager_input.change(
@@ -326,7 +325,8 @@ class Scripts(scripts.Script):
                 return (
                     msg,
                     gr.Dropdown.update(
-                        choices=list(self.lpp.get_cached_prompts_names()),
+                        choices=list(
+                            self.lpp.cache_manager.get_collection_names()),
                         value=selected_val
                     ),
                     gr.update(visible=False),
@@ -350,7 +350,7 @@ class Scripts(scripts.Script):
             return p
 
         n_images = p.batch_size * p.n_iter
-        p.all_prompts = self.lpp.choose_prompts(
+        p.all_prompts = self.lpp.sources_manager.choose_prompts(
             prompts_format, n_images, tag_filter
         )
 
