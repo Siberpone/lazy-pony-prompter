@@ -15,6 +15,7 @@ def set_no_config(*args):
         setattr(control, "do_not_save_to_config", True)
 
 
+@dataclass
 class QueryPanelData():
     panel: object
     send_btn: object
@@ -145,9 +146,9 @@ class Scripts(scripts.Script):
 
             with gr.Column():
                 # Query Panels ------------------------------------------------
-                for attr in filter(
-                    lambda x: not x.startswith("_"), dir(QueryPanels)
-                ):
+                for attr in [
+                    x for x in dir(QueryPanels) if not x.startswith("_")
+                ]:
                     query_panel = getattr(QueryPanels, attr)
                     self.query_panels[query_panel.__name__] = query_panel(
                         source.value, self.lpp, self.config

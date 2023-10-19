@@ -49,7 +49,7 @@ class LazyPonyPrompter():
             instance = source.TagSource(self.__work_dir)
 
             source_models = {}
-            for attr in filter(lambda x: not x.startswith("_"), dir(instance)):
+            for attr in [x for x in dir(instance) if not x.startswith("_")]:
                 obj = getattr(instance, attr)
                 if hasattr(obj, "is_formatter"):
                     source_models[obj.pretty_model_name] = obj
@@ -85,17 +85,17 @@ class LazyPonyPrompter():
         source = self.__prompts["source"]
         format_func = self.sources[source].models[model]
 
-        extra_tag_filter = set(
-            filter(None, [t.strip() for t in tag_filter_str.split(",")])
-        )
+        extra_tag_filter = {
+            t.strip() for t in tag_filter_str.split(",") if t
+        }
 
         processed_prompts = []
         for prompt_core in chosen_prompts:
             formatted_prompt = format_func(prompt_core)
-            filtered_prompt = filter(
-                lambda tag: not glob_match(tag, extra_tag_filter),
-                formatted_prompt
-            )
+            filtered_prompt = [
+                t for t in formatted_prompt
+                if not glob_match(t, extra_tag_filter)
+            ]
             processed_prompts.append(
                 ", ".join(filtered_prompt)
                     .replace("(", "\\(")
