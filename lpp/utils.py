@@ -1,17 +1,19 @@
-from urllib.request import urlopen, Request
-from urllib.parse import urlencode
-import json
+from dataclasses import dataclass
 import os
+import json
 import fnmatch
 
 
-def send_api_request(endpoint, query_params,
-                     user_agent="lazy-pony-prompter (by user Siberpone)"):
-    url = "?".join([endpoint, urlencode(query_params)])
-    req = Request(url)
-    req.add_header("User-Agent", user_agent)
-    with urlopen(req) as response:
-        return json.load(response)
+@dataclass
+class TagData():
+    source: str
+    query: str
+    raw_tags: list
+    other_params: dict
+
+
+def glob_match(term, patterns):
+    return any([fnmatch.fnmatch(term, x) for x in patterns])
 
 
 def get_merged_config_entry(entry, work_dir="config"):
@@ -51,15 +53,3 @@ def get_config(name, work_dir="config"):
     with open(config_file) as f:
         config_entry = json.load(f)
     return config_entry
-
-
-def formatter(pretty_model_name):
-    def inner(func):
-        func.is_formatter = True
-        func.pretty_model_name = pretty_model_name
-        return func
-    return inner
-
-
-def glob_match(term, patterns):
-    return any([fnmatch.fnmatch(term, x) for x in patterns])

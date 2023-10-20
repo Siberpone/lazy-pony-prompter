@@ -24,7 +24,7 @@ class QueryPanelData():
 
 class QueryPanels():
     @staticmethod
-    def derpi(active_panel_name, lpp, config):
+    def Derpibooru(active_panel_name, lpp, config):
         with gr.Accordion(
             "💬 Derpibooru Query",
             open=config["query_panel_start_unfolded"],
@@ -50,14 +50,16 @@ class QueryPanels():
                     with gr.Row():
                         filter_type = gr.Dropdown(
                             label="Derpibooru Filter",
-                            choices=lpp.sources_manager.sources["derpi"].instance.get_filters(
-                            )
+                            choices=lpp.sources_manager.sources[
+                                "Derpibooru"
+                            ].get_filters()
                         )
                         filter_type.value = filter_type.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources_manager.sources["derpi"].instance.get_sort_options(
-                            )
+                            choices=lpp.sources_manager.sources[
+                                "Derpibooru"
+                            ].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
@@ -70,7 +72,7 @@ class QueryPanels():
             )
 
     @staticmethod
-    def e621(active_panel_name, lpp, config):
+    def E621(active_panel_name, lpp, config):
         with gr.Accordion(
             "💬 E621 Query",
             open=config["query_panel_start_unfolded"],
@@ -96,14 +98,16 @@ class QueryPanels():
                     with gr.Row():
                         rating = gr.Dropdown(
                             label="Rating",
-                            choices=lpp.sources_manager.sources["e621"].instance.get_ratings(
-                            )
+                            choices=lpp.sources_manager.sources[
+                                "E621"
+                            ].get_ratings()
                         )
                         rating.value = rating.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources_manager.sources["e621"].instance.get_sort_options(
-                            )
+                            choices=lpp.sources_manager.sources[
+                                "E621"
+                            ].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
@@ -140,7 +144,7 @@ class Scripts(scripts.Script):
                 enabled = gr.Checkbox(label="Enabled")
                 source = gr.Dropdown(
                     label="Tags Source",
-                    choices=self.lpp.sources_manager.get_sources()
+                    choices=self.lpp.sources_manager.get_source_names()
                 )
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(label="Prompts Format")
@@ -212,12 +216,14 @@ class Scripts(scripts.Script):
             # Send Query Buttons
             for panel in self.query_panels.values():
                 panel.send_btn.click(
+                    # TODO: replace with normal function
                     lambda s, m, *params: (
                         self.lpp.try_send_request(s, *params),
                         gr.update(
-                            choices=self.lpp.sources_manager.get_models(s),
-                            value=m if m in self.lpp.sources_manager.get_models(s)
-                            else self.lpp.sources_manager.get_models(s)[0]
+                            choices=self.lpp.sources_manager.sources[s].get_model_names(
+                            ),
+                            value=m if m in self.lpp.sources_manager.sources[s].get_model_names()
+                            else self.lpp.sources_manager.sources[s].get_model_names()[0]
                         )
                     ),
                     [source, prompts_format, *panel.params],
@@ -228,8 +234,8 @@ class Scripts(scripts.Script):
             # Source Dropdown Change
             source.change(
                 lambda s: [
-                    gr.update(visible=(
-                        s == self.lpp.sources_manager.sources[x].pretty_name)
+                    gr.update(
+                        visible=(s == x)
                     ) for x in self.query_panels.keys()
                 ],
                 [source],
@@ -267,7 +273,9 @@ class Scripts(scripts.Script):
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
                 msg = self.lpp.try_load_prompts(name)
-                models = self.lpp.sources_manager.get_models()
+                source = self.lpp.sources_manager.tag_data.source
+                models = self.lpp.sources_manager.sources[source].get_model_names(
+                )
                 models_update = gr.update(
                     choices=models,
                     value=current_model if current_model in models
