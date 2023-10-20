@@ -1,123 +1,12 @@
-from lpp.a1111 import LPPWrapper
+from lpp.a1111 import LPPWrapper, QueryPanels, set_no_config
 from lpp.utils import get_merged_config_entry
 from modules.styles import merge_prompts as merge_prompt_as_style
-from dataclasses import dataclass
 import gradio as gr
 import modules.scripts as scripts
 import modules.shared as shared
 import os
 
 base_dir = scripts.basedir()
-
-
-def set_no_config(*args):
-    for control in args:
-        setattr(control, "do_not_save_to_config", True)
-
-
-@dataclass
-class QueryPanelData():
-    panel: object
-    send_btn: object
-    params: list
-
-
-class QueryPanels():
-    @staticmethod
-    def Derpibooru(active_panel_name, lpp, config):
-        with gr.Accordion(
-            "💬 Derpibooru Query",
-            open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == "Derpibooru")
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
-            with gr.Row():
-                query = gr.Textbox(
-                    placeholder="Type in your Derpibooru query here",
-                    show_label=False
-                )
-            with gr.Row():
-                with gr.Column():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
-                    )
-                with gr.Column():
-                    with gr.Row():
-                        filter_type = gr.Dropdown(
-                            label="Derpibooru Filter",
-                            choices=lpp.sources_manager.sources[
-                                "Derpibooru"
-                            ].get_filters()
-                        )
-                        filter_type.value = filter_type.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources_manager.sources[
-                                "Derpibooru"
-                            ].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with gr.Row():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, filter_type, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, filter_type, sort_type]
-            )
-
-    @staticmethod
-    def E621(active_panel_name, lpp, config):
-        with gr.Accordion(
-            "💬 E621 Query",
-            open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == "E621")
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
-            with gr.Row():
-                query = gr.Textbox(
-                    placeholder="Type in Your E621 query here",
-                    show_label=False
-                )
-            with gr.Row():
-                with gr.Column():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
-                    )
-                with gr.Column():
-                    with gr.Row():
-                        rating = gr.Dropdown(
-                            label="Rating",
-                            choices=lpp.sources_manager.sources[
-                                "E621"
-                            ].get_ratings()
-                        )
-                        rating.value = rating.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources_manager.sources[
-                                "E621"
-                            ].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with gr.Row():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, rating, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, rating, sort_type]
-            )
 
 
 class Scripts(scripts.Script):
@@ -214,18 +103,22 @@ class Scripts(scripts.Script):
 
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
+            def send_request_click(source, prompts_format, *params):
+                models = self.lpp.sources_manager.sources[
+                    source
+                ].get_model_names()
+                return (
+                    self.lpp.try_send_request(source, *params),
+                    gr.update(
+                        choices=models,
+                        value=prompts_format if prompts_format in models
+                        else models[0]
+                    )
+                )
+
             for panel in self.query_panels.values():
                 panel.send_btn.click(
-                    # TODO: replace with normal function
-                    lambda s, m, *params: (
-                        self.lpp.try_send_request(s, *params),
-                        gr.update(
-                            choices=self.lpp.sources_manager.sources[s].get_model_names(
-                            ),
-                            value=m if m in self.lpp.sources_manager.sources[s].get_model_names()
-                            else self.lpp.sources_manager.sources[s].get_model_names()[0]
-                        )
-                    ),
+                    send_request_click,
                     [source, prompts_format, *panel.params],
                     [status_bar, prompts_format],
                     show_progress="full"
