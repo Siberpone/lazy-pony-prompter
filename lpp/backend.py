@@ -6,7 +6,7 @@ import os
 import copy
 
 
-class SourcesManager():
+class SourcesManager:
     def __init__(self, work_dir: str = "."):
         self.__work_dir: str = work_dir
         self.tag_data: TagData = None
@@ -19,7 +19,7 @@ class SourcesManager():
     def get_source_names(self) -> list[str]:
         return list(self.sources.keys())
 
-    def request_prompts(self, source: str, *args) -> None:
+    def request_prompts(self, source: str, *args: object) -> None:
         self.tag_data = self.sources[source].request_tags(*args)
 
     def choose_prompts(
@@ -52,7 +52,7 @@ class SourcesManager():
         return len(self.tag_data.raw_tags) if self.tag_data else 0
 
 
-class CacheManager():
+class CacheManager:
     def __init__(self, work_dir: str = "."):
         self.__work_dir: str = work_dir
         self.__tag_data_cache: dict[str:list[TagData]] = self.__load_cache()

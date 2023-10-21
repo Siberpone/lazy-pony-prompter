@@ -5,18 +5,18 @@ import fnmatch
 
 
 @dataclass
-class TagData():
+class TagData:
     source: str
     query: str
     raw_tags: list
     other_params: dict
 
 
-def glob_match(term, patterns):
+def glob_match(term: str, patterns: list[str]) -> bool:
     return any([fnmatch.fnmatch(term, x) for x in patterns])
 
 
-def get_merged_config_entry(entry, work_dir="config"):
+def get_merged_config_entry(entry: str, work_dir: str = "config") -> dict:
     def merge_dicts(target, replacement):
         for key, val in replacement.items():
             if key not in target:
@@ -48,7 +48,7 @@ def get_merged_config_entry(entry, work_dir="config"):
     return config_entry
 
 
-def get_config(name, work_dir="config"):
+def get_config(name: str, work_dir: str = "config") -> dict:
     config_file = os.path.join(work_dir, f"{name}.json")
     with open(config_file) as f:
         config_entry = json.load(f)

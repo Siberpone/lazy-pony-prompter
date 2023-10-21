@@ -3,34 +3,37 @@ from dataclasses import dataclass
 import gradio as gr
 
 
-def set_no_config(*args):
+def set_no_config(*args: object) -> None:
     for control in args:
         setattr(control, "do_not_save_to_config", True)
 
 
-class LPPWrapper():
+class LPPWrapper:
     def __init__(self, work_dir: str = "."):
         self.__work_dir: str = work_dir
         self.sources_manager: SourcesManager = SourcesManager(self.__work_dir)
         self.cache_manager: CacheManager = CacheManager(self.__work_dir)
 
-    def __get_lpp_status(self):
+    def __get_lpp_status(self) -> str:
         n_prompts = self.sources_manager.get_loaded_prompts_count()
         return f"**{n_prompts}** prompts loaded. Ready to generate." \
             if n_prompts > 0 \
             else "No prompts loaded. Not ready to generate."
 
-    def format_status_msg(self, msg=""):
+    def format_status_msg(self, msg: str = "") -> str:
         return f"&nbsp;&nbsp;{msg} {self.__get_lpp_status()}"
 
-    def __try_exec_command(self, lpp_method, success_msg, failure_msg, *args):
+    def __try_exec_command(
+        self, lpp_method: callable, success_msg: str,
+        failure_msg: str, *args: object
+    ) -> str:
         try:
             lpp_method(*args)
             return success_msg
         except Exception as e:
             return failure_msg + f" {str(e)}"
 
-    def try_save_prompts(self, name, tag_filter):
+    def try_save_prompts(self, name: str, tag_filter: str) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.cache_manager.cache_tag_data,
@@ -40,8 +43,8 @@ class LPPWrapper():
             )
         )
 
-    def try_load_prompts(self, name):
-        def load_new_tag_data(name):
+    def try_load_prompts(self, name: str) -> str:
+        def load_new_tag_data(name: str) -> None:
             self.sources_manager.tag_data = self.cache_manager.get_tag_data(
                 name)
         return self.format_status_msg(
@@ -53,7 +56,7 @@ class LPPWrapper():
             )
         )
 
-    def try_delete_prompts(self, name):
+    def try_delete_prompts(self, name: str) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.cache_manager.delete_tag_data,
@@ -63,7 +66,7 @@ class LPPWrapper():
             )
         )
 
-    def try_send_request(self, *args):
+    def try_send_request(self, *args: object) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.sources_manager.request_prompts,
@@ -87,15 +90,17 @@ class LPPWrapper():
 
 
 @dataclass
-class QueryPanelData():
+class QueryPanelData:
     panel: object
     send_btn: object
     params: list
 
 
-class QueryPanels():
+class QueryPanels:
     @staticmethod
-    def Derpibooru(active_panel_name: str, lpp: LPPWrapper, config) -> QueryPanelData:
+    def Derpibooru(
+        active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
+    ) -> QueryPanelData:
         with gr.Accordion(
             "💬 Derpibooru Query",
             open=config["query_panel_start_unfolded"],
@@ -143,7 +148,9 @@ class QueryPanels():
             )
 
     @staticmethod
-    def E621(active_panel_name, lpp, config):
+    def E621(
+        active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
+    ) -> QueryPanelData:
         with gr.Accordion(
             "💬 E621 Query",
             open=config["query_panel_start_unfolded"],

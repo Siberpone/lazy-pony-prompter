@@ -6,15 +6,15 @@ import time
 import json
 
 
-def formatter(model_name):
-    def inner(func):
+def formatter(model_name: callable) -> callable:
+    def inner(func: callable) -> callable:
         func.is_formatter = True
         func.model_name = model_name
         return func
     return inner
 
 
-class TagSourceBase():
+class TagSourceBase:
     def __init__(self, work_dir: str = "."):
         self._work_dir: str = work_dir
         self.models: dict[str:callable] = {}
@@ -23,8 +23,10 @@ class TagSourceBase():
             if hasattr(obj, "is_formatter"):
                 self.models[obj.model_name] = obj
 
-    def _send_api_request(self, endpoint, query_params,
-                          user_agent="lazy-pony-prompter (by user Siberpone)"):
+    def _send_api_request(
+        self, endpoint: str, query_params: dict[str:str],
+        user_agent: str = "lazy-pony-prompter (by user Siberpone)"
+    ) -> dict[str:object]:
         url = "?".join([endpoint, urlencode(query_params)])
         req = Request(url)
         req.add_header("User-Agent", user_agent)
@@ -34,27 +36,30 @@ class TagSourceBase():
     def get_model_names(self) -> list[str]:
         return list(self.models.keys())
 
-    def request_tags(self, query, count, *params):
+    def request_tags(self, query: str, count: int, *params: object) -> TagData:
         pass
 
 
 class E621(TagSourceBase):
     def __init__(self, work_dir: str = "."):
         TagSourceBase.__init__(self, work_dir)
-        config = get_config(
+        config: dict[str:object] = get_config(
             "e621", os.path.join(self._work_dir, "config")
         )
-        self.__ratings = config["ratings"]
-        self.__sort_params = config["sort_params"]
-        self.__filtered_tags = config["filtered_tags"]
+        self.__ratings: dict[str:str] = config["ratings"]
+        self.__sort_params: dict[str:str] = config["sort_params"]
+        self.__filtered_tags: dict[str:object] = config["filtered_tags"]
 
-    def get_ratings(self):
+    def get_ratings(self) -> list[str]:
         return list(self.__ratings["lookup"].keys())
 
-    def get_sort_options(self):
+    def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
 
-    def request_tags(self, query, count, rating=None, sort_type=None):
+    def request_tags(
+        self, query: str, count: int,
+        rating: str = None, sort_type: str = None
+    ) -> TagData:
         ENDPOINT = "https://e621.net/posts.json"
         PER_PAGE_MAX = 320
         QUERY_DELAY = 1
@@ -79,7 +84,9 @@ class E621(TagSourceBase):
             {}
         )
 
-    def __filter_raw_tags(self, categories, raw_image_tags):
+    def __filter_raw_tags(
+        self, categories: list[str], raw_image_tags: dict[str:list[str]]
+    ) -> dict[str:list[str]]:
         filtered_tags = {}
         for category in categories:
             if category not in self.__filtered_tags.keys():
@@ -92,7 +99,7 @@ class E621(TagSourceBase):
         return filtered_tags
 
     @formatter("Pony Diffusion V5")
-    def pdv5_format(self, raw_image_tags):
+    def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> list[str]:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "meta"],
             raw_image_tags
@@ -102,7 +109,9 @@ class E621(TagSourceBase):
                            + t["species"] + t["general"] + t["meta"]]
 
     @formatter("EasyFluff")
-    def easyfluff_format(self, raw_image_tags):
+    def easyfluff_format(
+        self, raw_image_tags: dict[str:list[str]]
+    ) -> list[str]:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "artist", "copyright", "meta"],
             raw_image_tags
@@ -112,7 +121,9 @@ class E621(TagSourceBase):
                 + t["copyright"] + t["meta"]]
 
     @formatter("EasyFluff (no artist names)")
-    def easyfluff_no_artist_format(self, raw_image_tags):
+    def easyfluff_no_artist_format(
+        self, raw_image_tags: dict[str:list[str]]
+    ) -> list[str]:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "copyright", "meta"],
             raw_image_tags
@@ -135,13 +146,16 @@ class Derpibooru(TagSourceBase):
         if self.__api_key is not None:
             self.__fetch_user_filters()
 
-    def get_filters(self):
+    def get_filters(self) -> list[str]:
         return list(self.__filter_ids.keys())
 
-    def get_sort_options(self):
+    def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
 
-    def request_tags(self, query, count, filter_type=None, sort_type=None):
+    def request_tags(
+        self, query: str, count: int,
+        filter_type: str = None, sort_type: str = None
+    ) -> TagData:
         ENDPOINT = "https://derpibooru.org/api/v1/json/search/images"
         PER_PAGE_MAX = 50
         QUERY_DELAY = 0.5
@@ -180,7 +194,7 @@ class Derpibooru(TagSourceBase):
             }
         )
 
-    def __get_api_key(self):
+    def __get_api_key(self) -> str:
         old_api_key_file = os.path.join(self._work_dir, "api_key")
         api_key_file = os.path.join(self._work_dir, "auth", "derpi")
         if os.path.exists(old_api_key_file):
@@ -192,7 +206,7 @@ class Derpibooru(TagSourceBase):
         else:
             return None
 
-    def __fetch_user_filters(self):
+    def __fetch_user_filters(self) -> None:
         # TODO: handle potential exceptions
         json_response = self._send_api_request(
             "https://derpibooru.org/api/v1/json/filters/user",
@@ -201,7 +215,7 @@ class Derpibooru(TagSourceBase):
         for filter in json_response["filters"]:
             self.__filter_ids[filter["name"]] = filter["id"]
 
-    def __filter_tags(self, raw_image_tags):
+    def __filter_tags(self, raw_image_tags: list[str]) -> tuple[str]:
         rating = None
         characters = []
         prioritized_tags = []
@@ -227,20 +241,22 @@ class Derpibooru(TagSourceBase):
             prioritized_tags, artists, prompt_tail
 
     @formatter("Pony Diffusion V5")
-    def pdv5_format(self, raw_image_tags):
+    def pdv5_format(self, raw_image_tags: list[str]) -> list[str]:
         rating, characters, prioritized_tags, _, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return rating + characters + prioritized_tags + prompt_tail
 
     @formatter("EasyFluff")
-    def easyfluff_format(self, raw_image_tags):
+    def easyfluff_format(self, raw_image_tags: list[str]) -> list[str]:
         _, characters, prioritized_tags, artists, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return characters + prioritized_tags \
             + [f"by {x}" for x in artists] + prompt_tail
 
     @formatter("EasyFluff (no artist names)")
-    def easyfluff_no_artists_format(self, raw_image_tags):
+    def easyfluff_no_artists_format(
+        self, raw_image_tags: list[str]
+    ) -> list[str]:
         _, characters, prioritized_tags, artists, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return characters + prioritized_tags + prompt_tail
