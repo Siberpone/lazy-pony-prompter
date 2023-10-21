@@ -73,11 +73,12 @@ class CacheManager:
         with open(cache_file, "wb") as f:
             pickle.dump(self.__tag_data_cache, f)
 
-    def get_collection_names(self) -> list[str]:
+    def get_saved_names(self) -> list[str]:
         return list(self.__tag_data_cache.keys())
 
     def cache_tag_data(
-            self, name: str, data: TagData, tag_filter: str = None) -> None:
+        self, name: str, data: TagData, tag_filter: str = None
+    ) -> None:
         if not name:
             raise ValueError("Empty \"name\" parameter")
         tag_data = copy.deepcopy(data)

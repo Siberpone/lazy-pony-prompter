@@ -65,7 +65,7 @@ class Scripts(scripts.Script):
                         with gr.Column(scale=2):
                             prompts_manager_input = gr.Dropdown(
                                 label="Prompts Collection Name",
-                                choices=self.lpp.cache_manager.get_collection_names(),
+                                choices=self.lpp.cache_manager.get_saved_names(),
                                 allow_custom_value=True
                             )
                         with gr.Column(scale=0, min_width=200):
@@ -140,7 +140,7 @@ class Scripts(scripts.Script):
                 self.prompt_manager_dialog_action = lambda: \
                     self.lpp.try_save_prompts(name, tag_filter), \
                     name
-                if name in self.lpp.cache_manager.get_collection_names():
+                if name in self.lpp.cache_manager.get_saved_names():
                     return (
                         self.lpp.format_status_msg(),
                         gr.update(),
@@ -151,7 +151,7 @@ class Scripts(scripts.Script):
                     return (
                         self.lpp.try_save_prompts(name, tag_filter),
                         gr.Dropdown.update(
-                            choices=self.lpp.cache_manager.get_collection_names()
+                            choices=self.lpp.cache_manager.get_saved_names()
                         ),
                         "", gr.update(visible=False)
                     )
@@ -227,7 +227,7 @@ class Scripts(scripts.Script):
                     msg,
                     gr.Dropdown.update(
                         choices=list(
-                            self.lpp.cache_manager.get_collection_names()),
+                            self.lpp.cache_manager.get_saved_names()),
                         value=selected_val
                     ),
                     gr.update(visible=False),
