@@ -9,14 +9,18 @@ import copy
 
 
 class SourcesManager:
-    def __init__(self, work_dir: str = "."):
+    def __init__(
+        self, work_dir: str = ".", sources: list[TagSourceBase] = None
+    ):
         self.__work_dir: str = work_dir
         self.tag_data: TagData = None
-        self.sources: dict[str:TagSourceBase] = self.__load_sources()
+        self.sources: dict[str:TagSourceBase] = self.__load_sources(sources)
 
-    def __load_sources(self) -> dict[str:TagSourceBase]:
-        return {x.__name__: x(self.__work_dir)
-                for x in TagSourceBase.__subclasses__()}
+    def __load_sources(
+        self, sources: list[TagSourceBase]
+    ) -> dict[str:TagSourceBase]:
+        s = sources if sources else TagSourceBase.__subclasses__()
+        return {x.__name__: x(self.__work_dir) for x in s}
 
     def get_source_names(self) -> list[str]:
         return list(self.sources.keys())
