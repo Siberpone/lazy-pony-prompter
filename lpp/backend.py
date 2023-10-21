@@ -2,6 +2,8 @@ from random import choices
 from lpp.sources import TagSourceBase
 from lpp.utils import TagData, glob_match
 import pickle
+import shutil
+import json
 import os
 import copy
 
@@ -57,7 +59,41 @@ class CacheManager:
         self.__work_dir: str = work_dir
         self.__tag_data_cache: dict[str:list[TagData]] = self.__load_cache()
 
+    def __convert_legacy_cache_file(self):
+        old_cache_file = os.path.join(self.__work_dir, "cache.json")
+        new_cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
+        if not os.path.exists(old_cache_file) or os.path.exists(new_cache_file):
+            return
+
+        backup_cache_file = os.path.join(
+            self.__work_dir, "cache.231021.bak.json"
+        )
+        if not os.path.exists(backup_cache_file):
+            shutil.copy(old_cache_file, backup_cache_file)
+
+        new_cache = {}
+        source_lookup = {"derpi": "Derpibooru", "e621": "E621"}
+        with open(old_cache_file, "r") as f:
+            cache_json = json.load(f)
+            for name, tag_data in cache_json.items():
+                other_params = {
+                    k: v for k, v in tag_data.items()
+                    if k not in ["source", "raw_tags", "query"]
+                }
+                new_cache[name] = TagData(
+                    source_lookup[tag_data["source"]],
+                    tag_data["query"],
+                    tag_data["raw_tags"],
+                    other_params
+                )
+        with open(new_cache_file, "wb") as f:
+            pickle.dump(new_cache, f)
+
     def __load_cache(self) -> dict[str:list[TagData]]:
+        # INFO: Convert old cache file to new format. This will be removed
+        # after some time.
+        self.__convert_legacy_cache_file()
+
         cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
         if not os.path.exists(cache_file):
             return {}
