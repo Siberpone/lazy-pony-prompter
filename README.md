@@ -118,7 +118,7 @@ Derpibooru as tags source is highly recommended, however, e621 is also supported
 
 LPP nodes are available under `LPP` group. The interface and functionality are kept as closely as possible to A1111 extension. Drag this Princess Luna picture to your ComfyUI to load a demo with notes on every available node and a very basic workflow example:
 
-![Cute Lulu](lulu.png)
+![Cute Lulu](images/lulu.png)
 
 ## 🔑 API Key
 
