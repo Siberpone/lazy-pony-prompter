@@ -1,13 +1,15 @@
 import sys
 from os.path import dirname
 from copy import deepcopy
+from random import randint
 LPP_ROOT_DIR = dirname(__file__)
 sys.path.append(LPP_ROOT_DIR)
 
 from .lpp.sources import Derpibooru, E621
-from .lpp.backend import SourcesManager
+from .lpp.backend import SourcesManager, CacheManager
 
 sm = SourcesManager(LPP_ROOT_DIR)
+cm = CacheManager(LPP_ROOT_DIR)
 
 
 class ComfyTagSourceBase:
@@ -35,8 +37,6 @@ class ComfyTagSourceBase:
                 "default": 0,
                 "min": 0,
                 "max": 0xffffffffffffffff,
-                "step": 1,
-                "display": "number"
             })
         }
     }
@@ -46,7 +46,7 @@ class ComfyTagSourceBase:
 
     RETURN_TYPES = ("STRING", "LPP_TAG_DATA")
     RETURN_NAMES = ("Prompt", "LPP Tag Data")
-    CATEGORY = "LPP"
+    CATEGORY = "LPP/sources"
     FUNCTION = "get_prompt"
 
     def get_prompt(self):
@@ -70,9 +70,14 @@ class ComfyDerpibooru(ComfyTagSourceBase):
         self, query, count, filter, sort_by, format, tag_filter,
         send_request, tag_data=None, update_dummy=0
     ):
-        if self._sm.get_loaded_prompts_count() == 0 or send_request:
+        if tag_data:
+            self._sm.tag_data = tag_data
+        elif self._sm.get_loaded_prompts_count() == 0 or send_request:
             self._sm.request_prompts("Derpibooru", query, count, filter, sort_by)
-        return (self._sm.choose_prompts(format, 1, tag_filter)[0], None)
+        return (
+            self._sm.choose_prompts(format, 1, tag_filter)[0],
+            (self._sm.tag_data, tag_filter)
+        )
 
 
 class ComfyE621(ComfyTagSourceBase):
@@ -92,9 +97,14 @@ class ComfyE621(ComfyTagSourceBase):
         self, query, count, rating, sort_by, format, tag_filter,
         send_request, tag_data=None, update_dummy=0
     ):
-        if self._sm.get_loaded_prompts_count() == 0 or send_request:
+        if tag_data:
+            self._sm.tag_data = tag_data
+        elif self._sm.get_loaded_prompts_count() == 0 or send_request:
             self._sm.request_prompts("E621", query, count, rating, sort_by)
-        return (self._sm.choose_prompts(format, 1, tag_filter)[0], None)
+        return (
+            self._sm.choose_prompts(format, 1, tag_filter)[0],
+            (self._sm.tag_data, tag_filter)
+        )
 
 
 class LPPSaver:
@@ -114,43 +124,72 @@ class LPPSaver:
     RETURN_TYPES = ()
     CATEGORY = "LPP"
     FUNCTION = "save_tag_data"
+    OUTPUT_NODE = True
 
     def save_tag_data(self, tag_data, name, overwrite):
-        pass
+        existing_names = cm.get_saved_names()
+        if (name in existing_names and overwrite) \
+                or name not in existing_names:
+            cm.cache_tag_data(name, tag_data[0], tag_data[1])
+        return {}
 
 
-class LPPLoaderDerpibooru:
+class ForceRunBase:
+    @classmethod
+    def IS_CHANGED(self):
+        return randint(0, 0xffffffffffffffff)
+
+
+class LPPLoaderDerpibooru(ForceRunBase):
     @classmethod
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (["kek", "lol"],)
+                "collection_name": (cm.get_saved_names("Derpibooru"),)
             }
         }
     RETURN_TYPES = ("LPP_TAG_DATA_DERPIBOORU",)
     RETURN_NAMES = ("tag data",)
-    CATEGORY = "LPP"
+    CATEGORY = "LPP/loaders"
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (None,)
+        return (cm.get_tag_data(collection_name),)
 
 
-class LPPLoaderE621:
+class LPPLoaderE621(ForceRunBase):
     @classmethod
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (["kek", "lol"],)
+                "collection_name": (cm.get_saved_names("E621"),)
             }
         }
     RETURN_TYPES = ("LPP_TAG_DATA_E621",)
     RETURN_NAMES = ("tag data",)
-    CATEGORY = "LPP"
+    CATEGORY = "LPP/loaders"
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (None,)
+        return (cm.get_tag_data(collection_name),)
+
+
+class LPPDeleter(ForceRunBase):
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "collection_name": (cm.get_saved_names(),)
+            }
+        }
+    RETURN_TYPES = ()
+    CATEGORY = "LPP"
+    FUNCTION = "delete_tag_data"
+    OUTPUT_NODE = True
+
+    def delete_tag_data(self, collection_name):
+        cm.delete_tag_data(collection_name)
+        return {}
 
 
 NODE_CLASS_MAPPINGS = {
@@ -158,13 +197,16 @@ NODE_CLASS_MAPPINGS = {
     "LPP_E621": ComfyE621,
     "LPP_Saver": LPPSaver,
     "LPP_Loader_Derpibooru": LPPLoaderDerpibooru,
-    "LPP_Loader_E621": LPPLoaderE621
+    "LPP_Loader_E621": LPPLoaderE621,
+    "LPP_Deleter": LPPDeleter
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LPP_Derpibooru": "LPP (Derpibooru)",
-    "LPP_E621": "LPP (E621)",
-    "LPP_Saver": "LPP Saver",
-    "LPP_Loader_Derpibooru": "LPP Loader (Derpibooru)",
-    "LPP_Loader_E621": "LPP Loader (E621)"
+    "LPP_Derpibooru": "Derpibooru",
+    "LPP_E621": "E621",
+    "LPP_Saver": "Tag Data Saver",
+    "LPP_Loader_Derpibooru": "Tag Data Loader (Derpibooru)",
+    "LPP_Loader_E621": "Tag Data Loader (E621)",
+    "LPP_Deleter": "Tag Data Deleter"
+
 }

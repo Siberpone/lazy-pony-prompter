@@ -113,8 +113,12 @@ class CacheManager:
         with open(cache_file, "wb") as f:
             pickle.dump(self.__tag_data_cache, f)
 
-    def get_saved_names(self) -> list[str]:
-        return list(self.__tag_data_cache.keys())
+    def get_saved_names(self, source: str = None) -> list[str]:
+        if not source:
+            return list(self.__tag_data_cache.keys())
+        return [
+            k for k, v in self.__tag_data_cache.items() if v.source == source
+        ]
 
     def cache_tag_data(
         self, name: str, data: TagData, tag_filter: str = None
