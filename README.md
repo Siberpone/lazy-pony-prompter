@@ -1,6 +1,6 @@
 # Lazy Pony Prompter
 
-A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru/org) and [E621](https://e621.net).
+A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru/org) and [E621](https://e621.net).
 
 E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
 
@@ -17,34 +17,37 @@ Derpibooru + [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion
 # Installation
 
 ### ❗Requirements
-* [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui);
+* [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) or [ComfyUI](https://github.com/comfyanonymous/ComfyUI);
 * One of recommended models (may work on other, less pony-capable models, too):
   * [EasyFluff](https://civitai.com/models/129996/easyfluff);
   * [Pony Diffusion V5](https://civitai.com/models/95367/pony-diffusion-v5);
 * Active internet connection for communication with boorus;
 * *(optional)* [Derpibooru](https://derpibooru.org) account for extra functionality.
 
-### 🖵 From Web UI
+### 🖵  A1111 WebUI
 
 Open the "Extensions" tab and then the "Install from URL" tab. Paste this repository link to the "URL" field:
 ```
 https://github.com/Siberpone/lazy-pony-prompter
 ```
 
-and click "Install". You should  now see the "Lazy Pony Prompter" fold on txt2img tab after webui server restart.
+Click "Install" and after it's finished installing, restart the server. You should  now see the "Lazy Pony Prompter" fold on txt2img tab.
+
+### 🛏 ComfyUI
+
+Clone this repository to `.../ComfyUI/custom_nodes`
 
 ### 🙌 Manual
-Clone this repository with
+Clone this repository with:
 ```
 git clone https://github.com/Siberpone/lazy-pony-prompter
 ```
-or click the "code" button in the top right, then click "Download ZIP" and unzip the downloaded archive. After that move the newly created repository folder to:
-```
-.../stable-diffusion-webui/extentions/
-```
+Or click the "code" button in the top right, then click "Download ZIP". Unzip the downloaded archive anywhere on your file system. After that move the newly created repository folder to `.../stable-diffusion-webui/extentions` for A1111 WebUI or to `.../ComfyUI/custom_nodes` for ComfyUI.
 
 # Usage
-LPP operates by making a prompt list from a search query to one of the supported booru sites and then generating images using that list. Basically, it fetches tag data from a specified number of images in the query and converts it into "sensible" model-specific prompts (useless meta tags are pruned; "important" tags, like character name, are pushed closer to the beginning of the prompt, and so on...) and then randomly picks them to generate images. Now, lets take a look at the interface:
+LPP operates by making a prompt list from a search query to one of the supported booru sites and then generating images using that list. Basically, it fetches tag data from a specified number of images in the query and converts it into "sensible" model-specific prompts (useless meta tags are pruned; "important" tags, like character name, are pushed closer to the beginning of the prompt, and so on...) and then randomly picks them to generate images.
+
+## A1111 WebUI
 
 ![LPP interface](images/extension.jpg)
 
@@ -107,7 +110,17 @@ EF works best with e621 as tags source, but will produce good results from Derpi
 
 Derpibooru as tags source is highly recommended, however, e621 is also supported. It is also highly beneficial to, at least, include special model-specific `score_9` tag somewhere in the prompt. "Standard" negative prompt also improves generations quality: `lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, jpeg artifacts, signature, watermark, username, blurry`.
 
-### 🔑 API Key
+## ComfyUI
+
+> **Note**
+>
+> These are somewhat experimental and may have some bugs. Also, due to some ComfyUI interface limitations some UX compromises had to be made ;)
+
+LPP nodes are available under `LPP` group. The interface and functionality are kept as closely as possible to A1111 extension. Drag this Princess Luna picture to your ComfyUI to load a demo with notes on every available node and a very basic workflow example:
+
+![Cute Lulu](lulu.png)
+
+## 🔑 API Key
 
 To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list. To provide an API key, you must create a file named `derpi` (no extension) in the `.../stable-diffusion-webui/extentions/lazy-pony-prompter/auth` directory (create it if it doesn't exist) with a text editor of your choice and paste your personal API key into that file. The API key must be the first line in the file. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
 
@@ -119,7 +132,7 @@ To further personalize your queries you can provide LPP with your personal Derpi
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions (you don't have to uninstall them or anything, just don't run them simultaneously with LPP).
 * LPP is very light on traffic since it uses the website's API and only pulls necessary text data and not the actual webpages or images.
-* Your saved prompts are stored in `cache.json` file in the root extension directory.
+* Your saved prompts are stored in `tag_cache.dat` file in the root extension directory.
 * Useful links:
     * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
     * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.

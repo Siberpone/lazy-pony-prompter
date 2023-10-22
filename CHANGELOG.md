@@ -1,3 +1,9 @@
+### 2023-10-23
+
+* Added experimental ComfyUI support
+* Prompts cache is now stored in binary which should reduce size and load time
+* Lots of code refactoring and reorganising
+
 ### 2023-10-19
 
 * Removed legacy cache format updater. Hopefully everyone updated at this point :)
