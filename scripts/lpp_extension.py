@@ -251,7 +251,7 @@ class Scripts(scripts.Script):
             return p
 
         n_images = p.batch_size * p.n_iter
-        p.all_prompts = self.lpp.sources_manager.choose_prompts(
+        p.all_prompts = self.lpp.try_choose_prompts(
             prompts_format, n_images, tag_filter
         )
 

@@ -1,9 +1,12 @@
 from lpp.utils import TagData, glob_match, get_config
-from urllib.request import urlopen, Request
+from lpp.log import get_logger
+from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
 import os
 import time
 import json
+
+logger = get_logger()
 
 
 def formatter(model_name: callable) -> callable:
@@ -207,13 +210,16 @@ class Derpibooru(TagSourceBase):
             return None
 
     def __fetch_user_filters(self) -> None:
-        # TODO: handle potential exceptions
-        json_response = self._send_api_request(
-            "https://derpibooru.org/api/v1/json/filters/user",
-            {"key": self.__api_key}
-        )
-        for filter in json_response["filters"]:
-            self.__filter_ids[filter["name"]] = filter["id"]
+        try:
+            json_response = self._send_api_request(
+                "https://derpibooru.org/api/v1/json/filters/user",
+                {"key": self.__api_key}
+            )
+
+            for filter in json_response["filters"]:
+                self.__filter_ids[filter["name"]] = filter["id"]
+        except (URLError, json.JSONDecodeError):
+            logger.warning("Failed to fetch Derpibooru user filters")
 
     def __filter_tags(self, raw_image_tags: list[str]) -> tuple[str]:
         rating = None

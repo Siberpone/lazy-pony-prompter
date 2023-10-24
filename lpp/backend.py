@@ -1,4 +1,5 @@
 from copy import deepcopy
+from lpp.log import get_logger
 from lpp.sources import TagSourceBase
 from lpp.utils import TagData, glob_match
 from os import path
@@ -6,6 +7,8 @@ from random import choices
 import json
 import pickle
 import shutil
+
+logger = get_logger()
 
 
 class SourcesManager:
@@ -96,7 +99,14 @@ class CacheManager:
     def __load_cache(self) -> dict[str:list[TagData]]:
         # INFO: Convert old cache file to new format. This will be removed
         # after some time.
-        self.__convert_legacy_cache_file()
+        try:
+            self.__convert_legacy_cache_file()
+        except Exception:
+            logger.exception(
+                "Error occured while trying to convert old cache file",
+                exc_info=True
+            )
+            return {}
 
         cache_file = path.join(self.__work_dir, "tag_cache.dat")
         if not path.exists(cache_file):
@@ -105,7 +115,10 @@ class CacheManager:
         with open(cache_file, "rb") as f:
             try:
                 return pickle.load(f)
-            except Exception as e:
+            except Exception:
+                logger.exception(
+                    "Failed to unpickle cache file", exc_info=True
+                )
                 return {}
 
     def __dump_cache(self) -> None:
@@ -133,11 +146,11 @@ class CacheManager:
 
     def get_tag_data(self, name: str) -> TagData:
         if name not in self.__tag_data_cache:
-            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+            raise KeyError(f"No name '{name}' in cache")
         return deepcopy(self.__tag_data_cache[name])
 
     def delete_tag_data(self, name: str) -> None:
         if name not in self.__tag_data_cache:
-            raise KeyError(f"Can't find \"{name}\" in prompts cache")
+            raise KeyError(f"No name '{name}' in cache")
         del self.__tag_data_cache[name]
         self.__dump_cache()

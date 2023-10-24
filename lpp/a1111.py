@@ -1,6 +1,9 @@
 from lpp.backend import SourcesManager, CacheManager
+from lpp.log import get_logger
 from dataclasses import dataclass
 import gradio as gr
+
+logger = get_logger()
 
 
 def set_no_config(*args: object) -> None:
@@ -21,7 +24,8 @@ class LPPWrapper:
             else "No prompts loaded. Not ready to generate."
 
     def format_status_msg(self, msg: str = "") -> str:
-        return f"&nbsp;&nbsp;{msg} {self.__get_lpp_status()}"
+        m = f"{msg}. " if msg else ""
+        return f"&nbsp;&nbsp;{m}{self.__get_lpp_status()}"
 
     def __try_exec_command(
         self, lpp_method: callable, success_msg: str,
@@ -31,13 +35,14 @@ class LPPWrapper:
             lpp_method(*args)
             return success_msg
         except Exception as e:
+            logger.warning(f"{failure_msg} {str(e)} ({type(e).__name__})")
             return failure_msg + f" {str(e)}"
 
     def try_save_prompts(self, name: str, tag_filter: str) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.cache_manager.cache_tag_data,
-                f"Successfully saved \"{name}\".",
+                f"Successfully saved \"{name}\"",
                 f"Failed to save \"{name}\":",
                 name, self.sources_manager.tag_data, tag_filter
             )
@@ -50,7 +55,7 @@ class LPPWrapper:
         return self.format_status_msg(
             self.__try_exec_command(
                 load_new_tag_data,
-                f"Successfully loaded \"{name}\".",
+                f"Successfully loaded \"{name}\"",
                 f"Failed to load \"{name}\":",
                 name
             )
@@ -60,7 +65,7 @@ class LPPWrapper:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.cache_manager.delete_tag_data,
-                f"Successfully deleted \"{name}\".",
+                f"Successfully deleted \"{name}\"",
                 f"Failed to delete \"{name}\":",
                 name
             )
@@ -70,13 +75,13 @@ class LPPWrapper:
         return self.format_status_msg(
             self.__try_exec_command(
                 self.sources_manager.request_prompts,
-                f"Successfully fetched tags from \"{args[0]}\".",
-                f"Failed to delete \"{args[0]}\":",
+                f"Successfully fetched tags from \"{args[0]}\"",
+                f"Failed to fetch tags from \"{args[0]}\":",
                 *args
             )
         )
 
-    def try_get_tag_data_json(self, name: str) -> (bool, str):
+    def try_get_tag_data_json(self, name: str) -> (bool, dict[str:object]):
         try:
             target = self.cache_manager.get_tag_data(name)
             return True, {
@@ -85,8 +90,20 @@ class LPPWrapper:
                 "other parameters": target.other_params,
                 "count": len(target.raw_tags)
             }
-        except Exception as e:
+        except KeyError:
             return False, {}
+
+    def try_choose_prompts(
+        self, model: str, n: int = 1, tag_filter_str: str = ""
+    ) -> list[list[str]]:
+        try:
+            return self.sources_manager.choose_prompts(
+                model, n, tag_filter_str
+            )
+        except IndexError:
+            logger.error("Failed to choose prompts because no prompts are currently loaded")
+        except Exception:
+            logger.exception("Failed to choose prompts", exc_info=True)
 
 
 @dataclass
