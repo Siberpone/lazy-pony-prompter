@@ -1,4 +1,4 @@
-from lpp.backend import SourcesManager, CacheManager
+from lpp.backend import SourcesManager, CacheManager, TagData
 from lpp.log import get_logger
 from dataclasses import dataclass
 import gradio as gr
@@ -14,11 +14,34 @@ def set_no_config(*args: object) -> None:
 class LPPWrapper:
     def __init__(self, work_dir: str = "."):
         self.__work_dir: str = work_dir
-        self.sources_manager: SourcesManager = SourcesManager(self.__work_dir)
-        self.cache_manager: CacheManager = CacheManager(self.__work_dir)
+        self.__sources_manager: SourcesManager = SourcesManager(self.__work_dir)
+        self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
+
+    @property
+    def source_names(self):
+        return self.__sources_manager.get_source_names()
+
+    @property
+    def sources(self) -> dict[str:list[object]]:
+        return self.__sources_manager.sources
+
+    @property
+    def tag_data(self) -> TagData:
+        return self.__sources_manager.tag_data
+
+    @tag_data.setter
+    def tag_data(self, value: TagData) -> None:
+        self.__sources_manager.tag_data = value
+
+    def get_model_names(self, source: str) -> list[str]:
+        return self.__sources_manager.sources[source].get_model_names()
+
+    @property
+    def saved_collections_names(self) -> list[str]:
+        return self.__cache_manager.get_saved_names()
 
     def __get_lpp_status(self) -> str:
-        n_prompts = self.sources_manager.get_loaded_prompts_count()
+        n_prompts = self.__sources_manager.get_loaded_prompts_count()
         return f"**{n_prompts}** prompts loaded. Ready to generate." \
             if n_prompts > 0 \
             else "No prompts loaded. Not ready to generate."
@@ -41,16 +64,16 @@ class LPPWrapper:
     def try_save_prompts(self, name: str, tag_filter: str) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
-                self.cache_manager.cache_tag_data,
+                self.__cache_manager.cache_tag_data,
                 f"Successfully saved \"{name}\"",
                 f"Failed to save \"{name}\":",
-                name, self.sources_manager.tag_data, tag_filter
+                name, self.__sources_manager.tag_data, tag_filter
             )
         )
 
     def try_load_prompts(self, name: str) -> str:
         def load_new_tag_data(name: str) -> None:
-            self.sources_manager.tag_data = self.cache_manager.get_tag_data(
+            self.__sources_manager.tag_data = self.__cache_manager.get_tag_data(
                 name)
         return self.format_status_msg(
             self.__try_exec_command(
@@ -64,7 +87,7 @@ class LPPWrapper:
     def try_delete_prompts(self, name: str) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
-                self.cache_manager.delete_tag_data,
+                self.__cache_manager.delete_tag_data,
                 f"Successfully deleted \"{name}\"",
                 f"Failed to delete \"{name}\":",
                 name
@@ -74,7 +97,7 @@ class LPPWrapper:
     def try_send_request(self, *args: object) -> str:
         return self.format_status_msg(
             self.__try_exec_command(
-                self.sources_manager.request_prompts,
+                self.__sources_manager.request_prompts,
                 f"Successfully fetched tags from \"{args[0]}\"",
                 f"Failed to fetch tags from \"{args[0]}\":",
                 *args
@@ -83,7 +106,7 @@ class LPPWrapper:
 
     def try_get_tag_data_json(self, name: str) -> (bool, dict[str:object]):
         try:
-            target = self.cache_manager.get_tag_data(name)
+            target = self.__cache_manager.get_tag_data(name)
             return True, {
                 "source": target.source,
                 "query": target.query,
@@ -97,7 +120,7 @@ class LPPWrapper:
         self, model: str, n: int = 1, tag_filter_str: str = ""
     ) -> list[list[str]]:
         try:
-            return self.sources_manager.choose_prompts(
+            return self.__sources_manager.choose_prompts(
                 model, n, tag_filter_str
             )
         except IndexError:
@@ -118,10 +141,11 @@ class QueryPanels:
     def Derpibooru(
         active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
     ) -> QueryPanelData:
+        NAME = "Derpibooru"
         with gr.Accordion(
             "💬 Derpibooru Query",
             open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == "Derpibooru")
+            visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
                 "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
@@ -143,16 +167,12 @@ class QueryPanels:
                     with gr.Row():
                         filter_type = gr.Dropdown(
                             label="Derpibooru Filter",
-                            choices=lpp.sources_manager.sources[
-                                "Derpibooru"
-                            ].get_filters()
+                            choices=lpp.sources[NAME].get_filters()
                         )
                         filter_type.value = filter_type.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources_manager.sources[
-                                "Derpibooru"
-                            ].get_sort_options()
+                            choices=lpp.sources[NAME].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
@@ -168,10 +188,11 @@ class QueryPanels:
     def E621(
         active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
     ) -> QueryPanelData:
+        NAME = "E621"
         with gr.Accordion(
             "💬 E621 Query",
             open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == "E621")
+            visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
                 "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
@@ -193,16 +214,12 @@ class QueryPanels:
                     with gr.Row():
                         rating = gr.Dropdown(
                             label="Rating",
-                            choices=lpp.sources_manager.sources[
-                                "E621"
-                            ].get_ratings()
+                            choices=lpp.sources[NAME].get_ratings()
                         )
                         rating.value = rating.choices[0]
                         sort_type = gr.Dropdown(
                             label="Sort by",
-                            choices=lpp.sources_manager.sources[
-                                "E621"
-                            ].get_sort_options()
+                            choices=lpp.sources[NAME].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
             with gr.Row():
