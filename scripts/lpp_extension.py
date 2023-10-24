@@ -33,7 +33,7 @@ class Scripts(scripts.Script):
                 enabled = gr.Checkbox(label="Enabled")
                 source = gr.Dropdown(
                     label="Tags Source",
-                    choices=self.lpp.sources_manager.get_source_names()
+                    choices=self.lpp.source_names
                 )
                 source.value = source.choices[0]
                 prompts_format = gr.Dropdown(label="Prompts Format")
@@ -65,7 +65,7 @@ class Scripts(scripts.Script):
                         with gr.Column(scale=2):
                             prompts_manager_input = gr.Dropdown(
                                 label="Prompts Collection Name",
-                                choices=self.lpp.cache_manager.get_saved_names(),
+                                choices=self.lpp.saved_collections_names,
                                 allow_custom_value=True
                             )
                         with gr.Column(scale=0, min_width=200):
@@ -104,9 +104,7 @@ class Scripts(scripts.Script):
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
-                models = self.lpp.sources_manager.sources[
-                    source
-                ].get_model_names()
+                models = self.lpp.get_model_names(source)
                 return (
                     self.lpp.try_send_request(source, *params),
                     gr.update(
@@ -140,7 +138,7 @@ class Scripts(scripts.Script):
                 self.prompt_manager_dialog_action = lambda: \
                     self.lpp.try_save_prompts(name, tag_filter), \
                     name
-                if name in self.lpp.cache_manager.get_saved_names():
+                if name in self.lpp.saved_collections_names:
                     return (
                         self.lpp.format_status_msg(),
                         gr.update(),
@@ -151,7 +149,7 @@ class Scripts(scripts.Script):
                     return (
                         self.lpp.try_save_prompts(name, tag_filter),
                         gr.Dropdown.update(
-                            choices=self.lpp.cache_manager.get_saved_names()
+                            choices=self.lpp.saved_collections_names
                         ),
                         "", gr.update(visible=False)
                     )
@@ -166,16 +164,15 @@ class Scripts(scripts.Script):
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
                 msg = self.lpp.try_load_prompts(name)
-                source = self.lpp.sources_manager.tag_data.source
-                models = self.lpp.sources_manager.sources[source].get_model_names(
-                )
+                source = self.lpp.tag_data.source
+                models = self.lpp.get_model_names(source)
                 models_update = gr.update(
                     choices=models,
                     value=current_model if current_model in models
                     else models[0]
                 )
 
-                metadata = self.lpp.sources_manager.tag_data.other_params
+                metadata = self.lpp.tag_data.other_params
                 tag_filter_update = metadata["tag_filter"] \
                     if "tag_filter" in metadata and autofill_tags_filter \
                     else ""
@@ -226,8 +223,7 @@ class Scripts(scripts.Script):
                 return (
                     msg,
                     gr.Dropdown.update(
-                        choices=list(
-                            self.lpp.cache_manager.get_saved_names()),
+                        choices=list(self.lpp.saved_collections_names),
                         value=selected_val
                     ),
                     gr.update(visible=False),
