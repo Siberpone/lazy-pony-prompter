@@ -1,11 +1,11 @@
-from random import choices
+from copy import deepcopy
 from lpp.sources import TagSourceBase
 from lpp.utils import TagData, glob_match
+from os import path
+from random import choices
+import json
 import pickle
 import shutil
-import json
-import os
-import copy
 
 
 class SourcesManager:
@@ -64,15 +64,15 @@ class CacheManager:
         self.__tag_data_cache: dict[str:list[TagData]] = self.__load_cache()
 
     def __convert_legacy_cache_file(self):
-        old_cache_file = os.path.join(self.__work_dir, "cache.json")
-        new_cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
-        if not os.path.exists(old_cache_file) or os.path.exists(new_cache_file):
+        old_cache_file = path.join(self.__work_dir, "cache.json")
+        new_cache_file = path.join(self.__work_dir, "tag_cache.dat")
+        if not path.exists(old_cache_file) or path.exists(new_cache_file):
             return
 
-        backup_cache_file = os.path.join(
+        backup_cache_file = path.join(
             self.__work_dir, "cache.231021.bak.json"
         )
-        if not os.path.exists(backup_cache_file):
+        if not path.exists(backup_cache_file):
             shutil.copy(old_cache_file, backup_cache_file)
 
         new_cache = {}
@@ -98,8 +98,8 @@ class CacheManager:
         # after some time.
         self.__convert_legacy_cache_file()
 
-        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
-        if not os.path.exists(cache_file):
+        cache_file = path.join(self.__work_dir, "tag_cache.dat")
+        if not path.exists(cache_file):
             return {}
 
         with open(cache_file, "rb") as f:
@@ -109,7 +109,7 @@ class CacheManager:
                 return {}
 
     def __dump_cache(self) -> None:
-        cache_file = os.path.join(self.__work_dir, "tag_cache.dat")
+        cache_file = path.join(self.__work_dir, "tag_cache.dat")
         with open(cache_file, "wb") as f:
             pickle.dump(self.__tag_data_cache, f)
 
@@ -125,7 +125,7 @@ class CacheManager:
     ) -> None:
         if not name:
             raise ValueError("Empty \"name\" parameter")
-        tag_data = copy.deepcopy(data)
+        tag_data = deepcopy(data)
         tag_data.other_params["tag_filter"] = tag_filter if tag_filter else ""
 
         self.__tag_data_cache[name] = tag_data
@@ -134,7 +134,7 @@ class CacheManager:
     def get_tag_data(self, name: str) -> TagData:
         if name not in self.__tag_data_cache:
             raise KeyError(f"Can't find \"{name}\" in prompts cache")
-        return copy.deepcopy(self.__tag_data_cache[name])
+        return deepcopy(self.__tag_data_cache[name])
 
     def delete_tag_data(self, name: str) -> None:
         if name not in self.__tag_data_cache:
