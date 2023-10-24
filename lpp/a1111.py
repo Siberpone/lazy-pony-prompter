@@ -38,7 +38,7 @@ class LPPWrapper:
 
     @property
     def saved_collections_names(self) -> list[str]:
-        self.__cache_manager.get_saved_names()
+        return self.__cache_manager.get_saved_names()
 
     def __get_lpp_status(self) -> str:
         n_prompts = self.__sources_manager.get_loaded_prompts_count()
