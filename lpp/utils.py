@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import enum
 import os
 import json
 import fnmatch
@@ -10,6 +11,11 @@ class TagData:
     query: str
     raw_tags: list
     other_params: dict
+
+
+class Models(enum.Enum):
+    PDV56 = "Pony Diffusion V5(.5)/V6"
+    EF = "EasyFluff"
 
 
 def glob_match(term: str, patterns: list[str]) -> bool:

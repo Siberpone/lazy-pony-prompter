@@ -1,4 +1,4 @@
-from lpp.utils import TagData, glob_match, get_config
+from lpp.utils import TagData, Models, glob_match, get_config
 from lpp.log import get_logger
 from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
@@ -101,7 +101,7 @@ class E621(TagSourceBase):
                 ]
         return filtered_tags
 
-    @formatter("Pony Diffusion V5")
+    @formatter(Models.PDV56.value)
     def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> list[str]:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "meta"],
@@ -111,7 +111,7 @@ class E621(TagSourceBase):
         return [rating] + [x.replace("_", " ") for x in t["character"]
                            + t["species"] + t["general"] + t["meta"]]
 
-    @formatter("EasyFluff")
+    @formatter(Models.EF.value)
     def easyfluff_format(
         self, raw_image_tags: dict[str:list[str]]
     ) -> list[str]:
@@ -123,7 +123,7 @@ class E621(TagSourceBase):
                 + t["general"] + [f"by {x}" for x in t["artist"]]
                 + t["copyright"] + t["meta"]]
 
-    @formatter("EasyFluff (no artist names)")
+    @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artist_format(
         self, raw_image_tags: dict[str:list[str]]
     ) -> list[str]:
@@ -246,20 +246,20 @@ class Derpibooru(TagSourceBase):
         return ([] if rating is None else [rating]), characters, \
             prioritized_tags, artists, prompt_tail
 
-    @formatter("Pony Diffusion V5")
+    @formatter(Models.PDV56.value)
     def pdv5_format(self, raw_image_tags: list[str]) -> list[str]:
         rating, characters, prioritized_tags, _, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return rating + characters + prioritized_tags + prompt_tail
 
-    @formatter("EasyFluff")
+    @formatter(Models.EF.value)
     def easyfluff_format(self, raw_image_tags: list[str]) -> list[str]:
         _, characters, prioritized_tags, artists, prompt_tail = \
             self.__filter_tags(raw_image_tags)
         return characters + prioritized_tags \
             + [f"by {x}" for x in artists] + prompt_tail
 
-    @formatter("EasyFluff (no artist names)")
+    @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artists_format(
         self, raw_image_tags: list[str]
     ) -> list[str]:
