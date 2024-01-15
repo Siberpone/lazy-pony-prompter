@@ -20,11 +20,11 @@ def formatter(model_name: callable) -> callable:
 class TagSourceBase:
     def __init__(self, work_dir: str = "."):
         self._work_dir: str = work_dir
-        self.models: dict[str:callable] = {}
+        self.formatters: dict[str:callable] = {}
         for attr in [x for x in dir(self) if not x.startswith("_")]:
             obj = getattr(self, attr)
             if hasattr(obj, "is_formatter"):
-                self.models[obj.model_name] = obj
+                self.formatters[obj.model_name] = obj
 
     def _send_api_request(
         self, endpoint: str, query_params: dict[str:str],
@@ -37,7 +37,7 @@ class TagSourceBase:
             return json.load(response)
 
     def get_model_names(self) -> list[str]:
-        return list(self.models.keys())
+        return list(self.formatters.keys())
 
     def request_tags(self, query: str, count: int, *params: object) -> TagData:
         pass

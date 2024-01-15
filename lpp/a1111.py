@@ -1,4 +1,4 @@
-from lpp.backend import SourcesManager, CacheManager, TagData
+from lpp.backend import SourcesManager, PromptsManager, CacheManager, TagData
 from lpp.log import get_logger
 from dataclasses import dataclass
 import gradio as gr
@@ -11,10 +11,13 @@ def set_no_config(*args: object) -> None:
         setattr(control, "do_not_save_to_config", True)
 
 
-class LPPWrapper:
+class LPP_A1111:
     def __init__(self, work_dir: str = "."):
         self.__work_dir: str = work_dir
-        self.__sources_manager: SourcesManager = SourcesManager(self.__work_dir)
+        self.__sources_manager: SourcesManager = SourcesManager(
+            self.__work_dir)
+        self.__prompts_manager: PromptsManager = PromptsManager(
+            self.__sources_manager)
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
 
     @property
@@ -27,11 +30,11 @@ class LPPWrapper:
 
     @property
     def tag_data(self) -> TagData:
-        return self.__sources_manager.tag_data
+        return self.__prompts_manager.tag_data
 
     @tag_data.setter
     def tag_data(self, value: TagData) -> None:
-        self.__sources_manager.tag_data = value
+        self.__prompts_manager.tag_data = value
 
     def get_model_names(self, source: str) -> list[str]:
         return self.__sources_manager.sources[source].get_model_names()
@@ -41,7 +44,7 @@ class LPPWrapper:
         return self.__cache_manager.get_saved_names()
 
     def __get_lpp_status(self) -> str:
-        n_prompts = self.__sources_manager.get_loaded_prompts_count()
+        n_prompts = self.__prompts_manager.get_loaded_prompts_count()
         return f"**{n_prompts}** prompts loaded. Ready to generate." \
             if n_prompts > 0 \
             else "No prompts loaded. Not ready to generate."
@@ -67,13 +70,13 @@ class LPPWrapper:
                 self.__cache_manager.cache_tag_data,
                 f"Successfully saved \"{name}\"",
                 f"Failed to save \"{name}\":",
-                name, self.__sources_manager.tag_data, tag_filter
+                name, self.__prompts_manager.tag_data, tag_filter
             )
         )
 
     def try_load_prompts(self, name: str) -> str:
         def load_new_tag_data(name: str) -> None:
-            self.__sources_manager.tag_data = self.__cache_manager.get_tag_data(
+            self.__prompts_manager.tag_data = self.__cache_manager.get_tag_data(
                 name)
         return self.format_status_msg(
             self.__try_exec_command(
@@ -95,9 +98,11 @@ class LPPWrapper:
         )
 
     def try_send_request(self, *args: object) -> str:
+        def load_new_tag_data(*args: object) -> None:
+            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts,
         return self.format_status_msg(
             self.__try_exec_command(
-                self.__sources_manager.request_prompts,
+                load_new_tag_data,
                 f"Successfully fetched tags from \"{args[0]}\"",
                 f"Failed to fetch tags from \"{args[0]}\":",
                 *args
@@ -120,11 +125,12 @@ class LPPWrapper:
         self, model: str, n: int = 1, tag_filter_str: str = ""
     ) -> list[list[str]]:
         try:
-            return self.__sources_manager.choose_prompts(
+            return self.__prompts_manager.choose_prompts(
                 model, n, tag_filter_str
             )
         except IndexError:
-            logger.error("Failed to choose prompts because no prompts are currently loaded")
+            logger.error(
+                "Failed to choose prompts because no prompts are currently loaded")
         except Exception:
             logger.exception("Failed to choose prompts", exc_info=True)
 
@@ -139,7 +145,7 @@ class QueryPanelData:
 class QueryPanels:
     @staticmethod
     def Derpibooru(
-        active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
+        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
     ) -> QueryPanelData:
         NAME = "Derpibooru"
         with gr.Accordion(
@@ -186,7 +192,7 @@ class QueryPanels:
 
     @staticmethod
     def E621(
-        active_panel_name: str, lpp: LPPWrapper, config: dict[str:object]
+        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
     ) -> QueryPanelData:
         NAME = "E621"
         with gr.Accordion(

@@ -16,7 +16,6 @@ class SourcesManager:
         self, work_dir: str = ".", sources: list[TagSourceBase] = None
     ):
         self.__work_dir: str = work_dir
-        self.tag_data: TagData = None
         self.sources: dict[str:TagSourceBase] = self.__load_sources(sources)
 
     def __load_sources(
@@ -29,7 +28,13 @@ class SourcesManager:
         return list(self.sources.keys())
 
     def request_prompts(self, source: str, *args: object) -> None:
-        self.tag_data = self.sources[source].request_tags(*args)
+        return self.sources[source].request_tags(*args)
+
+
+class PromptsManager:
+    def __init__(self, sources_manager: SourcesManager):
+        self.__sm = sources_manager
+        self.tag_data: TagData = None
 
     def choose_prompts(
             self, model: str, n: int = 1, tag_filter_str: str = ""
@@ -37,7 +42,7 @@ class SourcesManager:
         chosen_prompts = choices(self.tag_data.raw_tags, k=n)
 
         source = self.tag_data.source
-        format_func = self.sources[source].models[model]
+        format_func = self.__sm.sources[source].formatters[model]
 
         extra_tag_filter = {
             t.strip() for t in tag_filter_str.split(",") if t

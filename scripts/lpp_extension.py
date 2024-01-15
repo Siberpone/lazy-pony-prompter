@@ -1,4 +1,4 @@
-from lpp.a1111 import LPPWrapper, QueryPanels, set_no_config
+from lpp.a1111 import LPP_A1111, QueryPanels, set_no_config
 from lpp.utils import get_merged_config_entry
 from modules.styles import merge_prompts as merge_prompt_as_style
 import gradio as gr
@@ -11,7 +11,7 @@ base_dir = scripts.basedir()
 
 class Scripts(scripts.Script):
     def __init__(self):
-        self.lpp: LPPWrapper = LPPWrapper(base_dir)
+        self.lpp: LPP_A1111 = LPP_A1111(base_dir)
         self.config = get_merged_config_entry(
             "a1111_ui", os.path.join(base_dir, "config")
         )
