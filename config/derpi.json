@@ -448,7 +448,7 @@
         "translated in the description",
         "bad end"
     ],
-    "prioritized_tags": [
+    "species_tags": [
         "mare",
         "female",
         "solo",
@@ -621,5 +621,6 @@
         "ursa",
         "lizard",
         "seagull"
-    ]
+    ],
+    "meta_tags": []
 }

@@ -13,6 +13,16 @@ class TagData:
     other_params: dict
 
 
+@dataclass
+class TagGroups:
+    character: list[str]
+    species: list[str]
+    rating: list[str]
+    artist: list[str]
+    general: list[str]
+    meta: list[str]
+
+
 class Models(enum.Enum):
     PDV56 = "Pony Diffusion V5(.5)/V6"
     EF = "EasyFluff"

@@ -251,13 +251,8 @@ class Scripts(scripts.Script):
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = self.lpp.try_choose_prompts(
-            prompts_format, n_images, tag_filter
+            prompts_format, p.prompt, n_images, tag_filter
         )
-
-        if p.prompt:
-            p.all_prompts = [
-                merge_prompt_as_style(p.prompt, x) for x in p.all_prompts
-            ]
 
         p.all_prompts = [
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)

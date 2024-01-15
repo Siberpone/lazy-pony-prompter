@@ -99,7 +99,7 @@ class LPP_A1111:
 
     def try_send_request(self, *args: object) -> str:
         def load_new_tag_data(*args: object) -> None:
-            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts,
+            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts(*args)
         return self.format_status_msg(
             self.__try_exec_command(
                 load_new_tag_data,
@@ -121,12 +121,15 @@ class LPP_A1111:
         except KeyError:
             return False, {}
 
-    def try_choose_prompts(
-        self, model: str, n: int = 1, tag_filter_str: str = ""
-    ) -> list[list[str]]:
+    def try_choose_prompts(self,
+                           model: str,
+                           template: str = None,
+                           n: int = 1,
+                           tag_filter_str: str = ""
+                           ) -> list[list[str]]:
         try:
             return self.__prompts_manager.choose_prompts(
-                model, n, tag_filter_str
+                model, template, n, tag_filter_str
             )
         except IndexError:
             logger.error(

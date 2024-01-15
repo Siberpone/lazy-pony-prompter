@@ -1,4 +1,4 @@
-from lpp.utils import TagData, Models, glob_match, get_config
+from lpp.utils import TagData, TagGroups, Models, glob_match, get_config
 from lpp.log import get_logger
 from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
@@ -87,6 +87,9 @@ class E621(TagSourceBase):
             {}
         )
 
+    def __replace_underscores(self, tags: dict[str:list[str]]):
+        return {k: [x.replace("_", " ") for x in v] for k, v in tags.items()}
+
     def __filter_raw_tags(
         self, categories: list[str], raw_image_tags: dict[str:list[str]]
     ) -> dict[str:list[str]]:
@@ -99,40 +102,57 @@ class E621(TagSourceBase):
                     x for x in raw_image_tags[category]
                     if not glob_match(x, self.__filtered_tags[category])
                 ]
-        return filtered_tags
+        return self.__replace_underscores(filtered_tags)
 
     @formatter(Models.PDV56.value)
-    def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> list[str]:
+    def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "meta"],
             raw_image_tags
         )
         rating = self.__ratings["pdv5"][raw_image_tags["rating"]]
-        return [rating] + [x.replace("_", " ") for x in t["character"]
-                           + t["species"] + t["general"] + t["meta"]]
+        return TagGroups(
+            t["character"],
+            t["species"],
+            [rating],
+            [],
+            t["general"],
+            t["meta"]
+        )
 
     @formatter(Models.EF.value)
     def easyfluff_format(
         self, raw_image_tags: dict[str:list[str]]
-    ) -> list[str]:
+    ) -> TagGroups:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "artist", "copyright", "meta"],
             raw_image_tags
         )
-        return [x.replace("_", " ") for x in t["character"] + t["species"]
-                + t["general"] + [f"by {x}" for x in t["artist"]]
-                + t["copyright"] + t["meta"]]
+        return TagGroups(
+            t["character"],
+            t["species"],
+            [],
+            [f"by {x}" for x in t["artist"]],
+            t["general"],
+            t["copyright"] + t["meta"]
+        )
 
     @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artist_format(
         self, raw_image_tags: dict[str:list[str]]
-    ) -> list[str]:
+    ) -> TagGroups:
         t = self.__filter_raw_tags(
             ["character", "species", "general", "copyright", "meta"],
             raw_image_tags
         )
-        return [x.replace("_", " ") for x in t["character"] + t["species"]
-                + t["general"] + t["copyright"] + t["meta"]]
+        return TagGroups(
+            t["character"],
+            t["species"],
+            [],
+            [],
+            t["general"],
+            t["copyright"] + t["meta"]
+        )
 
 
 class Derpibooru(TagSourceBase):
@@ -144,7 +164,8 @@ class Derpibooru(TagSourceBase):
         self.__sort_params = config["sort_params"]
         self.__pdv5_ratings = config["ratings"]["pdv5"]
         self.__character_tags = config["character_tags"]
-        self.__prioritized_tags = config["prioritized_tags"]
+        self.__species_tags = config["species_tags"]
+        self.__meta_tags = config["meta_tags"]
         self.__filtered_tags = config["filtered_tags"]
         if self.__api_key is not None:
             self.__fetch_user_filters()
@@ -222,47 +243,70 @@ class Derpibooru(TagSourceBase):
             logger.warning("Failed to fetch Derpibooru user filters")
 
     def __filter_tags(self, raw_image_tags: list[str]) -> tuple[str]:
-        rating = None
+        rating = []
         characters = []
-        prioritized_tags = []
+        species = []
         artists = []
-        prompt_tail = []
+        general = []
+        meta = []
         for tag in raw_image_tags:
             if glob_match(tag, self.__filtered_tags):
                 continue
-            if rating is None and tag in self.__pdv5_ratings.keys():
-                rating = self.__pdv5_ratings[tag]
+            if tag in self.__pdv5_ratings.keys():
+                rating.append(self.__pdv5_ratings[tag])
                 continue
             if tag in self.__character_tags:
                 characters.append(tag)
                 continue
-            if tag in self.__prioritized_tags:
-                prioritized_tags.append(tag)
+            if tag in self.__species_tags:
+                species.append(tag)
+                continue
+            if tag in self.__meta_tags:
+                meta.append(tag)
                 continue
             if tag.startswith("artist:"):
                 artists.append(tag[7:])
                 continue
-            prompt_tail.append(tag)
-        return ([] if rating is None else [rating]), characters, \
-            prioritized_tags, artists, prompt_tail
+            general.append(tag)
+        return rating, characters, species, artists, general, meta
 
     @formatter(Models.PDV56.value)
-    def pdv5_format(self, raw_image_tags: list[str]) -> list[str]:
-        rating, characters, prioritized_tags, _, prompt_tail = \
+    def pdv5_format(self, raw_image_tags: list[str]) -> TagGroups:
+        rating, characters, species, _, general, meta = \
             self.__filter_tags(raw_image_tags)
-        return rating + characters + prioritized_tags + prompt_tail
+        return TagGroups(
+            characters,
+            species,
+            rating,
+            [],
+            general,
+            meta
+        )
 
     @formatter(Models.EF.value)
-    def easyfluff_format(self, raw_image_tags: list[str]) -> list[str]:
-        _, characters, prioritized_tags, artists, prompt_tail = \
+    def easyfluff_format(self, raw_image_tags: list[str]) -> TagGroups:
+        _, characters, species, artists, general, meta = \
             self.__filter_tags(raw_image_tags)
-        return characters + prioritized_tags \
-            + [f"by {x}" for x in artists] + prompt_tail
+        return TagGroups(
+            characters,
+            species,
+            [],
+            [f"by {x}" for x in artists],
+            general,
+            meta
+        )
 
     @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artists_format(
         self, raw_image_tags: list[str]
-    ) -> list[str]:
-        _, characters, prioritized_tags, artists, prompt_tail = \
+    ) -> TagGroups:
+        _, characters, species, _, general, meta = \
             self.__filter_tags(raw_image_tags)
-        return characters + prioritized_tags + prompt_tail
+        return TagGroups(
+            characters,
+            species,
+            [],
+            [],
+            general,
+            meta
+        )

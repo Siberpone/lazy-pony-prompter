@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources import TagSourceBase
 from lpp.utils import TagData, glob_match
@@ -6,6 +7,7 @@ from os import path
 from random import choices
 import json
 import pickle
+import re
 import shutil
 
 logger = get_logger()
@@ -36,9 +38,55 @@ class PromptsManager:
         self.__sm = sources_manager
         self.tag_data: TagData = None
 
-    def choose_prompts(
-            self, model: str, n: int = 1, tag_filter_str: str = ""
-    ) -> list[list[str]]:
+    def __replace_tokens(self, flat_groups: dict[str:str], template: str) -> str:
+        result = template
+        for token, prompt_fragment in flat_groups.items():
+            result = result.replace(f"{{{token}}}", prompt_fragment)
+        return result
+
+    def __apply_template(self,
+                         tag_groups: dict[str:list[str]],
+                         template: str = None,
+                         sep: str = ", ",
+                         sanitize: bool = True) -> str:
+        escaped_tag_groups = {
+            k: [x.replace("(", "\\(").replace(")", "\\)") for x in v] for k, v in tag_groups.items()
+        }
+        flat_groups = {k: sep.join(v) for k, v in escaped_tag_groups.items()}
+        tokens = set(tag_groups.keys())
+        default_template = sep.join([f"{{{x}}}" for x in tokens])
+        prompt = ""
+
+        if template:
+            if "{prompt}" in template:
+                for token in tokens:
+                    template = template.replace(f"{{{token}}}", "")
+                template = template.replace("{prompt}", default_template)
+                prompt = self.__replace_tokens(flat_groups, template)
+            elif any(f"{{{x}}}" in template for x in tokens):
+                for token in tokens:
+                    prompt = self.__replace_tokens(flat_groups, template)
+            else:
+                prompt = self.__replace_tokens(
+                    flat_groups, sep.join([default_template, template])
+                )
+        else:
+            prompt = self.__replace_tokens(flat_groups, default_template)
+
+        if sanitize:
+            prompt = re.sub(" +", " ", prompt)
+            prompt = re.sub(r"(, )\1+", r"\1", prompt)
+            prompt = re.sub("^, *", "", prompt)
+            prompt = re.sub(", *$", "", prompt)
+
+        return prompt
+
+    def choose_prompts(self,
+                       model: str,
+                       template: str = None,
+                       n: int = 1,
+                       tag_filter_str: str = ""
+                       ) -> list[list[str]]:
         chosen_prompts = choices(self.tag_data.raw_tags, k=n)
 
         source = self.tag_data.source
@@ -49,16 +97,15 @@ class PromptsManager:
         }
 
         processed_prompts = []
-        for prompt_core in chosen_prompts:
-            formatted_prompt = format_func(prompt_core)
-            filtered_prompt = [
-                t for t in formatted_prompt
-                if not glob_match(t, extra_tag_filter)
-            ]
+        for raw_tags in chosen_prompts:
+            formatted_tags = asdict(format_func(raw_tags))
+            filtered_tags = {
+                k: [
+                    x for x in v if not glob_match(x, extra_tag_filter)
+                ] for k, v in formatted_tags.items()
+            }
             processed_prompts.append(
-                ", ".join(filtered_prompt)
-                    .replace("(", "\\(")
-                    .replace(")", "\\)")
+                self.__apply_template(filtered_tags, template)
             )
         return processed_prompts
 
