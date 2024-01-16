@@ -1,10 +1,10 @@
 from lpp.a1111 import LPP_A1111
-from lpp.utils import get_merged_config_entry
 from dataclasses import dataclass
+from modules import scripts
+from modules import shared
+from modules import script_callbacks
 import gradio as gr
-import modules.scripts as scripts
-import modules.shared as shared
-import os
+import logging
 
 base_dir = scripts.basedir()
 
@@ -12,6 +12,48 @@ base_dir = scripts.basedir()
 def set_no_config(*args: object) -> None:
     for control in args:
         setattr(control, "do_not_save_to_config", True)
+
+
+def on_ui_settings():
+    LPP_SECTION = ("lpp", "Lazy Pony Prompter")
+
+    lpp_options = {
+        "lpp_start_unfolded":
+            shared.OptionInfo(False, "Start unfolded",),
+        "lpp_query_panel_start_unfolded":
+            shared.OptionInfo(
+                False, "Query panel starts unfolded"
+            ),
+        "lpp_logging_level":
+            shared.OptionInfo(
+                logging.WARNING,
+                "Console nagging level",
+                gr.Radio,
+                {"choices": [
+                    ("Error", logging.ERROR),
+                    ("Warning", logging.WARNING),
+                    ("Info", logging.INFO),
+                    ("Debug", logging.DEBUG)]
+                 }
+            ).needs_reload_ui(),
+        "lpp_derpibooru_api_key":
+            shared.OptionInfo("",
+                              "Derpibooru API Key",
+                              gr.Textbox,
+                              {"interactive": True, "type": "password"}
+                              ).needs_reload_ui()
+    }
+
+    for key, opt in lpp_options.items():
+        opt.section = LPP_SECTION
+        shared.opts.add_option(key, opt)
+
+
+script_callbacks.on_ui_settings(on_ui_settings)
+
+
+def get_opt(option, default):
+    return getattr(shared.opts, option, default)
 
 
 @dataclass
@@ -22,14 +64,17 @@ class QueryPanelData:
 
 
 class QueryPanels:
+    __PROMPTS_MIN = 5
+    __PROMPTS_MAX = 300
+    __PROMPTS_STEP = 5
+    __PROMPTS_DEFAULT = 100
+
     @staticmethod
-    def Derpibooru(
-        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
-    ) -> QueryPanelData:
+    def Derpibooru(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "Derpibooru"
         with gr.Accordion(
             "💬 Derpibooru Query",
-            open=config["query_panel_start_unfolded"],
+            open=get_opt("lpp_query_panel_start_unfolded", False),
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
@@ -43,10 +88,10 @@ class QueryPanels:
                 with gr.Column():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
+                        minimum=QueryPanels.__PROMPTS_MIN,
+                        maximum=QueryPanels.__PROMPTS_MAX,
+                        step=QueryPanels.__PROMPTS_STEP,
+                        value=QueryPanels.__PROMPTS_DEFAULT
                     )
                 with gr.Column():
                     with gr.Row():
@@ -70,13 +115,11 @@ class QueryPanels:
             )
 
     @staticmethod
-    def E621(
-        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
-    ) -> QueryPanelData:
+    def E621(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "E621"
         with gr.Accordion(
             "💬 E621 Query",
-            open=config["query_panel_start_unfolded"],
+            open=get_opt("lpp_query_panel_start_unfolded", False),
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
@@ -90,10 +133,10 @@ class QueryPanels:
                 with gr.Column():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
+                        minimum=QueryPanels.__PROMPTS_MIN,
+                        maximum=QueryPanels.__PROMPTS_MAX,
+                        step=QueryPanels.__PROMPTS_STEP,
+                        value=QueryPanels.__PROMPTS_DEFAULT
                     )
                 with gr.Column():
                     with gr.Row():
@@ -119,9 +162,10 @@ class QueryPanels:
 
 class Scripts(scripts.Script):
     def __init__(self):
-        self.lpp: LPP_A1111 = LPP_A1111(base_dir)
-        self.config = get_merged_config_entry(
-            "a1111_ui", os.path.join(base_dir, "config")
+        self.lpp: LPP_A1111 = LPP_A1111(
+            base_dir,
+            get_opt("lpp_derpibooru_api_key", None),
+            get_opt("lpp_logging_level", None)
         )
         self.query_panels = {}
         self.prompt_manager_dialog_action = lambda: None
@@ -135,7 +179,7 @@ class Scripts(scripts.Script):
     def ui(self, is_img2img):
         with gr.Accordion(
             "💤 Lazy Pony Prompter",
-            open=self.config["start_unfolded"]
+            open=get_opt("lpp_start_unfolded", False)
         ):
             with gr.Row():
                 enabled = gr.Checkbox(label="Enabled")
@@ -153,7 +197,7 @@ class Scripts(scripts.Script):
                 ]:
                     query_panel = getattr(QueryPanels, attr)
                     self.query_panels[query_panel.__name__] = query_panel(
-                        source.value, self.lpp, self.config
+                        source.value, self.lpp
                     )
 
                 # Tags Filter -------------------------------------------------

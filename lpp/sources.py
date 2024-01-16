@@ -158,7 +158,7 @@ class E621(TagSourceBase):
 class Derpibooru(TagSourceBase):
     def __init__(self, work_dir: str = "."):
         TagSourceBase.__init__(self, work_dir)
-        self.__api_key = self.__get_api_key()
+        self.__api_key = None
         config = get_config("derpi", os.path.join(self._work_dir, "config"))
         self.__filter_ids = config["filter_ids"]
         self.__sort_params = config["sort_params"]
@@ -167,8 +167,6 @@ class Derpibooru(TagSourceBase):
         self.__species_tags = config["species_tags"]
         self.__meta_tags = config["meta_tags"]
         self.__filtered_tags = config["filtered_tags"]
-        if self.__api_key is not None:
-            self.__fetch_user_filters()
 
     def get_filters(self) -> list[str]:
         return list(self.__filter_ids.keys())
@@ -218,19 +216,14 @@ class Derpibooru(TagSourceBase):
             }
         )
 
-    def __get_api_key(self) -> str:
-        old_api_key_file = os.path.join(self._work_dir, "api_key")
-        api_key_file = os.path.join(self._work_dir, "auth", "derpi")
-        if os.path.exists(old_api_key_file):
-            with open(old_api_key_file) as f:
-                return f.readline().strip('\n')
-        elif os.path.exists(api_key_file):
-            with open(api_key_file) as f:
-                return f.readline().strip('\n')
-        else:
-            return None
+    def set_api_key(self, key: str):
+        if not key:
+            return
+        self.__api_key = key
+        self.__fetch_user_filters()
 
     def __fetch_user_filters(self) -> None:
+        logger.info("Attempting to fetch Derpibooru user filters...")
         try:
             json_response = self._send_api_request(
                 "https://derpibooru.org/api/v1/json/filters/user",
@@ -239,8 +232,11 @@ class Derpibooru(TagSourceBase):
 
             for filter in json_response["filters"]:
                 self.__filter_ids[filter["name"]] = filter["id"]
+            logger.info("Successfully fetched Derpibooru user filters.")
         except (URLError, json.JSONDecodeError):
             logger.warning("Failed to fetch Derpibooru user filters")
+        except Exception as e:
+            logger.debug(f"Failed to fetch Derpibooru user filters ({e:=})")
 
     def __filter_tags(self, raw_image_tags: list[str]) -> tuple[str]:
         rating = []

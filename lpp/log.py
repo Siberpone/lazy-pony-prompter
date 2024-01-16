@@ -1,8 +1,10 @@
 import logging
 
+__logger = None
+
 
 def __init_logger(level: int = logging.WARNING,
-                  name: str = 'root') -> logging.Logger:
+                  name: str = 'lpp') -> logging.Logger:
     formatter = logging.Formatter(
         "[LPP] %(levelname)s (%(module)s): %(message)s"
     )
@@ -12,11 +14,16 @@ def __init_logger(level: int = logging.WARNING,
 
     logger = logging.getLogger(name)
     logger.addHandler(handler)
+    logger.setLevel(level)
+    logger.propagate = False
     return logger
 
 
-__logger = __init_logger()
-
-
 def get_logger():
-    return __logger
+    global __logger
+
+    if __logger:
+        return __logger
+    else:
+        __logger = __init_logger()
+        return __logger

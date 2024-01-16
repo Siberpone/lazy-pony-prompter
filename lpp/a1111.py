@@ -5,10 +5,18 @@ logger = get_logger()
 
 
 class LPP_A1111:
-    def __init__(self, work_dir: str = "."):
+    def __init__(self, work_dir: str = ".",
+                 derpi_api_key: str = None,
+                 logging_level: object = None):
         self.__work_dir: str = work_dir
-        self.__sources_manager: SourcesManager = SourcesManager(
-            self.__work_dir)
+        if logging_level:
+            logger.setLevel(logging_level)
+        self.__sources_manager: SourcesManager = SourcesManager(self.__work_dir)
+
+        # TODO: need better way of handling this
+        if "Derpibooru" in self.__sources_manager.sources.keys():
+            self.__sources_manager.sources["Derpibooru"].set_api_key(derpi_api_key)
+
         self.__prompts_manager: PromptsManager = PromptsManager(
             self.__sources_manager)
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
