@@ -1,4 +1,5 @@
 from lpp.a1111 import LPP_A1111
+from lpp.utils import Models
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -81,7 +82,7 @@ class QueryPanels:
                 "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
             with gr.Row():
                 query = gr.Textbox(
-                    placeholder="Type in your Derpibooru query here",
+                    placeholder="Derpibooru query or image URL",
                     show_label=False
                 )
             with gr.Row():
@@ -126,7 +127,7 @@ class QueryPanels:
                 "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
             with gr.Row():
                 query = gr.Textbox(
-                    placeholder="Type in Your E621 query here",
+                    placeholder="E621 query or image URL",
                     show_label=False
                 )
             with gr.Row():
@@ -256,7 +257,7 @@ class Scripts(scripts.Script):
             # Event Handlers --------------------------------------------------
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
-                models = self.lpp.get_model_names(source)
+                models = ["Auto"] + self.lpp.get_model_names(source)
                 return (
                     self.lpp.try_send_request(source, *params),
                     gr.update(
@@ -318,7 +319,7 @@ class Scripts(scripts.Script):
                 msg = self.lpp.try_load_prompts(name)
                 if self.lpp.tag_data:
                     source = self.lpp.tag_data.source
-                    models = self.lpp.get_model_names(source)
+                    models = ["Auto"] + self.lpp.get_model_names(source)
                     models_update = gr.update(
                         choices=models,
                         value=current_model if current_model in models
@@ -400,6 +401,18 @@ class Scripts(scripts.Script):
     def process(self, p, enabled, prompts_format, tag_filter):
         if not enabled:
             return p
+
+        if prompts_format == "Auto":
+            model_hashes = {
+                "67ab2fd8ec": Models.PDV56.value,   # PD V6 XL
+                "6fdb703d7d": Models.PDV56.value,   # PD V5.5
+                "51e44370f4": Models.PDV56.value,   # PD V5
+                "821628644e": Models.EF.value       # EasyFluff V11.2
+            }
+            if p.sd_model_hash not in model_hashes:
+                prompts_format = Models.PDV56.value
+            else:
+                prompts_format = model_hashes[p.sd_model_hash]
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = self.lpp.try_choose_prompts(

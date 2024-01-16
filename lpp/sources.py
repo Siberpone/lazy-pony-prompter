@@ -3,6 +3,7 @@ from lpp.log import get_logger
 from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
 import os
+import re
 import time
 import json
 
@@ -66,6 +67,12 @@ class E621(TagSourceBase):
         ENDPOINT = "https://e621.net/posts.json"
         PER_PAGE_MAX = 320
         QUERY_DELAY = 1
+
+        image_id = re.search(
+            r"^(?:https?:\/\/)?(?:e621\.net\/posts\/)?(\d+).*$", query
+        )
+        if image_id:
+            query = f"id:{image_id.groups(0)[0]}"
 
         p_rating = self.__ratings["lookup"][rating] if rating \
             and rating in self.__ratings["lookup"] else None
@@ -181,6 +188,12 @@ class Derpibooru(TagSourceBase):
         ENDPOINT = "https://derpibooru.org/api/v1/json/search/images"
         PER_PAGE_MAX = 50
         QUERY_DELAY = 0.5
+
+        image_id = re.search(
+            r"^(?:https?:\/\/)?(?:derpibooru\.org\/images\/)?(\d+).*$", query
+        )
+        if image_id:
+            query = f"id:{image_id.groups(0)[0]}"
 
         query_params = {
             "q": query,
