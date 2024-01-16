@@ -335,14 +335,13 @@ class Scripts(scripts.Script):
 
                 return (
                     msg,
-                    gr.update(visible=False),
                     tag_filter_update,
                     models_update
                 )
             load_prompts_btn.click(
                 load_prompts_click,
                 [prompts_manager_input, autofill_tags_filter, prompts_format],
-                [status_bar, prompts_manager_metadata, tag_filter, prompts_format]
+                [status_bar, tag_filter, prompts_format]
             )
 
             # Delete Button Click
