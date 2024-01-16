@@ -6,7 +6,7 @@ LPP_ROOT_DIR = dirname(__file__)
 sys.path.append(LPP_ROOT_DIR)
 
 from .lpp.sources import Derpibooru, E621
-from .lpp.backend import SourcesManager, CacheManager
+from .lpp.backend import SourcesManager, PromptsManager, CacheManager
 
 sm = SourcesManager(LPP_ROOT_DIR)
 cm = CacheManager(LPP_ROOT_DIR)
@@ -37,12 +37,16 @@ class ComfyTagSourceBase:
                 "default": 0,
                 "min": 0,
                 "max": 0xffffffffffffffff,
+            }),
+            "prompt_template": ("STRING", {
+                "multiline": False
             })
         }
     }
 
     def __init__(self, source):
         self._sm: SourcesManager = SourcesManager(LPP_ROOT_DIR, [source])
+        self._pm: PromptsManager = PromptsManager(self._sm)
 
     RETURN_TYPES = ("STRING", "LPP_TAG_DATA")
     RETURN_NAMES = ("Prompt", "LPP Tag Data")
@@ -68,15 +72,17 @@ class ComfyDerpibooru(ComfyTagSourceBase):
 
     def get_prompt(
         self, query, count, filter, sort_by, format, tag_filter,
-        send_request, tag_data=None, update_dummy=0
+        send_request, tag_data=None, update_dummy=0, prompt_template=""
     ):
         if tag_data:
-            self._sm.tag_data = tag_data
-        elif self._sm.get_loaded_prompts_count() == 0 or send_request:
-            self._sm.request_prompts("Derpibooru", query, count, filter, sort_by)
+            self._pm.tag_data = tag_data
+        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+            self._pm.tag_data = self._sm.request_prompts(
+                "Derpibooru", query, count, filter, sort_by
+            )
         return (
-            self._sm.choose_prompts(format, 1, tag_filter)[0],
-            (self._sm.tag_data, tag_filter)
+            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
+            (self._pm.tag_data, tag_filter)
         )
 
 
@@ -95,15 +101,17 @@ class ComfyE621(ComfyTagSourceBase):
 
     def get_prompt(
         self, query, count, rating, sort_by, format, tag_filter,
-        send_request, tag_data=None, update_dummy=0
+        send_request, tag_data=None, update_dummy=0, prompt_template=""
     ):
         if tag_data:
-            self._sm.tag_data = tag_data
-        elif self._sm.get_loaded_prompts_count() == 0 or send_request:
-            self._sm.request_prompts("E621", query, count, rating, sort_by)
+            self._pm.tag_data = tag_data
+        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+            self._pm.tag_data = self._sm.request_prompts(
+                "E621", query, count, rating, sort_by
+            )
         return (
-            self._sm.choose_prompts(format, 1, tag_filter)[0],
-            (self._sm.tag_data, tag_filter)
+            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
+            (self._pm.tag_data, tag_filter)
         )
 
 
@@ -208,5 +216,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "LPP_Loader_Derpibooru": "Tag Data Loader (Derpibooru)",
     "LPP_Loader_E621": "Tag Data Loader (E621)",
     "LPP_Deleter": "Tag Data Deleter"
-
 }
