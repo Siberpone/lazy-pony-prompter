@@ -1,3 +1,12 @@
+### 2024-01-17
+
+* Added custom prompt templates support
+* Added some basic settings ui
+* Added automatic prompt formatter selection
+* Sources can now fetch tags from image URL
+* Minor UI improvements
+* Improved error handling
+
 ### 2023-10-23
 
 * Added experimental ComfyUI support
