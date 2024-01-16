@@ -54,7 +54,7 @@ class PromptsManager:
         }
         flat_groups = {k: sep.join(v) for k, v in escaped_tag_groups.items()}
         tokens = set(tag_groups.keys())
-        default_template = sep.join([f"{{{x}}}" for x in tokens])
+        default_template = "{rating}, {character}, {species}, {artist}, {general}, {meta}"
         prompt = ""
 
         if template:
