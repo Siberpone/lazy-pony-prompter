@@ -1,14 +1,7 @@
 from lpp.backend import SourcesManager, PromptsManager, CacheManager, TagData
 from lpp.log import get_logger
-from dataclasses import dataclass
-import gradio as gr
 
 logger = get_logger()
-
-
-def set_no_config(*args: object) -> None:
-    for control in args:
-        setattr(control, "do_not_save_to_config", True)
 
 
 class LPP_A1111:
@@ -99,7 +92,8 @@ class LPP_A1111:
 
     def try_send_request(self, *args: object) -> str:
         def load_new_tag_data(*args: object) -> None:
-            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts(*args)
+            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts(
+                *args)
         return self.format_status_msg(
             self.__try_exec_command(
                 load_new_tag_data,
@@ -136,106 +130,3 @@ class LPP_A1111:
                 "Failed to choose prompts because no prompts are currently loaded")
         except Exception:
             logger.exception("Failed to choose prompts", exc_info=True)
-
-
-@dataclass
-class QueryPanelData:
-    panel: object
-    send_btn: object
-    params: list
-
-
-class QueryPanels:
-    @staticmethod
-    def Derpibooru(
-        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
-    ) -> QueryPanelData:
-        NAME = "Derpibooru"
-        with gr.Accordion(
-            "💬 Derpibooru Query",
-            open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == NAME)
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
-            with gr.Row():
-                query = gr.Textbox(
-                    placeholder="Type in your Derpibooru query here",
-                    show_label=False
-                )
-            with gr.Row():
-                with gr.Column():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
-                    )
-                with gr.Column():
-                    with gr.Row():
-                        filter_type = gr.Dropdown(
-                            label="Derpibooru Filter",
-                            choices=lpp.sources[NAME].get_filters()
-                        )
-                        filter_type.value = filter_type.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with gr.Row():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, filter_type, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, filter_type, sort_type]
-            )
-
-    @staticmethod
-    def E621(
-        active_panel_name: str, lpp: LPP_A1111, config: dict[str:object]
-    ) -> QueryPanelData:
-        NAME = "E621"
-        with gr.Accordion(
-            "💬 E621 Query",
-            open=config["query_panel_start_unfolded"],
-            visible=(active_panel_name == NAME)
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
-            with gr.Row():
-                query = gr.Textbox(
-                    placeholder="Type in Your E621 query here",
-                    show_label=False
-                )
-            with gr.Row():
-                with gr.Column():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=config["prompts_count"]["min"],
-                        maximum=config["prompts_count"]["max"],
-                        step=config["prompts_count"]["step"],
-                        value=config["prompts_count"]["default"]
-                    )
-                with gr.Column():
-                    with gr.Row():
-                        rating = gr.Dropdown(
-                            label="Rating",
-                            choices=lpp.sources[NAME].get_ratings()
-                        )
-                        rating.value = rating.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with gr.Row():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, rating, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, rating, sort_type]
-            )
