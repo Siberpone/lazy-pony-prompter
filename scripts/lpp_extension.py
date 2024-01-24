@@ -422,3 +422,7 @@ class Scripts(scripts.Script):
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)
             for x in p.all_prompts
         ]
+
+        if p.enable_hr:
+            p.all_hr_prompts = p.all_prompts
+            p.all_hr_negative_prompts = [p.negative_prompt] * n_images
