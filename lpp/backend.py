@@ -94,7 +94,6 @@ class PromptsManager:
             factor = n // len(raw_tags) + 1 # +1 because // rounds down
             raw_tags = self.tag_data.raw_tags * factor
         chosen_prompts = sample(raw_tags, k=n)
-        assert(len(chosen_prompts) == n)
 
         source = self.tag_data.source
         format_func = self.__sm.sources[source].formatters[model]
