@@ -1,6 +1,6 @@
 # Lazy Pony Prompter
 
-A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru/org) and [E621](https://e621.net).
+A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru.org) and [E621](https://e621.net).
 
 > [!IMPORTANT]
 > **January update highlights:**
