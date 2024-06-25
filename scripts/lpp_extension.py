@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
+from modules.ui_components import InputAccordion
 import gradio as gr
 import logging
 
@@ -19,8 +20,6 @@ def on_ui_settings():
     LPP_SECTION = ("lpp", "Lazy Pony Prompter")
 
     lpp_options = {
-        "lpp_start_unfolded":
-            shared.OptionInfo(False, "Start unfolded",),
         "lpp_query_panel_start_unfolded":
             shared.OptionInfo(
                 False, "Query panel starts unfolded"
@@ -178,12 +177,10 @@ class Scripts(scripts.Script):
         return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
-        with gr.Accordion(
-            "💤 Lazy Pony Prompter",
-            open=get_opt("lpp_start_unfolded", False)
-        ):
+        with InputAccordion(
+                value=False,
+                label="💤 Lazy Pony Prompter",) as lpp_enable:
             with gr.Row():
-                enabled = gr.Checkbox(label="Enabled")
                 source = gr.Dropdown(
                     label="Tags Source",
                     choices=self.lpp.source_names
@@ -395,7 +392,7 @@ class Scripts(scripts.Script):
                 None,
                 [prompt_manager_dialog]
             )
-        return [enabled, prompts_format, tag_filter]
+        return [lpp_enable, prompts_format, tag_filter]
 
     def process(self, p, enabled, prompts_format, tag_filter):
         if not enabled:
