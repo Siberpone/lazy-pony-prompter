@@ -25,6 +25,7 @@ class LPP_A1111:
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
 
         self.__messenger = messenger
+        self.__collection_name = ""
 
     @property
     def source_names(self):
@@ -49,20 +50,17 @@ class LPP_A1111:
     def saved_collections_names(self) -> list[str]:
         return self.__cache_manager.get_saved_names()
 
-    def __get_lpp_status(self) -> str:
+    @property
+    def status(self) -> str:
         n_prompts = self.__prompts_manager.get_loaded_prompts_count()
-        return f"**{n_prompts}** prompts loaded ✅" \
+        return f"\"{self.__collection_name}\" **[{n_prompts}]** ✅" \
             if n_prompts > 0 \
             else "No prompts loaded 🛑"
-
-    def format_status_msg(self, msg: str = "") -> str:
-        m = f"{msg}. " if msg else ""
-        return f"{m}{self.__get_lpp_status()}"
 
     def __try_exec_command(
         self, lpp_method: callable, success_msg: str,
         failure_msg: str, *args: object
-    ) -> str:
+    ) -> None:
         try:
             lpp_method(*args)
             self.__messenger.info(success_msg)
@@ -71,50 +69,42 @@ class LPP_A1111:
                 f"{failure_msg} {str(e)} ({type(e).__name__})"
             )
 
-    def try_save_prompts(self, name: str, tag_filter: str) -> str:
-        return self.format_status_msg(
-            self.__try_exec_command(
-                self.__cache_manager.cache_tag_data,
-                f"Successfully saved \"{name}\"",
-                f"Failed to save \"{name}\":",
-                name, self.__prompts_manager.tag_data, tag_filter
-            )
+    def try_save_prompts(self, name: str, tag_filter: str) -> None:
+        self.__try_exec_command(
+            self.__cache_manager.cache_tag_data,
+            f"Successfully saved \"{name}\"",
+            f"Failed to save \"{name}\":",
+            name, self.tag_data, tag_filter
         )
 
-    def try_load_prompts(self, name: str) -> str:
+    def try_load_prompts(self, name: str) -> None:
         def load_new_tag_data(name: str) -> None:
-            self.__prompts_manager.tag_data = self.__cache_manager.get_tag_data(
-                name)
-        return self.format_status_msg(
-            self.__try_exec_command(
-                load_new_tag_data,
-                f"Successfully loaded \"{name}\"",
-                f"Failed to load \"{name}\":",
-                name
-            )
+            self.tag_data = self.__cache_manager.get_tag_data(name)
+            self.__collection_name = name
+        self.__try_exec_command(
+            load_new_tag_data,
+            f"Successfully loaded \"{name}\"",
+            f"Failed to load \"{name}\":",
+            name
         )
 
-    def try_delete_prompts(self, name: str) -> str:
-        return self.format_status_msg(
-            self.__try_exec_command(
-                self.__cache_manager.delete_tag_data,
-                f"Successfully deleted \"{name}\"",
-                f"Failed to delete \"{name}\":",
-                name
-            )
+    def try_delete_prompts(self, name: str) -> None:
+        self.__try_exec_command(
+            self.__cache_manager.delete_tag_data,
+            f"Successfully deleted \"{name}\"",
+            f"Failed to delete \"{name}\":",
+            name
         )
 
-    def try_send_request(self, *args: object) -> str:
+    def try_send_request(self, *args: object) -> None:
         def load_new_tag_data(*args: object) -> None:
-            self.__prompts_manager.tag_data = self.__sources_manager.request_prompts(
-                *args)
-        return self.format_status_msg(
-            self.__try_exec_command(
-                load_new_tag_data,
-                f"Successfully fetched tags from \"{args[0]}\"",
-                f"Failed to fetch tags from \"{args[0]}\":",
-                *args
-            )
+            self.tag_data = self.__sources_manager.request_prompts(*args)
+            self.__collection_name = "from query"
+        self.__try_exec_command(
+            load_new_tag_data,
+            f"Successfully fetched tags from \"{args[0]}\"",
+            f"Failed to fetch tags from \"{args[0]}\":",
+            *args
         )
 
     def try_get_tag_data_json(self, name: str) -> (bool, dict[str:object]):

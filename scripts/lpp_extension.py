@@ -194,7 +194,7 @@ class Scripts(scripts.Script):
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
             with lpp_enable.extra():
-                status_bar = gr.Markdown(self.lpp.format_status_msg())
+                status_bar = gr.Markdown(self.lpp.status)
 
             with gr.Row():
                 source = gr.Dropdown(
@@ -265,8 +265,9 @@ class Scripts(scripts.Script):
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
                 models = ["Auto"] + self.lpp.get_model_names(source)
+                self.lpp.try_send_request(source, *params)
                 return (
-                    self.lpp.try_send_request(source, *params),
+                    self.lpp.status,
                     gr.update(
                         choices=models,
                         value=prompts_format if prompts_format in models
@@ -300,14 +301,13 @@ class Scripts(scripts.Script):
                     name
                 if name in self.lpp.saved_collections_names:
                     return (
-                        self.lpp.format_status_msg(),
                         gr.update(),
                         f"Are you sure you want to overwrite \"{name}\"?",
                         gr.update(visible=True)
                     )
                 else:
+                    self.lpp.try_save_prompts(name, tag_filter)
                     return (
-                        self.lpp.try_save_prompts(name, tag_filter),
                         gr.Dropdown.update(
                             choices=self.lpp.saved_collections_names
                         ),
@@ -317,13 +317,12 @@ class Scripts(scripts.Script):
             save_prompts_btn.click(
                 save_prompts_click,
                 [prompts_manager_input, tag_filter],
-                [status_bar, prompts_manager_input, pm_dialog_msg,
-                 prompt_manager_dialog]
+                [prompts_manager_input, pm_dialog_msg, prompt_manager_dialog]
             )
 
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
-                msg = self.lpp.try_load_prompts(name)
+                self.lpp.try_load_prompts(name)
                 if self.lpp.tag_data:
                     source = self.lpp.tag_data.source
                     models = ["Auto"] + self.lpp.get_model_names(source)
@@ -341,7 +340,7 @@ class Scripts(scripts.Script):
                     tag_filter_update = gr.update()
 
                 return (
-                    msg,
+                    self.lpp.status,
                     tag_filter_update,
                     models_update
                 )
@@ -380,10 +379,9 @@ class Scripts(scripts.Script):
 
             # Action Confirmation Dialog
             def invoke_action():
-                msg = self.prompt_manager_dialog_action[0]()
+                self.prompt_manager_dialog_action[0]()
                 selected_val = self.prompt_manager_dialog_action[1]
                 return (
-                    msg,
                     gr.Dropdown.update(
                         choices=list(self.lpp.saved_collections_names),
                         value=selected_val
@@ -394,8 +392,8 @@ class Scripts(scripts.Script):
             pm_dialog_confirm_btn.click(
                 invoke_action,
                 None,
-                [status_bar, prompts_manager_input,
-                 prompt_manager_dialog, prompts_manager_metadata]
+                [prompts_manager_input, prompt_manager_dialog,
+                 prompts_manager_metadata]
             )
             pm_dialog_cancel_btn.click(
                 lambda: gr.update(visible=False),
