@@ -1,5 +1,5 @@
 from lpp.a1111 import LPP_A1111
-from lpp.utils import Models
+from lpp.utils import Models, DefaultLppMessageService
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -9,6 +9,18 @@ import gradio as gr
 import logging
 
 base_dir = scripts.basedir()
+
+
+class A1111LppMessageService(DefaultLppMessageService):
+    def __init__(self):
+        def modal_decorator(func, modal_func):
+            def inner(message):
+                func(self, message)
+                modal_func(f"[LPP] {message}")
+            return inner
+        self.info = modal_decorator(super().info.__func__, gr.Info)
+        self.warning = modal_decorator(super().warning.__func__, gr.Warning)
+        self.error = modal_decorator(super().error.__func__, gr.Error)
 
 
 def set_no_config(*args: object) -> None:
@@ -165,7 +177,8 @@ class Scripts(scripts.Script):
         self.lpp: LPP_A1111 = LPP_A1111(
             base_dir,
             get_opt("lpp_derpibooru_api_key", None),
-            get_opt("lpp_logging_level", None)
+            get_opt("lpp_logging_level", None),
+            A1111LppMessageService()
         )
         self.query_panels = {}
         self.prompt_manager_dialog_action = lambda: None
@@ -180,6 +193,9 @@ class Scripts(scripts.Script):
         with InputAccordion(
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
+            with lpp_enable.extra():
+                status_bar = gr.Markdown(self.lpp.format_status_msg())
+
             with gr.Row():
                 source = gr.Dropdown(
                     label="Tags Source",
@@ -240,12 +256,6 @@ class Scripts(scripts.Script):
                             show_label=True,
                             visible=False
                         )
-
-            # Status Bar ------------------------------------------------------
-            with gr.Box():
-                status_bar = gr.Markdown(
-                    value=self.lpp.format_status_msg()
-                )
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.

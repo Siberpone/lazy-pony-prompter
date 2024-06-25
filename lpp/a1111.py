@@ -1,5 +1,6 @@
 from lpp.backend import SourcesManager, PromptsManager, CacheManager, TagData
 from lpp.log import get_logger
+from lpp.utils import LppMessageService, DefaultLppMessageService
 
 logger = get_logger()
 
@@ -7,7 +8,8 @@ logger = get_logger()
 class LPP_A1111:
     def __init__(self, work_dir: str = ".",
                  derpi_api_key: str = None,
-                 logging_level: object = None):
+                 logging_level: object = None,
+                 messenger: LppMessageService = DefaultLppMessageService()):
         self.__work_dir: str = work_dir
         if logging_level:
             logger.setLevel(logging_level)
@@ -18,8 +20,11 @@ class LPP_A1111:
             self.__sources_manager.sources["Derpibooru"].set_api_key(derpi_api_key)
 
         self.__prompts_manager: PromptsManager = PromptsManager(
-            self.__sources_manager)
+            self.__sources_manager
+        )
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
+
+        self.__messenger = messenger
 
     @property
     def source_names(self):
@@ -46,13 +51,13 @@ class LPP_A1111:
 
     def __get_lpp_status(self) -> str:
         n_prompts = self.__prompts_manager.get_loaded_prompts_count()
-        return f"**{n_prompts}** prompts loaded. Ready to generate." \
+        return f"**{n_prompts}** prompts loaded ✅" \
             if n_prompts > 0 \
-            else "No prompts loaded. Not ready to generate."
+            else "No prompts loaded 🛑"
 
     def format_status_msg(self, msg: str = "") -> str:
         m = f"{msg}. " if msg else ""
-        return f"&nbsp;&nbsp;{m}{self.__get_lpp_status()}"
+        return f"{m}{self.__get_lpp_status()}"
 
     def __try_exec_command(
         self, lpp_method: callable, success_msg: str,
@@ -60,10 +65,11 @@ class LPP_A1111:
     ) -> str:
         try:
             lpp_method(*args)
-            return success_msg
+            self.__messenger.info(success_msg)
         except Exception as e:
-            logger.warning(f"{failure_msg} {str(e)} ({type(e).__name__})")
-            return failure_msg + f" {str(e)}"
+            self.__messenger.warning(
+                f"{failure_msg} {str(e)} ({type(e).__name__})"
+            )
 
     def try_save_prompts(self, name: str, tag_filter: str) -> str:
         return self.format_status_msg(
