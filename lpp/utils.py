@@ -1,12 +1,9 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from lpp.log import get_logger
 import enum
 import os
 import json
 import fnmatch
-
-logger = get_logger()
 
 
 @dataclass
@@ -41,17 +38,6 @@ class LppMessageService(ABC):
 
     @abstractmethod
     def error(self, message: str): pass
-
-
-class DefaultLppMessageService(LppMessageService):
-    def info(self, message):
-        logger.info(message)
-
-    def warning(self, message):
-        logger.warning(message)
-
-    def error(self, message):
-        logger.error(message)
 
 
 def glob_match(term: str, patterns: list[str]) -> bool:

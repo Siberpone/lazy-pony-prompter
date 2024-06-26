@@ -1,5 +1,5 @@
-from lpp.a1111 import LPP_A1111
-from lpp.utils import Models, DefaultLppMessageService
+from lpp.a1111 import LPP_A1111, DefaultLppMessageService
+from lpp.utils import Models
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared

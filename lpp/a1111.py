@@ -1,8 +1,19 @@
 from lpp.backend import SourcesManager, PromptsManager, CacheManager, TagData
 from lpp.log import get_logger
-from lpp.utils import LppMessageService, DefaultLppMessageService
+from lpp.utils import LppMessageService
 
 logger = get_logger()
+
+
+class DefaultLppMessageService(LppMessageService):
+    def info(self, message):
+        logger.info(message)
+
+    def warning(self, message):
+        logger.warning(message)
+
+    def error(self, message):
+        logger.error(message)
 
 
 class LPP_A1111:
