@@ -46,10 +46,6 @@ def on_ui_settings():
                 gr.Dropdown,
                 {"choices": ["None"] + lpp.saved_collections_names}
             ),
-        "lpp_query_panel_start_unfolded":
-            shared.OptionInfo(
-                False, "Query panel starts unfolded"
-            ),
         "lpp_logging_level":
             shared.OptionInfo(
                 logging.WARNING,
@@ -102,9 +98,7 @@ class QueryPanels:
     @staticmethod
     def Derpibooru(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "Derpibooru"
-        with gr.Accordion(
-            "💬 Derpibooru Query",
-            open=get_opt("lpp_query_panel_start_unfolded", False),
+        with gr.Group(
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
@@ -147,9 +141,7 @@ class QueryPanels:
     @staticmethod
     def E621(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "E621"
-        with gr.Accordion(
-            "💬 E621 Query",
-            open=get_opt("lpp_query_panel_start_unfolded", False),
+        with gr.Group(
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
@@ -212,70 +204,137 @@ class Scripts(scripts.Script):
             with lpp_enable.extra():
                 status_bar = gr.Markdown(lpp.status)
 
-            with gr.Row():
-                source = gr.Dropdown(
-                    label="Tags Source",
-                    choices=lpp.source_names
-                )
-                source.value = source.choices[0]
-                models = lpp.get_model_names(lpp.tag_data.source) if lpp.tag_data else []
-                prompts_format = gr.Dropdown(
-                    label="Prompts Format",
-                    choices=["Auto"] + models,
-                    value="Auto"
-                )
-
-            with gr.Column():
-                # Query Panels ------------------------------------------------
-                for attr in [
-                    x for x in dir(QueryPanels) if not x.startswith("_")
-                ]:
-                    query_panel = getattr(QueryPanels, attr)
-                    self.query_panels[query_panel.__name__] = query_panel(
-                        source.value, lpp
-                    )
-
-                # Tags Filter -------------------------------------------------
-                with gr.Accordion("🏷 Tags Filter", open=False):
-                    with gr.Row():
-                        with gr.Column(scale=2):
-                            tag_filter = gr.Textbox(
-                                show_label=False,
-                                placeholder="These tags (comma separated) will be pruned from prompts"
+            # Prompts Manager #################################################
+            with gr.Tab("Prompts Manager"):
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        prompts_manager_input = gr.Dropdown(
+                            label="Prompts Collection Name",
+                            choices=lpp.saved_collections_names,
+                            allow_custom_value=True
+                        )
+                    with gr.Column(scale=1):
+                        models = lpp.get_model_names(lpp.tag_data.source)\
+                            if lpp.tag_data else []
+                        prompts_format = gr.Dropdown(
+                            label="Prompts Format",
+                            choices=["Auto"] + models,
+                            value="Auto"
+                        )
+                    with gr.Column(scale=1):
+                        with gr.Row():          # buttons alignment issue
+                            gr.HTML("&nbsp;")   # workaround
+                        with gr.Row():
+                            save_prompts_btn = gr.Button(
+                                value="Save", scale=1, min_width=80
                             )
-                        with gr.Column(scale=0, min_width=130):
-                            gr.ClearButton(components=[tag_filter])
+                            load_prompts_btn = gr.Button(
+                                value="Load", scale=1, min_width=80
+                            )
+                            delete_prompts_btn = gr.Button(
+                                "Delete", scale=1, min_width=80
+                            )
+                with gr.Row(variant="panel", visible=False) as prompt_manager_dialog:
+                    with gr.Column():
+                        with gr.Row():
+                            pm_dialog_msg = gr.Markdown()
+                        with gr.Row():
+                            pm_dialog_confirm_btn = gr.Button(
+                                "Confirm", variant="stop")
+                            pm_dialog_cancel_btn = gr.Button("Cancel")
 
-                # Prompts Manager Panel ---------------------------------------
-                with gr.Accordion("💾 Prompts Manager", open=False):
-                    with gr.Row():
-                        with gr.Column(scale=2):
-                            prompts_manager_input = gr.Dropdown(
-                                label="Prompts Collection Name",
-                                choices=lpp.saved_collections_names,
+                # Filtering & Formatting Options ------------------------------
+                with gr.Row():
+                    with gr.Column(scale=5):
+                        filters = gr.Dropdown(
+                            label="Filters",
+                            choices=["kek", "lol", "roflmao"],
+                            multiselect=True
+                        )
+                    with gr.Column(scale=6):
+                        with gr.Row():
+                            rating_filter = gr.CheckboxGroup(
+                                label="Rating Filter",
+                                choices=["Safe", "Questionable", "Explicit"],
+                                value="Safe",
+                                scale=7
+                            )
+                            autofill_tags_filter = gr.Checkbox(
+                                label="Autofill Tags Filter",
+                                scale=2
+                            )
+
+                # Booru Query Panels ------------------------------------------
+                with gr.Accordion(
+                    label="💬 Get prompts from Booru",
+                    open=False
+                ):
+                    source = gr.Radio(
+                        label="Tags Source",
+                        choices=lpp.source_names,
+                        value=lambda: lpp.source_names[0]
+                    )
+                    for attr in [
+                        x for x in dir(QueryPanels) if not x.startswith("_")
+                    ]:
+                        query_panel = getattr(QueryPanels, attr)
+                        self.query_panels[query_panel.__name__] = query_panel(
+                            source.value, lpp
+                        )
+
+            # Filter Editor ###################################################
+            with gr.Tab("Filter Editor"):
+                # WARN: left this old input for compatibility for now.
+                # !!! Remove after new filter system has been implemented.
+                # -------------------------------------------------------------
+                with gr.Row(visible=False):
+                    with gr.Column(scale=2):
+                        tag_filter = gr.Textbox(
+                            show_label=False,
+                            placeholder="These tags (comma separated) will be pruned from prompts"
+                        )
+                    with gr.Column(scale=0, min_width=130):
+                        gr.ClearButton(components=[tag_filter])
+                # -------------------------------------------------------------
+                with gr.Row():
+                    # Filter Managment Controls -------------------------------
+                    with gr.Column(scale=2):
+                        with gr.Row():
+                            filter_name = gr.Dropdown(
+                                label="Filter Name",
+                                choices=["kek", "lol", "roflmao"],
                                 allow_custom_value=True
                             )
-                        with gr.Column(scale=0, min_width=200):
-                            autofill_tags_filter = gr.Checkbox(
-                                label="Autofill Tags Filter"
+                        with gr.Row():
+                            fe_save_btn = gr.Button(
+                                value="Save", scale=1, min_width=100
                             )
-                    with gr.Row():
-                        save_prompts_btn = gr.Button(value="Save")
-                        load_prompts_btn = gr.Button(value="Load")
-                        delete_prompts_btn = gr.Button("Delete")
-                    with gr.Row(variant="panel", visible=False) as prompt_manager_dialog:
-                        with gr.Column():
-                            with gr.Row():
-                                pm_dialog_msg = gr.Markdown()
-                            with gr.Row():
-                                pm_dialog_confirm_btn = gr.Button(
-                                    "Confirm", variant="stop")
-                                pm_dialog_cancel_btn = gr.Button("Cancel")
-                    with gr.Row():
-                        prompts_manager_metadata = gr.JSON(
-                            label="Prompts Info",
-                            show_label=True,
-                            visible=False
+                            fe_load_btn = gr.Button(
+                                value="Load", scale=1, min_width=100
+                            )
+                            fe_delete_btn = gr.Button(
+                                value="Delete", scale=1, min_width=100
+                            )
+                        with gr.Row():
+                            with gr.Accordion("cheatsheet", open=False):
+                                gr.Markdown(r"""
+* patterns are separated with new lines
+* patterns support simple globbing
+  * `*` matches anything
+  * `?` matches any single character
+  * `[xyz]` matches specified characters
+  * `[A-Z]` matches a range of characters
+* you can specify a substitution for a pattern with `||`, for example:
+`horn||wings` will substitute "horn" with "wings"
+                                """)
+
+                    # Filter Editing Text Area --------------------------------
+                    with gr.Column(scale=3):
+                        fe_substitutions = gr.Textbox(
+                            label="Filter Patterns",
+                            interactive=True,
+                            lines=7,
+                            max_lines=15
                         )
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
@@ -387,21 +446,6 @@ class Scripts(scripts.Script):
                 show_progress="hidden"
             )
 
-            # Load Prompts Dropdown Change
-            def load_prompts_metadata_update(name):
-                success, metadata = lpp.try_get_tag_data_json(name)
-                if success:
-                    return gr.JSON.update(value=metadata, visible=True)
-                else:
-                    return gr.JSON.update(visible=False)
-
-            prompts_manager_input.change(
-                load_prompts_metadata_update,
-                [prompts_manager_input],
-                [prompts_manager_metadata],
-                show_progress="hidden"
-            )
-
             # Action Confirmation Dialog
             def invoke_action():
                 self.prompt_manager_dialog_action[0]()
@@ -411,14 +455,12 @@ class Scripts(scripts.Script):
                         choices=list(lpp.saved_collections_names),
                         value=selected_val
                     ),
-                    gr.update(visible=False),
                     gr.update(visible=False)
                 )
             pm_dialog_confirm_btn.click(
                 invoke_action,
                 None,
-                [prompts_manager_input, prompt_manager_dialog,
-                 prompts_manager_metadata],
+                [prompts_manager_input, prompt_manager_dialog],
                 show_progress="hidden"
             )
             pm_dialog_cancel_btn.click(
