@@ -145,9 +145,7 @@ class LPP_A1111:
         # A1111 or Gradio just refuses to display them. It is important to
         # explicitly alert the user about these problems, so for now I'll
         # leave it as is. Revisit this issue when A1111 updates.
-        except IndexError:
-            self.__messenger.warning(
-                "Failed to choose prompts because no prompts are currently loaded"
-            )
-        except Exception as e:
+        except ValueError as e:
             self.__messenger.warning(repr(e))
+        except Exception:
+            logger.exception("An error occured when trying to choose prompts.")

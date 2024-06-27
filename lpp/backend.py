@@ -88,6 +88,9 @@ class PromptsManager:
                        tag_filter_str: str = "",
                        allowed_ratings: list[str] = None
                        ) -> list[list[str]]:
+        if not self.tag_data:
+            raise ValueError("No prompts are currently loaded.")
+
         raw_tags = self.tag_data.raw_tags
         source = self.__sm.sources[self.tag_data.source]
 
