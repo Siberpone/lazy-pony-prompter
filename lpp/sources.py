@@ -3,6 +3,7 @@ from lpp.log import get_logger
 from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
 from abc import ABC, abstractmethod
+from tqdm import trange
 import os
 import re
 import time
@@ -97,7 +98,7 @@ class E621(TagSourceBase):
         pages_to_load = (count // PER_PAGE_MAX) + \
             (1 if count % PER_PAGE_MAX > 0 else 0)
 
-        for p in range(1, pages_to_load + 1):
+        for p in trange(1, pages_to_load + 1, desc="[LPP] Fetching tags"):
             time.sleep(QUERY_DELAY)
             query_params["page"] = p
             json_response = self._send_api_request(ENDPOINT, query_params)
@@ -241,7 +242,7 @@ class Derpibooru(TagSourceBase):
             (1 if items_total % PER_PAGE_MAX > 0 else 0)
 
         raw_tags = []
-        for p in range(1, pages_to_load + 1):
+        for p in trange(1, pages_to_load + 1, desc="[LPP] Fetching tags"):
             time.sleep(QUERY_DELAY)
             query_params["page"] = p
             json_response = self._send_api_request(ENDPOINT, query_params)

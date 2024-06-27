@@ -91,7 +91,7 @@ class QueryPanelData:
 
 class QueryPanels:
     __PROMPTS_MIN = 5
-    __PROMPTS_MAX = 300
+    __PROMPTS_MAX = 1500
     __PROMPTS_STEP = 5
     __PROMPTS_DEFAULT = 100
 
