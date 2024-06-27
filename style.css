@@ -1,0 +1,7 @@
+#lpp-status-bar p {
+    margin: 0;
+}
+
+#lpp-status-bar svg {
+    display: none !important;
+}
