@@ -85,18 +85,29 @@ class PromptsManager:
                        model: str,
                        template: str = None,
                        n: int = 1,
-                       tag_filter_str: str = ""
+                       tag_filter_str: str = "",
+                       allowed_ratings: list[str] = None
                        ) -> list[list[str]]:
         raw_tags = self.tag_data.raw_tags
+        source = self.__sm.sources[self.tag_data.source]
+
+        # TODO: get rid of magical constants and refactor LPP ratings with
+        # enum or, possibly, a class
+        if allowed_ratings and len(allowed_ratings) < 3:
+            raw_tags = [
+                x for x in raw_tags if (source.get_lpp_rating(x) in allowed_ratings)
+            ]
+            if len(raw_tags) == 0:
+                raise ValueError("Current collection doesn't seem to have prompts with selected rating(s).")
+
         # manually handle requests for more images than we have tags
         # because random.sample would raise a ValueError
         if n > len(raw_tags):
-            factor = n // len(raw_tags) + 1 # +1 because // rounds down
-            raw_tags = self.tag_data.raw_tags * factor
+            factor = n // len(raw_tags) + 1  # +1 because // rounds down
+            raw_tags = raw_tags * factor
         chosen_prompts = sample(raw_tags, k=n)
 
-        source = self.tag_data.source
-        format_func = self.__sm.sources[source].formatters[model]
+        format_func = source.formatters[model]
 
         extra_tag_filter = {
             t.strip() for t in tag_filter_str.split(",") if t

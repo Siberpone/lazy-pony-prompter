@@ -2,6 +2,7 @@ from lpp.utils import TagData, TagGroups, Models, glob_match, get_config
 from lpp.log import get_logger
 from urllib.request import urlopen, Request, URLError
 from urllib.parse import urlencode
+from abc import ABC, abstractmethod
 import os
 import re
 import time
@@ -18,7 +19,7 @@ def formatter(model_name: callable) -> callable:
     return inner
 
 
-class TagSourceBase:
+class TagSourceBase(ABC):
     def __init__(self, work_dir: str = "."):
         self._work_dir: str = work_dir
         self.formatters: dict[str:callable] = {}
@@ -40,6 +41,11 @@ class TagSourceBase:
     def get_model_names(self) -> list[str]:
         return list(self.formatters.keys())
 
+    @abstractmethod
+    def get_lpp_rating(self, tag_data: TagData):
+        pass
+
+    @abstractmethod
     def request_tags(self, query: str, count: int, *params: object) -> TagData:
         pass
 
@@ -59,6 +65,9 @@ class E621(TagSourceBase):
 
     def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
+
+    def get_lpp_rating(self, raw_tags: dict[str:list[str]]) -> str:
+        return self.__ratings["lpp"][raw_tags["rating"]]
 
     def request_tags(
         self, query: str, count: int,
@@ -169,7 +178,7 @@ class Derpibooru(TagSourceBase):
         config = get_config("derpi", os.path.join(self._work_dir, "config"))
         self.__filter_ids = config["filter_ids"]
         self.__sort_params = config["sort_params"]
-        self.__pdv5_ratings = config["ratings"]["pdv5"]
+        self.__ratings = config["ratings"]
         self.__character_tags = config["character_tags"]
         self.__species_tags = config["species_tags"]
         self.__meta_tags = config["meta_tags"]
@@ -180,6 +189,12 @@ class Derpibooru(TagSourceBase):
 
     def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
+
+    def get_lpp_rating(self, raw_tags: list[str]) -> str:
+        for tag in raw_tags:
+            if tag in self.__ratings["lpp"].keys():
+                return self.__ratings["lpp"][tag]
+        return "Unknown"
 
     def request_tags(
         self, query: str, count: int,
@@ -261,8 +276,8 @@ class Derpibooru(TagSourceBase):
         for tag in raw_image_tags:
             if glob_match(tag, self.__filtered_tags):
                 continue
-            if tag in self.__pdv5_ratings.keys():
-                rating.append(self.__pdv5_ratings[tag])
+            if tag in self.__ratings["pdv5"].keys():
+                rating.append(self.__ratings["pdv5"][tag])
                 continue
             if tag in self.__character_tags:
                 characters.append(tag)

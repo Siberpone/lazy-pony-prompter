@@ -5,9 +5,18 @@
             "suggestive": "rating_questionable",
             "questionable": "rating_questionable",
             "explicit": "rating_explicit",
-            "semi-grimdark": "rating_explicit, semi-grimdark",
+            "semi-grimdark": "rating_questionable, semi-grimdark",
             "grimdark": "rating_explicit, grimdark",
             "grotesque": "rating_explicit, grotesque"
+        },
+        "lpp": {
+            "safe": "Safe",
+            "suggestive": "Questionable",
+            "questionable": "Questionable",
+            "explicit": "Explicit",
+            "semi-grimdark": "Questionable",
+            "grimdark": "Explicit",
+            "grotesque": "Explicit"
         }
     },
     "filter_ids": {

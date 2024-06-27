@@ -469,9 +469,9 @@ class Scripts(scripts.Script):
                 [prompt_manager_dialog],
                 show_progress="hidden"
             )
-        return [lpp_enable, prompts_format, tag_filter]
+        return [lpp_enable, prompts_format, tag_filter, rating_filter]
 
-    def process(self, p, enabled, prompts_format, tag_filter):
+    def process(self, p, enabled, prompts_format, tag_filter, allowed_ratings):
         if not enabled:
             return p
 
@@ -489,7 +489,7 @@ class Scripts(scripts.Script):
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, tag_filter
+            prompts_format, p.prompt, n_images, tag_filter, allowed_ratings
         )
 
         p.all_prompts = [

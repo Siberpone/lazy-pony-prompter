@@ -134,14 +134,20 @@ class LPP_A1111:
                            model: str,
                            template: str = None,
                            n: int = 1,
-                           tag_filter_str: str = ""
+                           tag_filter_str: str = "",
+                           allowed_ratings: list[str] = None
                            ) -> list[list[str]]:
         try:
             return self.__prompts_manager.choose_prompts(
-                model, template, n, tag_filter_str
+                model, template, n, tag_filter_str, allowed_ratings
             )
+        # HACK: these should really be errors and not warnings, but effing
+        # A1111 or Gradio just refuses to display them. It is important to
+        # explicitly alert the user about these problems, so for now I'll
+        # leave it as is. Revisit this issue when A1111 updates.
         except IndexError:
-            logger.error(
-                "Failed to choose prompts because no prompts are currently loaded")
-        except Exception:
-            logger.exception("Failed to choose prompts", exc_info=True)
+            self.__messenger.warning(
+                "Failed to choose prompts because no prompts are currently loaded"
+            )
+        except Exception as e:
+            self.__messenger.warning(repr(e))

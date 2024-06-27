@@ -10,6 +10,11 @@
             "s": "rating_safe",
             "q": "rating_questionable",
             "e": "rating_explicit"
+        },
+        "lpp": {
+            "s": "Safe",
+            "q": "Questionable",
+            "e": "Explicit"
         }
     },
     "sort_params": {
