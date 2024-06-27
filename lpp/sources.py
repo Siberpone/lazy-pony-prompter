@@ -93,13 +93,26 @@ class E621(TagSourceBase):
             "limit": count if count < PER_PAGE_MAX else PER_PAGE_MAX
         }
 
-        json_response = self._send_api_request(ENDPOINT, query_params)
-        for post in json_response["posts"]:
-            post["tags"]["rating"] = post["rating"]
+        raw_tags = []
+        pages_to_load = (count // PER_PAGE_MAX) + \
+            (1 if count % PER_PAGE_MAX > 0 else 0)
+
+        for p in range(1, pages_to_load + 1):
+            time.sleep(QUERY_DELAY)
+            query_params["page"] = p
+            json_response = self._send_api_request(ENDPOINT, query_params)
+            posts = json_response["posts"]
+            for post in posts:
+                post["tags"]["rating"] = post["rating"]
+            raw_tags += posts
+            if len(posts) < PER_PAGE_MAX:
+                break
+
+        raw_tags = [x["tags"] for x in raw_tags]
         return TagData(
             self.__class__.__name__,
             p_query,
-            [x["tags"] for x in json_response["posts"]],
+            raw_tags[:count],
             {}
         )
 
