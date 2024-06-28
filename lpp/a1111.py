@@ -64,7 +64,7 @@ class LPP_A1111:
     @property
     def status(self) -> str:
         n_prompts = self.__prompts_manager.get_loaded_prompts_count()
-        return f"\"{self.__collection_name}\" **[{n_prompts}]** ✅" \
+        return f"\"{self.__collection_name}\" <b>[{n_prompts}]</b> ✅" \
             if n_prompts > 0 \
             else "No prompts loaded 🛑"
 

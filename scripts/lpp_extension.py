@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
-from modules.ui_components import InputAccordion
+from modules.ui_components import InputAccordion, FormRow, FormColumn, FormGroup
 import gradio as gr
 import logging
 
@@ -107,18 +107,18 @@ class QueryPanels:
     @staticmethod
     def Derpibooru(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "Derpibooru"
-        with gr.Group(
+        with FormGroup(
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
                 "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
-            with gr.Row():
+            with FormRow():
                 query = gr.Textbox(
                     placeholder="Derpibooru query or image URL",
                     show_label=False
                 )
-            with gr.Row():
-                with gr.Column():
+            with FormRow():
+                with FormColumn():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
                         minimum=QueryPanels.__PROMPTS_MIN,
@@ -126,8 +126,8 @@ class QueryPanels:
                         step=QueryPanels.__PROMPTS_STEP,
                         value=QueryPanels.__PROMPTS_DEFAULT
                     )
-                with gr.Column():
-                    with gr.Row():
+                with FormColumn():
+                    with FormRow():
                         filter_type = gr.Dropdown(
                             label="Derpibooru Filter",
                             choices=lpp.sources[NAME].get_filters()
@@ -138,7 +138,7 @@ class QueryPanels:
                             choices=lpp.sources[NAME].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
-            with gr.Row():
+            with FormRow():
                 send_btn = gr.Button(value="Send")
             set_no_config(query, prompts_count, filter_type, sort_type)
             return QueryPanelData(
@@ -150,18 +150,18 @@ class QueryPanels:
     @staticmethod
     def E621(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
         NAME = "E621"
-        with gr.Group(
+        with FormGroup(
             visible=(active_panel_name == NAME)
         ) as panel:
             gr.Markdown(
                 "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
-            with gr.Row():
+            with FormRow():
                 query = gr.Textbox(
                     placeholder="E621 query or image URL",
                     show_label=False
                 )
-            with gr.Row():
-                with gr.Column():
+            with FormRow():
+                with FormColumn():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
                         minimum=QueryPanels.__PROMPTS_MIN,
@@ -169,8 +169,8 @@ class QueryPanels:
                         step=QueryPanels.__PROMPTS_STEP,
                         value=QueryPanels.__PROMPTS_DEFAULT
                     )
-                with gr.Column():
-                    with gr.Row():
+                with FormColumn():
+                    with FormRow():
                         rating = gr.Dropdown(
                             label="Rating",
                             choices=lpp.sources[NAME].get_ratings()
@@ -181,7 +181,7 @@ class QueryPanels:
                             choices=lpp.sources[NAME].get_sort_options()
                         )
                         sort_type.value = sort_type.choices[0]
-            with gr.Row():
+            with FormRow():
                 send_btn = gr.Button(value="Send")
             set_no_config(query, prompts_count, rating, sort_type)
             return QueryPanelData(
@@ -211,65 +211,67 @@ class Scripts(scripts.Script):
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
             with lpp_enable.extra():
-                status_bar = gr.Markdown(lpp.status, elem_id="lpp-status-bar")
+                status_bar = gr.HTML(lpp.status, elem_id="lpp-status-bar", container=False)
 
             # Prompts Manager #################################################
             with gr.Tab("Prompts Manager"):
-                with gr.Row():
-                    with gr.Column(scale=2):
-                        prompts_manager_input = gr.Dropdown(
-                            label="Prompts Collection Name",
-                            choices=lpp.saved_collections_names,
-                            allow_custom_value=True
-                        )
-                    with gr.Column(scale=1):
-                        models = lpp.get_model_names(lpp.tag_data.source)\
-                            if lpp.tag_data else []
-                        prompts_format = gr.Dropdown(
-                            label="Prompts Format",
-                            choices=["Auto"] + models,
-                            value="Auto"
-                        )
-                    with gr.Column(scale=1):
-                        with gr.Row():          # buttons alignment issue
-                            gr.HTML("&nbsp;")   # workaround
-                        with gr.Row():
-                            save_prompts_btn = gr.Button(
-                                value="Save", scale=1, min_width=80
+                with FormRow():
+                    # Prompt collections Management Panel ---------------------
+                    with FormColumn():
+                        with FormRow():
+                            prompts_manager_input = gr.Dropdown(
+                                label="Prompts Collection Name",
+                                choices=lpp.saved_collections_names,
+                                allow_custom_value=True
                             )
-                            load_prompts_btn = gr.Button(
-                                value="Load", scale=1, min_width=80
-                            )
-                            delete_prompts_btn = gr.Button(
-                                "Delete", scale=1, min_width=80
-                            )
-                with gr.Row(variant="panel", visible=False) as prompt_manager_dialog:
-                    with gr.Column():
-                        with gr.Row():
-                            pm_dialog_msg = gr.Markdown()
-                        with gr.Row():
-                            pm_dialog_confirm_btn = gr.Button(
-                                "Confirm", variant="stop")
-                            pm_dialog_cancel_btn = gr.Button("Cancel")
+                        with FormRow():
+                            with FormColumn(scale=1, min_width=150):
+                                models = lpp.get_model_names(lpp.tag_data.source)\
+                                    if lpp.tag_data else []
+                                prompts_format = gr.Dropdown(
+                                    label="Prompts Format",
+                                    choices=["Auto"] + models,
+                                    value="Auto"
+                                )
+                            with FormColumn(scale=1, min_width=150):
+                                with FormRow(elem_id="lpp-prompt-manager-buttons"):
+                                    save_prompts_btn = gr.Button(
+                                        value="Save", scale=1, min_width=50
+                                    )
+                                    load_prompts_btn = gr.Button(
+                                        value="Load", scale=1, min_width=50
+                                    )
+                                    delete_prompts_btn = gr.Button(
+                                        "Delete", scale=1, min_width=50
+                                    )
+                        with FormRow(variant="panel", visible=False) as prompt_manager_dialog:
+                            with FormColumn():
+                                with FormRow():
+                                    pm_dialog_msg = gr.Markdown()
+                                with FormRow():
+                                    pm_dialog_confirm_btn = gr.Button(
+                                        "Confirm", variant="stop")
+                                    pm_dialog_cancel_btn = gr.Button("Cancel")
 
-                # Filtering & Formatting Options ------------------------------
-                with gr.Row():
-                    with gr.Column(scale=5):
-                        filters = gr.Dropdown(
-                            label="Filters",
-                            choices=["kek", "lol", "roflmao"],
-                            multiselect=True
-                        )
-                    with gr.Column(scale=6):
-                        with gr.Row():
+                    # Filtering Options Panel ---------------------------------
+                    with FormColumn():
+                        with FormRow():
+                            filters = gr.Dropdown(
+                                label="Filters",
+                                choices=["kek", "lol", "roflmao"],
+                                multiselect=True
+                            )
+                        with FormRow():
                             rating_filter = gr.CheckboxGroup(
                                 label="Rating Filter",
                                 choices=["Safe", "Questionable", "Explicit"],
                                 value="Safe",
+                                elem_id="lpp-chbox-group",
                                 scale=7
                             )
                             autofill_tags_filter = gr.Checkbox(
                                 label="Autofill Tags Filter",
+                                elem_id="lpp-autofill-filter-chbox",
                                 scale=2
                             )
 
@@ -281,7 +283,8 @@ class Scripts(scripts.Script):
                     source = gr.Radio(
                         label="Tags Source",
                         choices=lpp.source_names,
-                        value=lambda: lpp.source_names[0]
+                        value=lambda: lpp.source_names[0],
+                        elem_id="lpp-chbox-group"
                     )
                     for attr in [
                         x for x in dir(QueryPanels) if not x.startswith("_")
@@ -296,25 +299,25 @@ class Scripts(scripts.Script):
                 # WARN: left this old input for compatibility for now.
                 # !!! Remove after new filter system has been implemented.
                 # -------------------------------------------------------------
-                with gr.Row(visible=False):
-                    with gr.Column(scale=2):
+                with FormRow(visible=False):
+                    with FormColumn(scale=2):
                         tag_filter = gr.Textbox(
                             show_label=False,
                             placeholder="These tags (comma separated) will be pruned from prompts"
                         )
-                    with gr.Column(scale=0, min_width=130):
+                    with FormColumn(scale=0, min_width=130):
                         gr.ClearButton(components=[tag_filter])
                 # -------------------------------------------------------------
-                with gr.Row():
-                    # Filter Managment Controls -------------------------------
-                    with gr.Column(scale=2):
-                        with gr.Row():
+                with FormRow():
+                    # Filter Managment Panel ----------------------------------
+                    with FormColumn(scale=2):
+                        with FormRow():
                             filter_name = gr.Dropdown(
                                 label="Filter Name",
                                 choices=["kek", "lol", "roflmao"],
                                 allow_custom_value=True
                             )
-                        with gr.Row():
+                        with FormRow():
                             fe_save_btn = gr.Button(
                                 value="Save", scale=1, min_width=100
                             )
@@ -324,7 +327,7 @@ class Scripts(scripts.Script):
                             fe_delete_btn = gr.Button(
                                 value="Delete", scale=1, min_width=100
                             )
-                        with gr.Row():
+                        with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
                                 gr.Markdown(r"""
 * patterns are separated with new lines
@@ -338,7 +341,7 @@ class Scripts(scripts.Script):
                                 """)
 
                     # Filter Editing Text Area --------------------------------
-                    with gr.Column(scale=3):
+                    with FormColumn(scale=3):
                         fe_substitutions = gr.Textbox(
                             label="Filter Patterns",
                             interactive=True,

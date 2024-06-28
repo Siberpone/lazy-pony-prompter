@@ -5,3 +5,15 @@
 #lpp-status-bar svg {
     display: none !important;
 }
+
+#lpp-prompt-manager-buttons {
+    margin-top: 1.6em;
+}
+
+#lpp-chbox-group span {
+    margin-bottom: 0;
+}
+
+#lpp-autofill-filter-chbox {
+    margin-top: 1.8em;
+}
