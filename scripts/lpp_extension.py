@@ -290,7 +290,7 @@ class Scripts(scripts.Script):
                 # WARN: left this old input for compatibility for now.
                 # !!! Remove after new filter system has been implemented.
                 # -------------------------------------------------------------
-                with FormRow(visible=False):
+                with FormRow(visible=True):
                     with FormColumn(scale=2):
                         tag_filter = gr.Textbox(
                             show_label=False,

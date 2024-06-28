@@ -40,6 +40,44 @@ class LppMessageService(ABC):
     def error(self, message: str): pass
 
 
+@dataclass
+class FilterData:
+    substitutions: dict[str:str]
+    patterns: set[str]
+
+    @staticmethod
+    def from_string(filter_string: str):
+        lines = {l.strip() for l in filter_string.split(",") if l}
+        return FilterData.from_list(lines)
+
+    @staticmethod
+    def from_list(filter_patterns: list[str]):
+        substitutions = {}
+        patterns = []
+        for p in filter_patterns:
+            if "||" in p:
+                pattern, substitution = p.split("||")
+                substitutions[pattern] = substitution
+            else:
+                patterns.append(p)
+        return FilterData(substitutions, set(patterns))
+
+    @staticmethod
+    def merge(*filters):
+        substitutions = {}
+        patterns = set()
+        for filter in filters:
+            substitutions = {**substitutions, **filter.substitutions}
+            patterns.union(filter.patterns)
+        return FilterData(substitutions, patterns)
+
+    def match_subst(self, term: str) -> bool:
+        return glob_match(term, self.substitutions.keys())
+
+    def match(self, term: str) -> bool:
+        return glob_match(term, self.patterns)
+
+
 def glob_match(term: str, patterns: list[str]) -> bool:
     return any([fnmatch.fnmatch(term, x) for x in patterns])
 

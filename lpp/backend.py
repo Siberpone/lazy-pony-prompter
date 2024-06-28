@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources import TagSourceBase
-from lpp.utils import TagData, glob_match
+from lpp.utils import TagData, FilterData
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
@@ -113,16 +113,14 @@ class PromptsManager:
 
         format_func = source.formatters[model]
 
-        extra_tag_filter = {
-            t.strip() for t in tag_filter_str.split(",") if t
-        }
+        extra_tag_filter = FilterData.from_string(tag_filter_str)
 
         processed_prompts = []
         for raw_tags in chosen_prompts:
             formatted_tags = asdict(format_func(raw_tags))
             filtered_tags = {
                 k: [
-                    x for x in v if not glob_match(x, extra_tag_filter)
+                    x for x in v if not extra_tag_filter.match(x)
                 ] for k, v in formatted_tags.items()
             }
             processed_prompts.append(
@@ -211,3 +209,15 @@ class CacheManager(LppDataManager):
 
     def delete_tag_data(self, name: str) -> None:
         self.delete_item(name)
+
+
+class FiltersManager(LppDataManager):
+    def __init__(self, work_dir: str = "."):
+        super().__init__("filters.dat", work_dir)
+
+    def save_item(self, name: str, data: FilterData):
+        if not name:
+            raise ValueError("Empty \"name\" parameter")
+        new_item = deepcopy(data)
+        self._data[name] = new_item
+        self._dump_cache()
