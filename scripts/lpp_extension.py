@@ -11,18 +11,6 @@ import logging
 base_dir = scripts.basedir()
 
 
-class A1111LppMessageService(DefaultLppMessageService):
-    def __init__(self):
-        def modal_decorator(func, modal_func):
-            def inner(message):
-                func(self, message)
-                modal_func(f"[LPP] {message}")
-            return inner
-        self.info = modal_decorator(super().info.__func__, gr.Info)
-        self.warning = modal_decorator(super().warning.__func__, gr.Warning)
-        self.error = modal_decorator(super().error.__func__, gr.Error)
-
-
 def set_no_config(*args: object) -> None:
     for control in args:
         setattr(control, "do_not_save_to_config", True)
@@ -30,6 +18,14 @@ def set_no_config(*args: object) -> None:
 
 def get_opt(option, default):
     return getattr(shared.opts, option, default)
+
+
+saved_prompt_collections = []
+
+
+def refresh_saved_collections():
+    global saved_prompt_collections
+    saved_prompt_collections = ["None"] + lpp.saved_collections_names
 
 
 def on_ui_settings():
@@ -44,7 +40,8 @@ def on_ui_settings():
                 "None",
                 "Load this collection on startup",
                 gr.Dropdown,
-                {"choices": ["None"] + lpp.saved_collections_names}
+                lambda: {"choices": ["None"] + lpp.saved_collections_names},
+                refresh=refresh_saved_collections
             ),
         "lpp_logging_level":
             shared.OptionInfo(
@@ -72,6 +69,18 @@ def on_ui_settings():
 
 
 script_callbacks.on_ui_settings(on_ui_settings)
+
+
+class A1111LppMessageService(DefaultLppMessageService):
+    def __init__(self):
+        def modal_decorator(func, modal_func):
+            def inner(message):
+                func(self, message)
+                modal_func(f"[LPP] {message}")
+            return inner
+        self.info = modal_decorator(super().info.__func__, gr.Info)
+        self.warning = modal_decorator(super().warning.__func__, gr.Warning)
+        self.error = modal_decorator(super().error.__func__, gr.Error)
 
 
 lpp: LPP_A1111 = LPP_A1111(
