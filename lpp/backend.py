@@ -5,6 +5,7 @@ from lpp.sources import TagSourceBase
 from lpp.utils import TagData, glob_match
 from os import path
 from random import sample
+from abc import ABC, abstractmethod
 import json
 import pickle
 import re
@@ -133,54 +134,14 @@ class PromptsManager:
         return len(self.tag_data.raw_tags) if self.tag_data else 0
 
 
-class CacheManager:
-    def __init__(self, work_dir: str = "."):
-        self.__work_dir: str = work_dir
-        self.__tag_data_cache: dict[str:list[TagData]] = self.__load_cache()
+class LppDataManager(ABC):
+    def __init__(self, cache_file: str, work_dir: str = "."):
+        self._cache_file = cache_file
+        self._work_dir: str = work_dir
+        self._data: dict[str:object] = self._load_cache()
 
-    def __convert_legacy_cache_file(self):
-        old_cache_file = path.join(self.__work_dir, "cache.json")
-        new_cache_file = path.join(self.__work_dir, "tag_cache.dat")
-        if not path.exists(old_cache_file) or path.exists(new_cache_file):
-            return
-
-        backup_cache_file = path.join(
-            self.__work_dir, "cache.231021.bak.json"
-        )
-        if not path.exists(backup_cache_file):
-            shutil.copy(old_cache_file, backup_cache_file)
-
-        new_cache = {}
-        source_lookup = {"derpi": "Derpibooru", "e621": "E621"}
-        with open(old_cache_file, "r") as f:
-            cache_json = json.load(f)
-            for name, tag_data in cache_json.items():
-                other_params = {
-                    k: v for k, v in tag_data.items()
-                    if k not in ["source", "raw_tags", "query"]
-                }
-                new_cache[name] = TagData(
-                    source_lookup[tag_data["source"]],
-                    tag_data["query"],
-                    tag_data["raw_tags"],
-                    other_params
-                )
-        with open(new_cache_file, "wb") as f:
-            pickle.dump(new_cache, f)
-
-    def __load_cache(self) -> dict[str:list[TagData]]:
-        # INFO: Convert old cache file to new format. This will be removed
-        # after some time.
-        try:
-            self.__convert_legacy_cache_file()
-        except Exception:
-            logger.exception(
-                "Error occured while trying to convert old cache file",
-                exc_info=True
-            )
-            return {}
-
-        cache_file = path.join(self.__work_dir, "tag_cache.dat")
+    def _load_cache(self) -> dict[str:object]:
+        cache_file = path.join(self._work_dir, self._cache_file)
         if not path.exists(cache_file):
             return {}
 
@@ -193,36 +154,60 @@ class CacheManager:
                 )
                 return {}
 
-    def __dump_cache(self) -> None:
-        cache_file = path.join(self.__work_dir, "tag_cache.dat")
+    def _dump_cache(self) -> None:
+        cache_file = path.join(self._work_dir, self._cache_file)
         with open(cache_file, "wb") as f:
-            pickle.dump(self.__tag_data_cache, f)
+            pickle.dump(self._data, f)
+
+    @abstractmethod
+    def save_item(self, name: str, data: object, *args) -> None:
+        pass
+
+    def get_item(self, name: str) -> object:
+        if name not in self._data:
+            raise KeyError(f"No name '{name}' in cache")
+        return deepcopy(self._data[name])
+
+    def delete_item(self, name: str) -> None:
+        if name not in self._data:
+            raise KeyError(f"No name '{name}' in cache")
+        del self._data[name]
+        self._dump_cache()
+
+
+class CacheManager(LppDataManager):
+    def __init__(self, work_dir: str = "."):
+        super().__init__("tag_cache.dat", work_dir)
 
     def get_saved_names(self, source: str = None) -> list[str]:
         if not source:
-            return list(self.__tag_data_cache.keys())
+            return list(self._data.keys())
         return [
-            k for k, v in self.__tag_data_cache.items() if v.source == source
+            k for k, v in self._data.items() if v.source == source
         ]
 
+    def save_item(self,
+                  name: str,
+                  data: TagData,
+                  tag_filter: str = None,
+                  filters: list[str] = None) -> None:
+        if not name:
+            raise ValueError("Empty \"name\" parameter")
+        new_item = deepcopy(data)
+        if filters:
+            new_item.other_params["filters"] = filters
+
+        self._data[name] = new_item
+        self._dump_cache()
+
+    # INFO: Left these for compatibility
     def cache_tag_data(
         self, name: str, data: TagData, tag_filter: str = None
     ) -> None:
-        if not name:
-            raise ValueError("Empty \"name\" parameter")
-        tag_data = deepcopy(data)
-        tag_data.other_params["tag_filter"] = tag_filter if tag_filter else ""
-
-        self.__tag_data_cache[name] = tag_data
-        self.__dump_cache()
+        self.save_item(name, data, tag_filter)
 
     def get_tag_data(self, name: str) -> TagData:
-        if name not in self.__tag_data_cache:
-            raise KeyError(f"No name '{name}' in cache")
-        return deepcopy(self.__tag_data_cache[name])
+        return self.get_item(name)
 
     def delete_tag_data(self, name: str) -> None:
-        if name not in self.__tag_data_cache:
-            raise KeyError(f"No name '{name}' in cache")
-        del self.__tag_data_cache[name]
-        self.__dump_cache()
+        self.delete_item(name)
