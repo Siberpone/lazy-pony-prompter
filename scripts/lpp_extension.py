@@ -1,5 +1,5 @@
 from lpp.a1111 import LPP_A1111, DefaultLppMessageService
-from lpp.utils import Models
+from lpp.utils import Models, FilterData
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -211,7 +211,9 @@ class Scripts(scripts.Script):
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
             with lpp_enable.extra():
-                status_bar = gr.HTML(lpp.status, elem_id="lpp-status-bar", container=False)
+                status_bar = gr.HTML(
+                    lpp.status, elem_id="lpp-status-bar", container=False
+                )
 
             # Prompts Manager #################################################
             with gr.Tab("Prompts Manager"):
@@ -249,7 +251,7 @@ class Scripts(scripts.Script):
                         with FormRow():
                             filters = gr.Dropdown(
                                 label="Filters",
-                                choices=["kek", "lol", "roflmao"],
+                                choices=lpp.filters,
                                 multiselect=True
                             )
                         with FormRow():
@@ -290,7 +292,7 @@ class Scripts(scripts.Script):
                 # WARN: left this old input for compatibility for now.
                 # !!! Remove after new filter system has been implemented.
                 # -------------------------------------------------------------
-                with FormRow(visible=True):
+                with FormRow(visible=False):
                     with FormColumn(scale=2):
                         tag_filter = gr.Textbox(
                             show_label=False,
@@ -303,9 +305,9 @@ class Scripts(scripts.Script):
                     # Filter Managment Panel ----------------------------------
                     with FormColumn(scale=2):
                         with FormRow():
-                            filter_name = gr.Dropdown(
+                            fe_filter_name = gr.Dropdown(
                                 label="Filter Name",
-                                choices=["kek", "lol", "roflmao"],
+                                choices=lpp.filters,
                                 allow_custom_value=True
                             )
                             fe_save_btn = ToolButton(value="💾",)
@@ -326,7 +328,7 @@ class Scripts(scripts.Script):
 
                     # Filter Editing Text Area --------------------------------
                     with FormColumn(scale=3):
-                        fe_substitutions = gr.Textbox(
+                        fe_patterns = gr.Textbox(
                             label="Filter Patterns",
                             interactive=True,
                             lines=7,
@@ -337,7 +339,7 @@ class Scripts(scripts.Script):
             # them without this attribute.
             set_no_config(source, prompts_format, prompts_manager_input)
 
-            # Event Handlers --------------------------------------------------
+            # Prompt Manager Event Handlers ###################################
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
                 models = ["Auto"] + lpp.get_model_names(source)
@@ -442,7 +444,7 @@ class Scripts(scripts.Script):
                 show_progress="hidden"
             )
 
-            # Action Confirmation Dialog
+            # Prompt Manager Confirmation Dialog
             def invoke_action():
                 self.prompt_manager_dialog_action[0]()
                 selected_val = self.prompt_manager_dialog_action[1]
@@ -465,9 +467,42 @@ class Scripts(scripts.Script):
                 [prompt_manager_dialog],
                 show_progress="hidden"
             )
-        return [lpp_enable, prompts_format, tag_filter, rating_filter]
 
-    def process(self, p, enabled, prompts_format, tag_filter, allowed_ratings):
+            # Filters Editor Event Handlers ###################################
+            # Save Button -----------------------------------------------------
+            def fe_save_click(name: str, lpp_filter: FilterData):
+                lpp.try_save_filter(name, FilterData.from_string(lpp_filter))
+                return (gr.update(choices=lpp.filters),
+                        gr.update(choices=lpp.filters))
+
+            fe_save_btn.click(
+                fe_save_click,
+                [fe_filter_name, fe_patterns],
+                [filters, fe_filter_name]
+            )
+
+            # Load Button -----------------------------------------------------
+            fe_load_btn.click(
+                lambda n: str(lpp.try_load_filter(n)),
+                [fe_filter_name],
+                [fe_patterns]
+            )
+
+            # Delete Button ---------------------------------------------------
+            def fe_delete_click(name: str):
+                lpp.try_delete_filter(name)
+                return (gr.update(choices=lpp.filters),
+                        gr.update(value="", choices=lpp.filters))
+
+            fe_delete_btn.click(
+                fe_delete_click,
+                [fe_filter_name],
+                [filters, fe_filter_name]
+            )
+        return [lpp_enable, prompts_format, tag_filter, rating_filter, filters]
+
+    def process(self, p, enabled, prompts_format,
+                tag_filter, allowed_ratings, filters):
         if not enabled:
             return p
 
@@ -485,8 +520,8 @@ class Scripts(scripts.Script):
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, tag_filter, allowed_ratings
-        )
+            prompts_format, p.prompt, n_images, tag_filter, allowed_ratings,
+            lpp.get_filters(filters))
 
         p.all_prompts = [
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)

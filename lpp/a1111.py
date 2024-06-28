@@ -1,6 +1,6 @@
-from lpp.backend import SourcesManager, PromptsManager, CacheManager, TagData
+from lpp.backend import SourcesManager, PromptsManager, CacheManager, FiltersManager
 from lpp.log import get_logger
-from lpp.utils import LppMessageService
+from lpp.utils import LppMessageService, TagData, FilterData
 
 logger = get_logger()
 
@@ -34,6 +34,7 @@ class LPP_A1111:
             self.__sources_manager
         )
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
+        self.__filters_manager: FiltersManager = FiltersManager(self.__work_dir)
 
         self.__messenger = messenger
         self.__collection_name = ""
@@ -60,6 +61,10 @@ class LPP_A1111:
     @property
     def saved_collections_names(self) -> list[str]:
         return self.__cache_manager.get_saved_names()
+
+    @property
+    def filters(self) -> list[(str, FilterData)]:
+        return self.__filters_manager.get_filter_names()
 
     @property
     def status(self) -> str:
@@ -107,6 +112,34 @@ class LPP_A1111:
             name
         )
 
+    def try_save_filter(self, name: str, lpp_filter: FilterData) -> None:
+        self.__try_exec_command(
+            self.__filters_manager.save_item,
+            f"Successfully saved filter \"{name}\"",
+            f"Filed to save filter \"{name}\":",
+            name, lpp_filter
+        )
+
+    def try_load_filter(self, name: str) -> FilterData:
+        try:
+            f = self.__filters_manager.get_item(name)
+            self.__messenger.info(f"Successfully loaded filter \"{name}\"")
+            return f
+        except KeyError:
+            self.__messenger.warning(f"Failed to load filter \"{name}\":")
+            return None
+
+    def try_delete_filter(self, name: str) -> None:
+        self.__try_exec_command(
+            self.__filters_manager.delete_item,
+            f"Successfully deleted filter \"{name}\"",
+            f"Failed to delete filter \"{name}\":",
+            name
+        )
+
+    def get_filters(self, filter_names: str):
+        return [self.__filters_manager.get_item(x) for x in filter_names]
+
     def try_send_request(self, *args: object) -> None:
         def load_new_tag_data(*args: object) -> None:
             self.tag_data = self.__sources_manager.request_prompts(*args)
@@ -135,11 +168,12 @@ class LPP_A1111:
                            template: str = None,
                            n: int = 1,
                            tag_filter_str: str = "",
-                           allowed_ratings: list[str] = None
+                           allowed_ratings: list[str] = None,
+                           filters: list[FilterData] = None
                            ) -> list[list[str]]:
         try:
             return self.__prompts_manager.choose_prompts(
-                model, template, n, tag_filter_str, allowed_ratings
+                model, template, n, tag_filter_str, allowed_ratings, filters
             )
         # HACK: these should really be errors and not warnings, but effing
         # A1111 or Gradio just refuses to display them. It is important to

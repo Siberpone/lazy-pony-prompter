@@ -6,10 +6,8 @@ from lpp.utils import TagData, FilterData
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
-import json
 import pickle
 import re
-import shutil
 
 logger = get_logger()
 
@@ -82,12 +80,37 @@ class PromptsManager:
 
         return prompt
 
+    def __filter_tags_legacy(self, tag_groups: dict[str:list[str]], filter_str: str):
+        # INFO: this old filtering method is left for compatibility and
+        # will be removed in the future.
+        tag_filter = FilterData.from_string(filter_str, ",")
+        return {k: [
+                    x for x in v if not tag_filter.match(x)
+                ] for k, v in tag_groups.items()}
+
+    def __filter_tags(self, tag_groups: dict[str:list[str]], filters: list[FilterData]):
+        if not filters:
+            return tag_groups
+
+        filtered_tags = {}
+        joint_filter = FilterData.merge(*filters)
+        for group, tags in tag_groups.items():
+            filtered_tags[group] = []
+            for tag in tags:
+                if joint_filter.match_subst(tag):
+                    filtered_tags[group].append(joint_filter.substitutions[tag])
+                    continue
+                if not joint_filter.match(tag):
+                    filtered_tags[group].append(tag)
+        return filtered_tags
+
     def choose_prompts(self,
                        model: str,
                        template: str = None,
                        n: int = 1,
                        tag_filter_str: str = "",
-                       allowed_ratings: list[str] = None
+                       allowed_ratings: list[str] = None,
+                       filters: list[FilterData] = None
                        ) -> list[list[str]]:
         if not self.tag_data:
             raise ValueError("No prompts are currently loaded.")
@@ -113,16 +136,12 @@ class PromptsManager:
 
         format_func = source.formatters[model]
 
-        extra_tag_filter = FilterData.from_string(tag_filter_str)
-
         processed_prompts = []
         for raw_tags in chosen_prompts:
             formatted_tags = asdict(format_func(raw_tags))
-            filtered_tags = {
-                k: [
-                    x for x in v if not extra_tag_filter.match(x)
-                ] for k, v in formatted_tags.items()
-            }
+            filtered_tags = self.__filter_tags_legacy(formatted_tags, tag_filter_str)\
+                if tag_filter_str\
+                else self.__filter_tags(formatted_tags, filters)
             processed_prompts.append(
                 self.__apply_template(filtered_tags, template)
             )
@@ -221,3 +240,6 @@ class FiltersManager(LppDataManager):
         new_item = deepcopy(data)
         self._data[name] = new_item
         self._dump_cache()
+
+    def get_filter_names(self) -> list[str]:
+        return list(self._data.keys())

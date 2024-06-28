@@ -45,9 +45,14 @@ class FilterData:
     substitutions: dict[str:str]
     patterns: set[str]
 
+    def __str__(self):
+        s = [f"{k}||{v}" for k, v in self.substitutions.items()]
+        return "\n".join(s + list(self.patterns))
+
     @staticmethod
-    def from_string(filter_string: str):
-        lines = {l.strip() for l in filter_string.split(",") if l}
+    def from_string(filter_string: str, sep: str = None):
+        lines = {l.strip() for l in filter_string.split(sep) if l}\
+            if sep else set(filter_string.splitlines())
         return FilterData.from_list(lines)
 
     @staticmethod
@@ -68,7 +73,8 @@ class FilterData:
         patterns = set()
         for filter in filters:
             substitutions = {**substitutions, **filter.substitutions}
-            patterns.union(filter.patterns)
+            for p in filter.patterns:
+                patterns.add(p)
         return FilterData(substitutions, patterns)
 
     def match_subst(self, term: str) -> bool:
