@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
-from modules.ui_components import InputAccordion, FormRow, FormColumn, FormGroup
+from modules.ui_components import InputAccordion, FormRow, FormColumn, FormGroup, ToolButton
 import gradio as gr
 import logging
 
@@ -224,26 +224,9 @@ class Scripts(scripts.Script):
                                 choices=lpp.saved_collections_names,
                                 allow_custom_value=True
                             )
-                        with FormRow():
-                            with FormColumn(scale=1, min_width=150):
-                                models = lpp.get_model_names(lpp.tag_data.source)\
-                                    if lpp.tag_data else []
-                                prompts_format = gr.Dropdown(
-                                    label="Prompts Format",
-                                    choices=["Auto"] + models,
-                                    value="Auto"
-                                )
-                            with FormColumn(scale=1, min_width=150):
-                                with FormRow(elem_id="lpp-prompt-manager-buttons"):
-                                    save_prompts_btn = gr.Button(
-                                        value="Save", scale=1, min_width=50
-                                    )
-                                    load_prompts_btn = gr.Button(
-                                        value="Load", scale=1, min_width=50
-                                    )
-                                    delete_prompts_btn = gr.Button(
-                                        "Delete", scale=1, min_width=50
-                                    )
+                            save_prompts_btn = ToolButton(value="💾")
+                            load_prompts_btn = ToolButton(value="📤")
+                            delete_prompts_btn = ToolButton("❌")
                         with FormRow(variant="panel", visible=False) as prompt_manager_dialog:
                             with FormColumn():
                                 with FormRow():
@@ -252,6 +235,14 @@ class Scripts(scripts.Script):
                                     pm_dialog_confirm_btn = gr.Button(
                                         "Confirm", variant="stop")
                                     pm_dialog_cancel_btn = gr.Button("Cancel")
+                        with FormRow():
+                            models = lpp.get_model_names(lpp.tag_data.source)\
+                                if lpp.tag_data else []
+                            prompts_format = gr.Dropdown(
+                                label="Prompts Format",
+                                choices=["Auto"] + models,
+                                value="Auto"
+                            )
 
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
@@ -317,16 +308,9 @@ class Scripts(scripts.Script):
                                 choices=["kek", "lol", "roflmao"],
                                 allow_custom_value=True
                             )
-                        with FormRow():
-                            fe_save_btn = gr.Button(
-                                value="Save", scale=1, min_width=100
-                            )
-                            fe_load_btn = gr.Button(
-                                value="Load", scale=1, min_width=100
-                            )
-                            fe_delete_btn = gr.Button(
-                                value="Delete", scale=1, min_width=100
-                            )
+                            fe_save_btn = ToolButton(value="💾",)
+                            fe_load_btn = ToolButton(value="📤")
+                            fe_delete_btn = ToolButton(value="❌")
                         with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
                                 gr.Markdown(r"""
