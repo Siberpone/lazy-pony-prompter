@@ -92,19 +92,19 @@ lpp: LPP_A1111 = LPP_A1111(
 
 
 class ConfirmationDialog:
-    def __init__(self, func, outputs):
+    def __init__(self, on_confirm_func, outputs):
         def action_decorator(func):
             def inner():
                 self.__action()
-                ret = func(*self.__action_func_args)
-                return (ret, gr.update(visible=False))
+                ret = func(*self.__on_confirm_func_args)
+                return (*ret, gr.update(visible=False))
             return inner
-        self.__action_func = action_decorator(func)
+        self.__on_confirm_func = action_decorator(on_confirm_func)
         self.__outputs = outputs
 
     def set_action(self, action, *args):
         self.__action = action
-        self.__action_func_args = args
+        self.__on_confirm_func_args = args
 
     def ui(self):
         with FormRow(variant="panel", visible=False) as dialog:
@@ -113,11 +113,10 @@ class ConfirmationDialog:
                 with FormRow():
                     self.msg = gr.Markdown()
                 with FormRow():
-                    self.confirm_btn = gr.Button(
-                        "Confirm", variant="stop")
+                    self.confirm_btn = gr.Button("Confirm", variant="stop")
                     self.cancel_btn = gr.Button("Cancel")
         self.confirm_btn.click(
-            self.__action_func,
+            self.__on_confirm_func,
             None,
             self.__outputs + [self.dialog],
             show_progress="hidden"
@@ -272,13 +271,14 @@ class Scripts(scripts.Script):
                             delete_prompts_btn = ToolButton("❌")
 
                         pm_dialog = ConfirmationDialog(
-                            lambda name: gr.Dropdown.update(
+                            lambda name: [gr.Dropdown.update(
                                 choices=list(lpp.saved_collections_names),
                                 value=name
-                            ),
+                            )],
                             [prompts_manager_input]
                         )
                         pm_dialog_panel, pm_dialog_msg = pm_dialog.ui()
+
                         with FormRow(visible=False) as prompts_info_panel:
                             prompts_manager_metadata = gr.JSON(
                                 label="Prompts Info",
@@ -349,6 +349,14 @@ class Scripts(scripts.Script):
                             fe_save_btn = ToolButton(value="💾",)
                             fe_load_btn = ToolButton(value="📤")
                             fe_delete_btn = ToolButton(value="❌")
+                        fe_dialog = ConfirmationDialog(
+                            lambda name: [
+                                gr.Dropdown.update(choices=lpp.filters),
+                                gr.Dropdown.update(value=name, choices=lpp.filters)
+                            ],
+                            [filters, fe_filter_name]
+                        )
+                        fe_dialog_panel, fe_dialog_msg = fe_dialog.ui()
                         with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
                                 gr.Markdown(r"""
@@ -508,14 +516,28 @@ class Scripts(scripts.Script):
             # Filters Editor Event Handlers ###################################
             # Save Button -----------------------------------------------------
             def fe_save_click(name: str, lpp_filter: FilterData):
-                lpp.try_save_filter(name, FilterData.from_string(lpp_filter))
-                return (gr.update(choices=lpp.filters),
-                        gr.update(choices=lpp.filters))
+                fe_dialog.set_action(
+                    lambda: lpp.try_save_filter(
+                        name, FilterData.from_string(lpp_filter)
+                    ),
+                    name
+                )
+                if name in lpp.filters:
+                    return (gr.update(), gr.update(), gr.update(visible=True),
+                            f"Do you really want ot overwrite \"{name}\"?")
+                else:
+                    lpp.try_save_filter(name, FilterData.from_string(lpp_filter))
+                    return (
+                        gr.update(choices=lpp.filters),
+                        gr.update(choices=lpp.filters),
+                        gr.update(visible=False),
+                        ""
+                    )
 
             fe_save_btn.click(
                 fe_save_click,
                 [fe_filter_name, fe_patterns],
-                [filters, fe_filter_name],
+                [filters, fe_filter_name, fe_dialog_panel, fe_dialog_msg],
                 show_progress="hidden"
             )
 
@@ -529,14 +551,14 @@ class Scripts(scripts.Script):
 
             # Delete Button ---------------------------------------------------
             def fe_delete_click(name: str):
-                lpp.try_delete_filter(name)
-                return (gr.update(choices=lpp.filters),
-                        gr.update(value="", choices=lpp.filters))
+                fe_dialog.set_action(lambda: lpp.try_delete_filter(name), "")
+                return (gr.update(visible=True),
+                        f"Are you sure you want ot delete \"{name}\"?")
 
             fe_delete_btn.click(
                 fe_delete_click,
                 [fe_filter_name],
-                [filters, fe_filter_name],
+                [fe_dialog_panel, fe_dialog_msg],
                 show_progress="hidden"
             )
         return [lpp_enable, prompts_format, rating_filter, filters]
