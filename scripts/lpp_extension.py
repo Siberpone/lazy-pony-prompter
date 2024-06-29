@@ -239,11 +239,10 @@ class Scripts(scripts.Script):
                                     pm_dialog_confirm_btn = gr.Button(
                                         "Confirm", variant="stop")
                                     pm_dialog_cancel_btn = gr.Button("Cancel")
-                        with FormRow():
+                        with FormRow(visible=False) as prompts_info_panel:
                             prompts_manager_metadata = gr.JSON(
                                 label="Prompts Info",
-                                show_label=True,
-                                visible=False
+                                show_label=True
                             )
                         with FormRow():
                             models = lpp.get_model_names(lpp.tag_data.source)\
@@ -394,7 +393,7 @@ class Scripts(scripts.Script):
             prompts_info_btn.click(
                 prompts_info_click,
                 [],
-                [prompts_manager_metadata, prompts_info_btn],
+                [prompts_info_panel, prompts_info_btn],
                 show_progress="hidden"
             )
 
