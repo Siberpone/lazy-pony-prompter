@@ -91,6 +91,46 @@ lpp: LPP_A1111 = LPP_A1111(
 )
 
 
+class ConfirmationDialog:
+    def __init__(self, func, outputs):
+        def action_decorator(func):
+            def inner():
+                self.__action()
+                ret = func(*self.__action_func_args)
+                return (ret, gr.update(visible=False))
+            return inner
+        self.__action_func = action_decorator(func)
+        self.__outputs = outputs
+
+    def set_action(self, action, *args):
+        self.__action = action
+        self.__action_func_args = args
+
+    def ui(self):
+        with FormRow(variant="panel", visible=False) as dialog:
+            self.dialog = dialog
+            with FormColumn():
+                with FormRow():
+                    self.msg = gr.Markdown()
+                with FormRow():
+                    self.confirm_btn = gr.Button(
+                        "Confirm", variant="stop")
+                    self.cancel_btn = gr.Button("Cancel")
+        self.confirm_btn.click(
+            self.__action_func,
+            None,
+            self.__outputs + [self.dialog],
+            show_progress="hidden"
+        )
+        self.cancel_btn.click(
+            lambda: gr.update(visible=False),
+            None,
+            [self.dialog],
+            show_progress="hidden"
+        )
+        return self.dialog, self.msg
+
+
 @dataclass
 class QueryPanelData:
     panel: object
@@ -194,7 +234,6 @@ class QueryPanels:
 class Scripts(scripts.Script):
     def __init__(self):
         self.query_panels = {}
-        self.prompt_manager_dialog_action = lambda: None
         self.prompt_info_visible = False
 
         startup_collection = get_opt("lpp_default_collection", "None")
@@ -231,14 +270,15 @@ class Scripts(scripts.Script):
                             save_prompts_btn = ToolButton(value="💾")
                             load_prompts_btn = ToolButton(value="📤")
                             delete_prompts_btn = ToolButton("❌")
-                        with FormRow(variant="panel", visible=False) as prompt_manager_dialog:
-                            with FormColumn():
-                                with FormRow():
-                                    pm_dialog_msg = gr.Markdown()
-                                with FormRow():
-                                    pm_dialog_confirm_btn = gr.Button(
-                                        "Confirm", variant="stop")
-                                    pm_dialog_cancel_btn = gr.Button("Cancel")
+
+                        pm_dialog = ConfirmationDialog(
+                            lambda name: gr.Dropdown.update(
+                                choices=list(lpp.saved_collections_names),
+                                value=name
+                            ),
+                            [prompts_manager_input]
+                        )
+                        pm_dialog_panel, pm_dialog_msg = pm_dialog.ui()
                         with FormRow(visible=False) as prompts_info_panel:
                             prompts_manager_metadata = gr.JSON(
                                 label="Prompts Info",
@@ -387,9 +427,10 @@ class Scripts(scripts.Script):
 
             # Save Button Click
             def save_prompts_click(name, filters):
-                self.prompt_manager_dialog_action = lambda: \
-                    lpp.try_save_prompts(name, filters), \
+                pm_dialog.set_action(
+                    lambda: lpp.try_save_prompts(name, filters),
                     name
+                )
                 if name in lpp.saved_collections_names:
                     return (
                         gr.update(),
@@ -408,7 +449,7 @@ class Scripts(scripts.Script):
             save_prompts_btn.click(
                 save_prompts_click,
                 [prompts_manager_input, filters],
-                [prompts_manager_input, pm_dialog_msg, prompt_manager_dialog],
+                [prompts_manager_input, pm_dialog_msg, pm_dialog_panel],
                 show_progress="hidden"
             )
 
@@ -445,15 +486,14 @@ class Scripts(scripts.Script):
 
             # Delete Button Click
             def delete_click(name):
-                self.prompt_manager_dialog_action = lambda: \
-                    lpp.try_delete_prompts(name), \
-                    ""
-                return [f"Are you sure you want to delete \"{name}\"?",
-                        gr.update(visible=True)]
+                pm_dialog.set_action(lambda: lpp.try_delete_prompts(name), "")
+                return (f"Are you sure you want to delete \"{name}\"?",
+                        gr.update(visible=True))
+
             delete_prompts_btn.click(
                 delete_click,
                 [prompts_manager_input],
-                [pm_dialog_msg, prompt_manager_dialog],
+                [pm_dialog_msg, pm_dialog_panel],
                 show_progress="hidden"
             )
 
@@ -462,30 +502,6 @@ class Scripts(scripts.Script):
                 lambda n: lpp.try_get_tag_data_json(n),
                 [prompts_manager_input],
                 [prompts_manager_metadata],
-                show_progress="hidden"
-            )
-
-            # Prompt Manager Confirmation Dialog
-            def invoke_action():
-                self.prompt_manager_dialog_action[0]()
-                selected_val = self.prompt_manager_dialog_action[1]
-                return (
-                    gr.Dropdown.update(
-                        choices=list(lpp.saved_collections_names),
-                        value=selected_val
-                    ),
-                    gr.update(visible=False)
-                )
-            pm_dialog_confirm_btn.click(
-                invoke_action,
-                None,
-                [prompts_manager_input, prompt_manager_dialog],
-                show_progress="hidden"
-            )
-            pm_dialog_cancel_btn.click(
-                lambda: gr.update(visible=False),
-                None,
-                [prompt_manager_dialog],
                 show_progress="hidden"
             )
 
