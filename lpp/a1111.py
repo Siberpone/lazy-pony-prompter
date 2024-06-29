@@ -138,7 +138,16 @@ class LPP_A1111:
         )
 
     def get_filters(self, filter_names: str):
-        return [self.__filters_manager.get_item(x) for x in filter_names]
+        filters = []
+        failed_filters = []
+        for f in filter_names:
+            if f in self.filters:
+                filters.append(self.__filters_manager.get_item(f))
+            else:
+                failed_filters.append(f)
+        if failed_filters:
+            self.__messenger.warning(f"Filed to load filters: {', '.join(failed_filters)}")
+        return filters
 
     def try_send_request(self, *args: object) -> None:
         def load_new_tag_data(*args: object) -> None:
