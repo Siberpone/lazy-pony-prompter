@@ -195,6 +195,7 @@ class Scripts(scripts.Script):
     def __init__(self):
         self.query_panels = {}
         self.prompt_manager_dialog_action = lambda: None
+        self.prompt_info_visible = False
 
         startup_collection = get_opt("lpp_default_collection", "None")
         if startup_collection != "None":
@@ -226,6 +227,7 @@ class Scripts(scripts.Script):
                                 choices=lpp.saved_collections_names,
                                 allow_custom_value=True
                             )
+                            prompts_info_btn = ToolButton(value="📋")
                             save_prompts_btn = ToolButton(value="💾")
                             load_prompts_btn = ToolButton(value="📤")
                             delete_prompts_btn = ToolButton("❌")
@@ -237,6 +239,12 @@ class Scripts(scripts.Script):
                                     pm_dialog_confirm_btn = gr.Button(
                                         "Confirm", variant="stop")
                                     pm_dialog_cancel_btn = gr.Button("Cancel")
+                        with FormRow():
+                            prompts_manager_metadata = gr.JSON(
+                                label="Prompts Info",
+                                show_label=True,
+                                visible=False
+                            )
                         with FormRow():
                             models = lpp.get_model_names(lpp.tag_data.source)\
                                 if lpp.tag_data else []
@@ -268,24 +276,25 @@ class Scripts(scripts.Script):
                                 scale=2
                             )
 
-                # Booru Query Panels ------------------------------------------
-                with gr.Accordion(
-                    label="💬 Get prompts from Booru",
-                    open=False
-                ):
-                    source = gr.Radio(
-                        label="Tags Source",
-                        choices=lpp.source_names,
-                        value=lambda: lpp.source_names[0],
-                        elem_id="lpp-chbox-group"
-                    )
-                    for attr in [
-                        x for x in dir(QueryPanels) if not x.startswith("_")
-                    ]:
-                        query_panel = getattr(QueryPanels, attr)
-                        self.query_panels[query_panel.__name__] = query_panel(
-                            source.value, lpp
+                # Booru Query & Promts Info Panels ----------------------------
+                with FormRow():
+                    with gr.Accordion(
+                        label="💬 Get prompts from Booru",
+                        open=False
+                    ):
+                        source = gr.Radio(
+                            label="Tags Source",
+                            choices=lpp.source_names,
+                            value=lambda: lpp.source_names[0],
+                            elem_id="lpp-chbox-group"
                         )
+                        for attr in [
+                            x for x in dir(QueryPanels) if not x.startswith("_")
+                        ]:
+                            query_panel = getattr(QueryPanels, attr)
+                            self.query_panels[query_panel.__name__] = query_panel(
+                                source.value, lpp
+                            )
 
             # Filter Editor ###################################################
             with gr.Tab("Filter Editor"):
@@ -361,7 +370,7 @@ class Scripts(scripts.Script):
                     show_progress="full"
                 )
 
-            # Source Dropdown Change
+            # Source Radio Change
             source.change(
                 lambda s: [
                     gr.update(
@@ -369,7 +378,24 @@ class Scripts(scripts.Script):
                     ) for x in self.query_panels.keys()
                 ],
                 [source],
-                [x.panel for x in self.query_panels.values()]
+                [x.panel for x in self.query_panels.values()],
+                show_progress="hidden"
+            )
+
+            # Prompts Info Button Click
+            def prompts_info_click():
+                self.prompt_info_visible = not self.prompt_info_visible
+                variant = "primary" if self.prompt_info_visible else "secondary"
+                return (
+                    gr.update(visible=self.prompt_info_visible),
+                    gr.update(variant=variant)
+                )
+
+            prompts_info_btn.click(
+                prompts_info_click,
+                [],
+                [prompts_manager_metadata, prompts_info_btn],
+                show_progress="hidden"
             )
 
             # Save Button Click
@@ -444,6 +470,14 @@ class Scripts(scripts.Script):
                 show_progress="hidden"
             )
 
+            # Load Prompts Dropdown Change
+            prompts_manager_input.change(
+                lambda n: lpp.try_get_tag_data_json(n),
+                [prompts_manager_input],
+                [prompts_manager_metadata],
+                show_progress="hidden"
+            )
+
             # Prompt Manager Confirmation Dialog
             def invoke_action():
                 self.prompt_manager_dialog_action[0]()
@@ -478,14 +512,16 @@ class Scripts(scripts.Script):
             fe_save_btn.click(
                 fe_save_click,
                 [fe_filter_name, fe_patterns],
-                [filters, fe_filter_name]
+                [filters, fe_filter_name],
+                show_progress="hidden"
             )
 
             # Load Button -----------------------------------------------------
             fe_load_btn.click(
                 lambda n: str(lpp.try_load_filter(n)),
                 [fe_filter_name],
-                [fe_patterns]
+                [fe_patterns],
+                show_progress="hidden"
             )
 
             # Delete Button ---------------------------------------------------
@@ -497,7 +533,8 @@ class Scripts(scripts.Script):
             fe_delete_btn.click(
                 fe_delete_click,
                 [fe_filter_name],
-                [filters, fe_filter_name]
+                [filters, fe_filter_name],
+                show_progress="hidden"
             )
         return [lpp_enable, prompts_format, tag_filter, rating_filter, filters]
 

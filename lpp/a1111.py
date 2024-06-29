@@ -151,17 +151,22 @@ class LPP_A1111:
             *args
         )
 
-    def try_get_tag_data_json(self, name: str) -> (bool, dict[str:object]):
+    def try_get_tag_data_json(self, name: str) -> dict[str:object]:
         try:
             target = self.__cache_manager.get_tag_data(name)
-            return True, {
+            ratings = {"Safe": 0, "Questionable": 0, "Explicit": 0}
+            source = self.__sources_manager.sources[target.source]
+            for item in target.raw_tags:
+                ratings[source.get_lpp_rating(item)] += 1
+            return {
                 "source": target.source,
                 "query": target.query,
                 "other parameters": target.other_params,
-                "count": len(target.raw_tags)
+                "count": len(target.raw_tags),
+                "ratings": ratings
             }
         except KeyError:
-            return False, {}
+            return {}
 
     def try_choose_prompts(self,
                            model: str,
