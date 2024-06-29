@@ -85,12 +85,12 @@ class LPP_A1111:
                 f"{failure_msg} {str(e)} ({type(e).__name__})"
             )
 
-    def try_save_prompts(self, name: str, tag_filter: str) -> None:
+    def try_save_prompts(self, name: str, filters: list[str]) -> None:
         self.__try_exec_command(
-            self.__cache_manager.cache_tag_data,
+            self.__cache_manager.save_item,
             f"Successfully saved \"{name}\"",
             f"Failed to save \"{name}\":",
-            name, self.tag_data, tag_filter
+            name, self.tag_data, None, filters
         )
 
     def try_load_prompts(self, name: str) -> None:

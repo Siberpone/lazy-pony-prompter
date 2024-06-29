@@ -270,7 +270,7 @@ class Scripts(scripts.Script):
                                 scale=7
                             )
                             autofill_tags_filter = gr.Checkbox(
-                                label="Autofill Tags Filter",
+                                label="Autoload Filters",
                                 elem_id="lpp-autofill-filter-chbox",
                                 scale=2
                             )
@@ -297,18 +297,6 @@ class Scripts(scripts.Script):
 
             # Filter Editor ###################################################
             with gr.Tab("Filter Editor"):
-                # WARN: left this old input for compatibility for now.
-                # !!! Remove after new filter system has been implemented.
-                # -------------------------------------------------------------
-                with FormRow(visible=False):
-                    with FormColumn(scale=2):
-                        tag_filter = gr.Textbox(
-                            show_label=False,
-                            placeholder="These tags (comma separated) will be pruned from prompts"
-                        )
-                    with FormColumn(scale=0, min_width=130):
-                        gr.ClearButton(components=[tag_filter])
-                # -------------------------------------------------------------
                 with FormRow():
                     # Filter Managment Panel ----------------------------------
                     with FormColumn(scale=2):
@@ -398,9 +386,9 @@ class Scripts(scripts.Script):
             )
 
             # Save Button Click
-            def save_prompts_click(name, tag_filter):
+            def save_prompts_click(name, filters):
                 self.prompt_manager_dialog_action = lambda: \
-                    lpp.try_save_prompts(name, tag_filter), \
+                    lpp.try_save_prompts(name, filters), \
                     name
                 if name in lpp.saved_collections_names:
                     return (
@@ -409,7 +397,7 @@ class Scripts(scripts.Script):
                         gr.update(visible=True)
                     )
                 else:
-                    lpp.try_save_prompts(name, tag_filter)
+                    lpp.try_save_prompts(name, filters)
                     return (
                         gr.Dropdown.update(
                             choices=lpp.saved_collections_names
@@ -419,7 +407,7 @@ class Scripts(scripts.Script):
 
             save_prompts_btn.click(
                 save_prompts_click,
-                [prompts_manager_input, tag_filter],
+                [prompts_manager_input, filters],
                 [prompts_manager_input, pm_dialog_msg, prompt_manager_dialog],
                 show_progress="hidden"
             )
@@ -427,6 +415,7 @@ class Scripts(scripts.Script):
             # Load Button Click
             def load_prompts_click(name, autofill_tags_filter, current_model):
                 lpp.try_load_prompts(name)
+                filters_update = gr.update()
                 if lpp.tag_data:
                     source = lpp.tag_data.source
                     models = ["Auto"] + lpp.get_model_names(source)
@@ -435,23 +424,22 @@ class Scripts(scripts.Script):
                         value=current_model if current_model in models
                         else models[0]
                     )
-                    metadata = lpp.tag_data.other_params
-                    tag_filter_update = metadata["tag_filter"] \
-                        if "tag_filter" in metadata and autofill_tags_filter \
-                        else ""
+
+                    params = lpp.tag_data.other_params
+                    if "filters" in params and params["filters"] and autofill_tags_filter:
+                        filters_update = gr.update(value=params["filters"])
                 else:
                     models_update = gr.update()
-                    tag_filter_update = gr.update()
 
                 return (
                     lpp.status,
-                    tag_filter_update,
+                    filters_update,
                     models_update
                 )
             load_prompts_btn.click(
                 load_prompts_click,
                 [prompts_manager_input, autofill_tags_filter, prompts_format],
-                [status_bar, tag_filter, prompts_format],
+                [status_bar, filters, prompts_format],
                 show_progress="hidden"
             )
 
@@ -535,10 +523,9 @@ class Scripts(scripts.Script):
                 [filters, fe_filter_name],
                 show_progress="hidden"
             )
-        return [lpp_enable, prompts_format, tag_filter, rating_filter, filters]
+        return [lpp_enable, prompts_format, rating_filter, filters]
 
-    def process(self, p, enabled, prompts_format,
-                tag_filter, allowed_ratings, filters):
+    def process(self, p, enabled, prompts_format, allowed_ratings, filters):
         if not enabled:
             return p
 
@@ -556,7 +543,7 @@ class Scripts(scripts.Script):
 
         n_images = p.batch_size * p.n_iter
         p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, tag_filter, allowed_ratings,
+            prompts_format, p.prompt, n_images, None, allowed_ratings,
             lpp.get_filters(filters))
 
         p.all_prompts = [
