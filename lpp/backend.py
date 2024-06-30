@@ -217,6 +217,23 @@ class CacheManager(LppDataManager):
         self._data[name] = new_item
         self._dump_cache()
 
+    def extract_legacy_filters(self) -> dict[str:FilterData]:
+        converted_filters = {}
+        LEGACY_FILTER = "tag_filter"
+        NEW_FILTER = "filters"
+        for name, tag_data in self._data.items():
+            filter_name = f"[F] {name}"
+            params = tag_data.other_params
+            if LEGACY_FILTER in params and params[LEGACY_FILTER]:
+                converted_filters[filter_name] = \
+                    FilterData.from_string(params[LEGACY_FILTER], ",")
+                if NEW_FILTER in params and filter_name not in params[NEW_FILTER]:
+                    params[NEW_FILTER] += [filter_name]
+                else:
+                    params[NEW_FILTER] = [filter_name]
+        self._dump_cache()
+        return converted_filters
+
     # INFO: Left these for compatibility
     def cache_tag_data(
         self, name: str, data: TagData, tag_filter: str = None
@@ -243,3 +260,11 @@ class FiltersManager(LppDataManager):
 
     def get_filter_names(self) -> list[str]:
         return list(self._data.keys())
+
+    def import_filters(self, filters: dict[str:FilterData]) -> int:
+        count = 0
+        for name, lpp_filter in filters.items():
+            if name not in self._data.keys():
+                self.save_item(name, lpp_filter)
+                count += 1
+        return count

@@ -197,3 +197,11 @@ class LPP_A1111:
             self.__messenger.warning(repr(e))
         except Exception:
             logger.exception("An error occured when trying to choose prompts.")
+
+    def import_legacy_filters(self) -> None:
+        filters = self.__cache_manager.extract_legacy_filters()
+        total = len(filters)
+        count = self.__filters_manager.import_filters(filters)
+        hint = " (some filters might have been imported already or there's a naming conflict)" \
+            if count != total else ""
+        self.__messenger.info(f"Imported {count}/{total} filters{hint}.")
