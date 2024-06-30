@@ -390,7 +390,8 @@ class Scripts(scripts.Script):
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
-            set_no_config(source, prompts_format, prompts_manager_input)
+            set_no_config(source, prompts_format, prompts_manager_input,
+                          filters, fe_filter_name, fe_patterns)
 
             # Prompt Manager Event Handlers ###################################
             # Send Query Buttons
