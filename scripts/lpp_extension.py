@@ -270,20 +270,27 @@ class Scripts(scripts.Script):
                             load_prompts_btn = ToolButton(value="📤")
                             delete_prompts_btn = ToolButton("❌")
 
+                        prompts_manager_metadata = gr.JSON(
+                            label="Prompts Info",
+                            show_label=True,
+                            render=False
+                        )
                         pm_dialog = ConfirmationDialog(
-                            lambda name: [gr.Dropdown.update(
-                                choices=list(lpp.saved_collections_names),
-                                value=name
-                            )],
-                            [prompts_manager_input]
+                            lambda name: [
+                                gr.Dropdown.update(
+                                    choices=list(lpp.saved_collections_names),
+                                    value=name
+                                ),
+                                gr.JSON.update(
+                                    lpp.try_get_tag_data_json(name)
+                                )
+                            ],
+                            [prompts_manager_input, prompts_manager_metadata]
                         )
                         pm_dialog_panel, pm_dialog_msg = pm_dialog.ui()
 
                         with FormRow(visible=False) as prompts_info_panel:
-                            prompts_manager_metadata = gr.JSON(
-                                label="Prompts Info",
-                                show_label=True
-                            )
+                            prompts_manager_metadata.render()
                         with FormRow():
                             models = lpp.get_model_names(lpp.tag_data.source)\
                                 if lpp.tag_data else []
@@ -352,7 +359,9 @@ class Scripts(scripts.Script):
                         fe_dialog = ConfirmationDialog(
                             lambda name: [
                                 gr.Dropdown.update(choices=lpp.filters),
-                                gr.Dropdown.update(value=name, choices=lpp.filters)
+                                gr.Dropdown.update(
+                                    value=name, choices=lpp.filters
+                                )
                             ],
                             [filters, fe_filter_name]
                         )
@@ -442,6 +451,7 @@ class Scripts(scripts.Script):
                 if name in lpp.saved_collections_names:
                     return (
                         gr.update(),
+                        gr.update(),
                         f"Are you sure you want to overwrite \"{name}\"?",
                         gr.update(visible=True)
                     )
@@ -451,13 +461,15 @@ class Scripts(scripts.Script):
                         gr.Dropdown.update(
                             choices=lpp.saved_collections_names
                         ),
+                        gr.update(value=lpp.try_get_tag_data_json(name)),
                         "", gr.update(visible=False)
                     )
 
             save_prompts_btn.click(
                 save_prompts_click,
                 [prompts_manager_input, filters],
-                [prompts_manager_input, pm_dialog_msg, pm_dialog_panel],
+                [prompts_manager_input, prompts_manager_metadata,
+                 pm_dialog_msg, pm_dialog_panel],
                 show_progress="hidden"
             )
 
