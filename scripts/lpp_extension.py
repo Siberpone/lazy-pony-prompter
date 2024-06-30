@@ -318,6 +318,7 @@ class Scripts(scripts.Script):
                             )
                             autofill_tags_filter = gr.Checkbox(
                                 label="Autoload Filters",
+                                value=True,
                                 elem_id="lpp-autofill-filter-chbox",
                                 scale=2
                             )
