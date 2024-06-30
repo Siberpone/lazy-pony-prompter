@@ -43,7 +43,19 @@ class LppMessageService(ABC):
 @dataclass
 class FilterData:
     substitutions: dict[str:str]
-    patterns: set[str]
+    __patterns: dict[str:None]  # ordered set emulation
+
+    @property
+    def patterns(self):
+        return self.__patterns.keys()
+
+    @patterns.setter
+    def patterns(self, value):
+        self.__patterns = dict.fromkeys(value)
+
+    def __post_init__(self):
+        if self.__patterns is not dict:
+            self.__patterns = dict.fromkeys(self.__patterns)
 
     def __str__(self):
         s = [f"{k}||{v}" for k, v in self.substitutions.items()]
@@ -52,7 +64,7 @@ class FilterData:
     @staticmethod
     def from_string(filter_string: str, sep: str = None):
         lines = {l.strip() for l in filter_string.split(sep) if l}\
-            if sep else set(filter_string.splitlines())
+            if sep else filter_string.splitlines()
         return FilterData.from_list(lines)
 
     @staticmethod
@@ -65,16 +77,15 @@ class FilterData:
                 substitutions[pattern] = substitution
             else:
                 patterns.append(p)
-        return FilterData(substitutions, set(patterns))
+        return FilterData(substitutions, patterns)
 
     @staticmethod
     def merge(*filters):
         substitutions = {}
-        patterns = set()
+        patterns = []
         for filter in filters:
             substitutions = {**substitutions, **filter.substitutions}
-            for p in filter.patterns:
-                patterns.add(p)
+            patterns += filter.patterns
         return FilterData(substitutions, patterns)
 
     def match_subst(self, term: str) -> bool:
