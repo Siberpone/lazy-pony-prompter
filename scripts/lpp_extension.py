@@ -92,19 +92,19 @@ lpp: LPP_A1111 = LPP_A1111(
 
 
 class ConfirmationDialog:
-    def __init__(self, on_confirm_func, outputs):
+    def __init__(self, gradio_upd_func, gradio_outputs):
         def action_decorator(func):
             def inner():
                 self.__action()
-                ret = func(*self.__on_confirm_func_args)
+                ret = func(*self.__gradio_upd_func_args)
                 return (*ret, gr.update(visible=False))
             return inner
-        self.__on_confirm_func = action_decorator(on_confirm_func)
-        self.__outputs = outputs
+        self.__gradio_upd_func = action_decorator(gradio_upd_func)
+        self.__gradio_outputs = gradio_outputs
 
     def set_action(self, action, *args):
         self.__action = action
-        self.__on_confirm_func_args = args
+        self.__gradio_upd_func_args = args
 
     def ui(self):
         with FormRow(variant="panel", visible=False) as dialog:
@@ -116,9 +116,9 @@ class ConfirmationDialog:
                     self.confirm_btn = gr.Button("Confirm", variant="stop")
                     self.cancel_btn = gr.Button("Cancel")
         self.confirm_btn.click(
-            self.__on_confirm_func,
+            self.__gradio_upd_func,
             None,
-            self.__outputs + [self.dialog],
+            self.__gradio_outputs + [self.dialog],
             show_progress="hidden"
         )
         self.cancel_btn.click(
@@ -257,7 +257,7 @@ class Scripts(scripts.Script):
             # Prompts Manager #################################################
             with gr.Tab("Prompts Manager"):
                 with FormRow():
-                    # Prompt collections Management Panel ---------------------
+                    # Prompt Collections Management Panel ---------------------
                     with FormColumn():
                         with FormRow():
                             prompts_manager_input = gr.Dropdown(
@@ -265,9 +265,9 @@ class Scripts(scripts.Script):
                                 choices=lpp.saved_collections_names,
                                 allow_custom_value=True
                             )
-                            prompts_info_btn = ToolButton(value="📋")
-                            save_prompts_btn = ToolButton(value="💾")
-                            load_prompts_btn = ToolButton(value="📤")
+                            prompts_info_btn = ToolButton("📋")
+                            save_prompts_btn = ToolButton("💾")
+                            load_prompts_btn = ToolButton("📤")
                             delete_prompts_btn = ToolButton("❌")
 
                         prompts_manager_metadata = gr.JSON(
@@ -353,9 +353,9 @@ class Scripts(scripts.Script):
                                 choices=lpp.filters,
                                 allow_custom_value=True
                             )
-                            fe_save_btn = ToolButton(value="💾",)
-                            fe_load_btn = ToolButton(value="📤")
-                            fe_delete_btn = ToolButton(value="❌")
+                            fe_save_btn = ToolButton("💾",)
+                            fe_load_btn = ToolButton("📤")
+                            fe_delete_btn = ToolButton("❌")
                         fe_dialog = ConfirmationDialog(
                             lambda name: [
                                 gr.Dropdown.update(choices=lpp.filters),
