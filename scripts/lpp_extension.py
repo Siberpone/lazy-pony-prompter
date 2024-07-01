@@ -369,7 +369,7 @@ class Scripts(scripts.Script):
                                 value="Auto"
                             )
                         # Booru Query & Promts Info Panels --------------------
-                        with FormRow():
+                        with FormRow(variant="panel", elem_id="lpp-query-panel"):
                             with gr.Accordion(
                                 label="💬 Get prompts from Booru",
                                 open=False
