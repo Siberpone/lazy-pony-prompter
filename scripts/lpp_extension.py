@@ -299,9 +299,38 @@ class Scripts(scripts.Script):
                                 choices=["Auto"] + models,
                                 value="Auto"
                             )
+                        # Booru Query & Promts Info Panels --------------------
+                        with FormRow():
+                            with gr.Accordion(
+                                label="💬 Get prompts from Booru",
+                                open=False
+                            ):
+                                source = gr.Radio(
+                                    label="Tags Source",
+                                    choices=lpp.source_names,
+                                    value=lambda: lpp.source_names[0],
+                                    elem_id="lpp-chbox-group"
+                                )
+                                for attr in [
+                                    x for x in dir(QueryPanels) if not x.startswith("_")
+                                ]:
+                                    query_panel = getattr(QueryPanels, attr)
+                                    self.query_panels[query_panel.__name__] = query_panel(
+                                        source.value, lpp
+                                    )
+
 
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
+                        with FormRow():
+                            quick_filter = gr.Textbox(
+                                label="Quick Filter",
+                                lines=1,
+                                max_lines=1,
+                                interactive=True,
+                                placeholder="Type in comma-separated patterns here to filter them out"
+                            )
+                            clear_qfilter_btn = ToolButton("🧹")
                         with FormRow():
                             filters = gr.Dropdown(
                                 label="Filters",
@@ -321,26 +350,6 @@ class Scripts(scripts.Script):
                                 value=True,
                                 elem_id="lpp-autofill-filter-chbox",
                                 scale=2
-                            )
-
-                # Booru Query & Promts Info Panels ----------------------------
-                with FormRow():
-                    with gr.Accordion(
-                        label="💬 Get prompts from Booru",
-                        open=False
-                    ):
-                        source = gr.Radio(
-                            label="Tags Source",
-                            choices=lpp.source_names,
-                            value=lambda: lpp.source_names[0],
-                            elem_id="lpp-chbox-group"
-                        )
-                        for attr in [
-                            x for x in dir(QueryPanels) if not x.startswith("_")
-                        ]:
-                            query_panel = getattr(QueryPanels, attr)
-                            self.query_panels[query_panel.__name__] = query_panel(
-                                source.value, lpp
                             )
 
             # Filter Editor ###################################################
@@ -531,6 +540,14 @@ class Scripts(scripts.Script):
                 show_progress="hidden"
             )
 
+            # Quick Filter Button
+            clear_qfilter_btn.click(
+                lambda: gr.update(value=""),
+                [],
+                [quick_filter],
+                show_progress="hidden"
+            )
+
             # Filters Editor Event Handlers ###################################
             # Save Button -----------------------------------------------------
             def fe_save_click(name: str, lpp_filter: FilterData):
@@ -591,9 +608,10 @@ class Scripts(scripts.Script):
                 None,
                 [filters, fe_filter_name]
             )
-        return [lpp_enable, prompts_format, rating_filter, filters]
+        return [lpp_enable, prompts_format, rating_filter, quick_filter, filters]
 
-    def process(self, p, enabled, prompts_format, allowed_ratings, filters):
+    def process(self, p, enabled, prompts_format, allowed_ratings,
+                quick_filter, filter_names):
         if not enabled:
             return p
 
@@ -610,9 +628,12 @@ class Scripts(scripts.Script):
                 prompts_format = model_hashes[p.sd_model_hash]
 
         n_images = p.batch_size * p.n_iter
+        filters = lpp.get_filters(filter_names)
+        if quick_filter:
+            filters += [FilterData.from_string(quick_filter, ",")]
         p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, None, allowed_ratings,
-            lpp.get_filters(filters))
+            prompts_format, p.prompt, n_images, None, allowed_ratings, filters
+        )
 
         p.all_prompts = [
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)
