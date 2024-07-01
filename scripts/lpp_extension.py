@@ -60,6 +60,12 @@ def on_ui_settings():
                               "Derpibooru API Key",
                               gr.Textbox,
                               {"interactive": True, "type": "password"}
+                              ).needs_reload_ui(),
+        "lpp_editors_count":
+            shared.OptionInfo(3,
+                              "Number of filter editor panels",
+                              gr.Number,
+                              {"precision": 0, "minimum": 1, "maximum": 8}
                               ).needs_reload_ui()
     }
 
@@ -128,6 +134,69 @@ class ConfirmationDialog:
             show_progress="hidden"
         )
         return self.dialog, self.msg
+
+
+class FilterEditor:
+    def __init__(self):
+        self.current_text = ""
+
+    def ui(self):
+        with FormColumn(variant="panel", scale=1, min_width=300):
+            with FormRow():
+                self.filter_name = gr.Dropdown(
+                    label="Choose a filter to edit:",
+                    choices=lpp.filters
+                )
+                self.save_btn = ToolButton("💾")
+                self.refresh_btn = ToolButton("🗘")
+            with FormRow():
+                self.patterns_textarea = gr.Textbox(
+                   label="Filter Patterns",
+                   interactive=True,
+                   lines=7,
+                   max_lines=15
+                )
+
+        set_no_config(self.filter_name, self.patterns_textarea)
+
+        def filter_name_change(name):
+            filter_text = str(lpp.try_load_filter(name))
+            self.current_text = filter_text
+            return gr.update(value=filter_text)
+
+        self.filter_name.change(
+            filter_name_change,
+            [self.filter_name],
+            [self.patterns_textarea],
+            show_progress="hidden"
+        )
+
+        self.patterns_textarea.change(
+            lambda p: gr.update(label="Filter Patterns *(unsaved)")
+            if self.current_text != p else gr.update(label="Filter Patterns"),
+            [self.patterns_textarea],
+            [self.patterns_textarea],
+            show_progress="hidden"
+        )
+
+        def save_btn_click(name, patterns):
+            self.current_text = patterns
+            lpp.try_save_filter(name, FilterData.from_string(patterns))
+            return gr.update(label="Filter Patterns")
+
+        self.save_btn.click(
+            save_btn_click,
+            [self.filter_name, self.patterns_textarea],
+            [self.patterns_textarea],
+            show_progress="hidden"
+        )
+
+        self.refresh_btn.click(
+            lambda: gr.update(choices=lpp.filters),
+            [],
+            [self.filter_name],
+            show_progress="hidden"
+        )
 
 
 @dataclass
@@ -319,7 +388,6 @@ class Scripts(scripts.Script):
                                         source.value, lpp
                                     )
 
-
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
                         with FormRow():
@@ -356,24 +424,25 @@ class Scripts(scripts.Script):
             with gr.Tab("Filter Editor"):
                 with FormRow():
                     # Filter Managment Panel ----------------------------------
-                    with FormColumn(scale=2):
+                    with FormColumn(scale=1, min_width=300):
                         with FormRow():
                             fe_filter_name = gr.Dropdown(
-                                label="Filter Name",
+                                label="Create or delete a filter:",
                                 choices=lpp.filters,
                                 allow_custom_value=True
                             )
-                            fe_save_btn = ToolButton("💾",)
-                            fe_load_btn = ToolButton("📤")
-                            fe_delete_btn = ToolButton("❌")
+                            fe_save_btn = ToolButton("✨")
+                            fe_delete_btn = ToolButton("❌", visible=False)
                         fe_dialog = ConfirmationDialog(
                             lambda name: [
                                 gr.Dropdown.update(choices=lpp.filters),
                                 gr.Dropdown.update(
                                     value=name, choices=lpp.filters
-                                )
+                                ),
+                                gr.Button.update(visible=True),
+                                gr.Button.update(visible=False)
                             ],
-                            [filters, fe_filter_name]
+                            [filters, fe_filter_name, fe_save_btn, fe_delete_btn]
                         )
                         fe_dialog_panel, fe_dialog_msg = fe_dialog.ui()
                         with FormRow():
@@ -393,19 +462,16 @@ class Scripts(scripts.Script):
 `horn||wings` will substitute "horn" with "wings"
                                 """)
 
-                    # Filter Editing Text Area --------------------------------
-                    with FormColumn(scale=3):
-                        fe_patterns = gr.Textbox(
-                            label="Filter Patterns",
-                            interactive=True,
-                            lines=7,
-                            max_lines=15
-                        )
+                    # Filter Editors ------------------------------------------
+                    filter_editors = []
+                    for i in range(get_opt("lpp_editors_count", 3)):
+                        filter_editors.append(FilterEditor())
+                        filter_editors[i].ui()
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
             # them without this attribute.
             set_no_config(source, prompts_format, prompts_manager_input,
-                          filters, fe_filter_name, fe_patterns)
+                          filters, fe_filter_name)
 
             # Prompt Manager Event Handlers ###################################
             # Send Query Buttons
@@ -549,38 +615,29 @@ class Scripts(scripts.Script):
             )
 
             # Filters Editor Event Handlers ###################################
+            # Filter Name Dropdown Change -------------------------------------
+            fe_filter_name.change(
+                lambda n: (gr.update(visible=False), gr.update(visible=True))
+                if n in lpp.filters
+                else (gr.update(visible=True), gr.update(visible=False)),
+                [fe_filter_name],
+                [fe_save_btn, fe_delete_btn]
+            )
+
             # Save Button -----------------------------------------------------
-            def fe_save_click(name: str, lpp_filter: FilterData):
-                fe_dialog.set_action(
-                    lambda: lpp.try_save_filter(
-                        name, FilterData.from_string(lpp_filter)
-                    ),
-                    name
+            def fe_save_click(name: str):
+                lpp.try_save_filter(name, FilterData.from_string(""))
+                return (
+                    gr.update(choices=lpp.filters),
+                    gr.update(choices=lpp.filters),
+                    gr.update(visible=False),
+                    gr.update(visible=True)
                 )
-                if name in lpp.filters:
-                    return (gr.update(), gr.update(), gr.update(visible=True),
-                            f"Do you really want ot overwrite \"{name}\"?")
-                else:
-                    lpp.try_save_filter(name, FilterData.from_string(lpp_filter))
-                    return (
-                        gr.update(choices=lpp.filters),
-                        gr.update(choices=lpp.filters),
-                        gr.update(visible=False),
-                        ""
-                    )
 
             fe_save_btn.click(
                 fe_save_click,
-                [fe_filter_name, fe_patterns],
-                [filters, fe_filter_name, fe_dialog_panel, fe_dialog_msg],
-                show_progress="hidden"
-            )
-
-            # Load Button -----------------------------------------------------
-            fe_load_btn.click(
-                lambda n: str(lpp.try_load_filter(n)),
                 [fe_filter_name],
-                [fe_patterns],
+                [filters, fe_filter_name, fe_save_btn, fe_delete_btn],
                 show_progress="hidden"
             )
 
