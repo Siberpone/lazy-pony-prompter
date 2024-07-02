@@ -137,6 +137,8 @@ class ConfirmationDialog:
 
 
 class FilterEditor:
+    external_inputs = []  # ui components to update when saving a filter
+
     def __init__(self):
         self.current_text = ""
 
@@ -151,10 +153,10 @@ class FilterEditor:
                 self.refresh_btn = ToolButton("🗘")
             with FormRow():
                 self.patterns_textarea = gr.Textbox(
-                   label="Filter Patterns",
-                   interactive=True,
-                   lines=7,
-                   max_lines=15
+                    label="Filter Patterns",
+                    interactive=True,
+                    lines=7,
+                    max_lines=15
                 )
 
         set_no_config(self.filter_name, self.patterns_textarea)
@@ -182,12 +184,14 @@ class FilterEditor:
         def save_btn_click(name, patterns):
             self.current_text = patterns
             lpp.try_save_filter(name, FilterData.from_string(patterns))
-            return gr.update(label="Filter Patterns")
+            return [gr.update(label="Filter Patterns")]\
+                + [gr.update(choices=lpp.filters)]\
+                * len(FilterEditor.external_inputs)
 
         self.save_btn.click(
             save_btn_click,
             [self.filter_name, self.patterns_textarea],
-            [self.patterns_textarea],
+            [self.patterns_textarea, *FilterEditor.external_inputs],
             show_progress="hidden"
         )
 
@@ -463,6 +467,7 @@ class Scripts(scripts.Script):
                                 """)
 
                     # Filter Editors ------------------------------------------
+                    FilterEditor.external_inputs += [filters, fe_filter_name]
                     filter_editors = []
                     for i in range(get_opt("lpp_editors_count", 3)):
                         filter_editors.append(FilterEditor())
