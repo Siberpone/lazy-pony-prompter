@@ -73,7 +73,7 @@ class FilterData:
         patterns = []
         for p in filter_patterns:
             if "||" in p:
-                pattern, substitution = p.split("||")
+                pattern, substitution = p.split("||")[slice(2)]
                 substitutions[pattern] = substitution
             else:
                 patterns.append(p)
