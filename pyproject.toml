@@ -1,0 +1,14 @@
+[project]
+name = "lazy-pony-prompter"
+description = "A booru API powered prompt generator for A1111 and ComfyUI with flexible tag filtering system and customizable prompt templates."
+version = "1.0.0"
+license = "LICENSE"
+
+[project.urls]
+Repository = "https://github.com/Siberpone/lazy-pony-prompter"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "siberpone"
+DisplayName = "lazy-pony-prompter"
+Icon = ""
