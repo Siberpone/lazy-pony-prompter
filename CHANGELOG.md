@@ -1,3 +1,12 @@
+### 2024-07-03
+
+**1.0.0 release**
+* Overhauled UI
+* New tag filtering system with filter management and pattern substitutions
+* Filter prompts by content rating (Safe/Questionable/Explicit)
+* Increased maximum prompts limit to 1500
+* Improved status reporting and logging
+
 ### 2024-01-17
 
 * Added custom prompt templates support

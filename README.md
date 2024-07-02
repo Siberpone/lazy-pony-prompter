@@ -1,13 +1,20 @@
 # Lazy Pony Prompter
 
-A pony prompt helper extension for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) that utilizes the full power of your favorite booru query syntax. Currently supports [Derpibooru](https://derpibooru/org) and [E621](https://e621.net).
+A booru API powered prompt generator for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with flexible tag filtering system and customizable prompt templates.
+
+Supported boorus/websites:
+* [Derpibooru](https://derpibooru.org)
+* [E621](https://e621.net)
+* More coming soon™
 
 > [!IMPORTANT]
-> **January update highlights:**
-> * Custom prompt templates (see [Prompt Styling](#-prompts-styling))
-> * Prompt formatters can now be selected automatically
-> * Sources can now fetch tags from URL
-> * Settings section added to A1111
+> **1.0.0 release highlights:**
+> * Overhauled UI
+> * New tag filtering system with filter management and pattern substitutions
+> * Filter prompts by content rating (Safe/Questionable/Explicit)
+> * Increased maximum prompts fetching limit to 1500
+> * Improved status reporting and logging
+> * See [Filter Editor](#filter-editor) for converting legacy filter strings to new format
 
 Derpibooru + [Pony Diffusion V6 XL](https://civitai.com/models/257749?modelVersionId=290640) + [PD Styles Collection](https://github.com/Siberpone/pd-styles) (which I highly recommend you also check out) samples:
 
@@ -23,7 +30,7 @@ E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
 
 ### ❗Requirements
 * [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) or [ComfyUI](https://github.com/comfyanonymous/ComfyUI);
-* One of recommended models (may work on other, less pony-capable models, too):
+* One of recommended models (these are the "officially" supported models, but LPP should work well for other tag-based models as long as their "native" booru is used as tag source):
   * [Pony Diffusion V6 XL](https://civitai.com/models/257749?modelVersionId=290640);
   * [EasyFluff](https://civitai.com/models/129996/easyfluff);
   * [Pony Diffusion V5(.5)](https://civitai.com/models/95367/pony-diffusion-v5);
@@ -32,12 +39,12 @@ E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
 
 ### 🖵  A1111 WebUI
 
-Open the "Extensions" tab and then the "Install from URL" tab. Paste this repository link to the "URL" field:
+Open the "Extensions" tab and then the "Install from URL" tab. Paste this repository link into the "URL" field:
 ```
 https://github.com/Siberpone/lazy-pony-prompter
 ```
 
-Click "Install" and after it's finished installing, restart the server. You should  now see the "Lazy Pony Prompter" fold on txt2img tab.
+Click "Install" and after it's finished installing, restart the server. You should  now see the "Lazy Pony Prompter" accordion on txt2img tab.
 
 ### 🛏 ComfyUI
 
@@ -55,17 +62,23 @@ LPP operates by making a prompt list from a search query to one of the supported
 
 ## A1111 WebUI
 
-![LPP interface](images/extension.jpg)
+### Prompts Manager
+Now, lets take a closer look at the interface:
 
-At the very top you'll find the main controls for LPP: the`🗹 Enabled` checkbox, that controls whether LPP is active or not; the `Tag Source` dropdown, that selects one of the supported booru sites as the sorce for prompts and the `Prompts Format` dropdown that selects model-specific prompt formatting.
+![LPP interface](images/prompts_manager.jpg)
 
-> [!WARNING]
->
-> EasyFluff formatter includes artist names in the prompt. Lets just say there's some potential for drama here, so use with caution. Use "EasyFluff (no artist names)" instead if you don't want artist names included.
+Firstly, note the title bar of the extension: `🗹`checkbox on the left side is the main toggle for LPP - it controls whether the extension is active or not; and on the right side you'll find the status indicator that shows some basic information about the currently loaded prompts collection.
 
-Below you'll find other LPP controls grouped into three foldable panels:
+Next, we move down to the "Prompts Manager" tab where you'll find the main controls for LPP:
+* **Prompts Collection Name** is used for selecting existing prompt collections or for saving currently loaded ones. Note the four buttons to the right:
+  * 📋 toggles the selected collection extra info display underneath the `Prompts Collection Name`;
+  * 💾 saves the currently loaded collection under the name provided in the `Prompts Collection Name`;
+  * 📤 loads the collection selected in the `Prompts Collection Name`;
+  * ❌ deletes the collection selected in the `Prompts Collection Name`.
+* **Prompts Format** is used to select model-specific prompt formatting. Normally, you don't need to worry about it and can just keep in on `Auto` at all times.
+* **Autoload Filters** indicates whether the `Filters` input should automatically be populated when loading a prompt collection (whenever you save a prompt collection, the information about currently active filters is written along with it).
 
-### 💬 Query
+#### 💬 Get prompts from Booru
 
 > [!NOTE]
 >
@@ -73,33 +86,88 @@ Below you'll find other LPP controls grouped into three foldable panels:
 
 ![Query Panel](images/derpi_query.jpg)
 
-On this panel you can pull tag data from selected booru site by typing in or pasting your query into the query textbox (the syntax is exactly the same as on the actual website). If you just want tags from a particular image, you can paste its URL into the query textbox or simply type in its ID number on the respective booru. You can also set a number of additional options:
+On this panel you can pull tag data from selected booru site by typing in or pasting your query into the query textbox (the syntax is exactly the same as on the actual website). Use the `Tag Source` toggle at the top to select the desired booru. If you just want tags from a particular image, you can paste its URL into the query textbox or simply type in its ID number on the respective booru. You can also set a number of additional options:
 
 * **Number of prompts to load** - will attempt to fetch tag data from this number of images in the query;
 * **Derpibooru specific:**
-  * *Derpibooru Filter* - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [APIgg key](#-api-key);
+  * *Derpibooru Filter* - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
   * *Sort by* - type of sorting to apply to the query. Wilson Score is the default.
 * **E621 specific:**
   * *Rating* - will append selected rating tag to the query.
   * *Sort by* - will append selected sorting type tag to the query.
 
-Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to the site and generate prompts from the returned tag data. If all goes well, you'll see "Successfully fetched tags from *\<site\>*. *X* prompts loaded. Ready to generate." in the LPP status bar at the very bottom. This means that LPP is now ready to poni and all you have to do is tick the `☑ Enabled` checkbox at the very top and hit the `Generate` button.
+Once you're happy with the settings, it's finally time to click the `Send` button. This will prompt LPP to send the search query to the site and generate prompts from the returned tag data. If all goes well, you'll see the "Successfully fetched tags from *\<site\>*" message pop up. This means that LPP is now ready to poni and all you have to do is tick the `☑` checkbox at the very top and hit the `Generate` button.
 
-### 🏷 Tags Filter
+#### 🏷 Filtering System
 
-This panel allows you to filter out unwanted tags from generated prompts. Just type in a comma-separated list of tags you don't want to see in the generated prompts and they will be filtered out before image generation begins. Note, that simple [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) is supported (i. e. you can use `*` to match anything, for example `*butt*` will filter out any tags containing word "butt"). The filter textbox is evaluated before every generation, so you can use it to tweak your currently loaded prompts collection.
+On the right side of the "Prompts Manager" panel you'll find the tags and prompts filtering controls that will help you customize and refine the composition of LPP-generated prompts. The filtering system allows you to filter out unwanted tags or substitute them with custom text. You can specify patterns that you wish to filter out or substitute in two ways:
 
-### 💾 Prompts Manager
+1. by creating a filter in the [Filter Editor](#filter-editor) and selecting it in the `Filters` input;
+2. by typing comma-separated patterns into the `Quick Filter` input.
 
-![Prompts Manager Panel](images/prompts_manager.jpg)
+Note that pattern syntax supports simple [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) and optional substitutions:
 
-This panel is used to manage your prompt collections locally.
+* `*` matches anything;
+* `?` matches any single character;
+* `[xyz]` matches specified characters;
+* `[A-Z]` matches a range of characters;
+* `||` is used to provide a substitution for a pattern. For example, `horn||wings` will substitute "horn" with "wings".
 
-You can save your currently loaded prompts for future use by typing in the desired name in the `Prompts Collection Name` textbox and clicking the `Save` button.
+> [!TIP]
+> Use `Quick Filter` only for on-the-spot one-shot filtering needs. If you find yourself typing in the same things into it over and over, consider creating a persistent filter in the Filter Editor - it'll save you a lot of time! Over time you'll build up your "filter library" and if you put a bit of effort into maintaining and expanding it, soon you'll be able to generate prompts with great flexibility and variety.
 
-You can load previously saved prompts by selecting the desired collection from `Prompts Collection Name` textbox (just start typing the name or select it from the dropdown hint) and clicking the `Load` button. If you have the `Autofill Tags Filter` checkbox ticked, it will also populate the `Tag Filter` textbox automatically if available (tag filter text is written to the prompts collection info when you save it).
+And last but not least for the filtering system is the `Rating Filter`. It allows LPP to only sample prompts with selected content ratings from currently loaded prompts. The ratings are determined from the meta data returned by the boorus.
 
-To delete unwanted collection, select it from the `Prompts Collection Name` textbox and click the `Delete` button.
+> [!WARNING]
+> If the currently loaded collection doesn't have any prompts with selected ratings, the generation will fail. Use the 📋 extra info panel to see what kind of ratings any given prompt collection contains.
+
+### Filter Editor
+
+![Filter Editor](images/filters_editor.jpg)
+
+This tab is used to manage and edit your persistent filters that can then be applied to LPP-generated prompts via selecting them in the `Filters` input on the "Prompts Manager" tab. On the left you'll find the `Create or delete a filter` input that is used to manage your filters: type in a new name for a filter and click the ✨ to create a new filter or select an existing filter form a drop-down list and click the ❌ to delete it. The `Import Legacy Filters` button underneath is used to convert your pre-1.0.0 saved filter strings to the new system. It will create a new persistent filter for each prompt collection that has legacy filter string attached to it and automatically add it to the collection's autoload list. You only need to run this once.
+
+Next you'll find a number of identical filter editors that are used to edit the filters. You can adjust the number of editors in the LPP's section of A1111 settings. To load up a filter, simply choose it from a drop-down in any of the editors (hit the 🗘 button if the desired filter doesn't appear on the list) and start editing the filter patterns. The syntax is exactly the same as described in the [Filtering System](#-filtering-system), but patterns are separated with new lines. Click the 💾 button to save changes to the filter.
+
+> [!TIP]
+> Changes to the filters are applied "on the fly". So, if you have a filter activated in the "Prompts Manager" and you add changes to it in the editor, the changes will apply on next generation
+
+#### Examples
+
+**Rule 63**
+```
+mare||stallion
+female||male
+male||female
+stallion||mare
+```
+
+**Style Altering Tags**
+```
+anime
+grayscale
+monochrome
+black and white
+show accurate*
+vector
+sketch
+traditional art
+* drawing
+* painting
+pixelated
+pixel art
+3d
+source filmmaker
+etc...
+```
+
+**Text**
+```
+holding sign
+dialogue
+speech bubble
+```
+
 
 ### ✨ Prompts Styling
 
