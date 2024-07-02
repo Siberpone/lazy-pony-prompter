@@ -370,7 +370,15 @@ class Scripts(scripts.Script):
                             prompts_format = gr.Dropdown(
                                 label="Prompts Format",
                                 choices=["Auto"] + models,
-                                value="Auto"
+                                value="Auto",
+                                scale=8
+                            )
+                            autofill_tags_filter = gr.Checkbox(
+                                label="Autoload Filters",
+                                value=True,
+                                elem_id="lpp-autofill-filter-chbox",
+                                scale=2,
+                                min_width=120
                             )
                         # Booru Query & Promts Info Panels --------------------
                         with FormRow(variant="panel", elem_id="lpp-query-panel"):
@@ -414,14 +422,7 @@ class Scripts(scripts.Script):
                                 label="Rating Filter",
                                 choices=["Safe", "Questionable", "Explicit"],
                                 value="Safe",
-                                elem_id="lpp-chbox-group",
-                                scale=7
-                            )
-                            autofill_tags_filter = gr.Checkbox(
-                                label="Autoload Filters",
-                                value=True,
-                                elem_id="lpp-autofill-filter-chbox",
-                                scale=2
+                                elem_id="lpp-chbox-group"
                             )
 
             # Filter Editor ###################################################
