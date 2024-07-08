@@ -299,7 +299,7 @@ class Derpibooru(TagSourceBase):
             if tag in self.__species_tags:
                 species.append(tag)
                 continue
-            if tag in self.__meta_tags:
+            if glob_match(tag, self.__meta_tags):
                 meta.append(tag)
                 continue
             if tag.startswith("artist:"):
