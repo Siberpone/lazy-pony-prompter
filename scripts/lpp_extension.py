@@ -365,11 +365,14 @@ class Scripts(scripts.Script):
                         with FormRow(visible=False) as prompts_info_panel:
                             prompts_manager_metadata.render()
                         with FormRow():
-                            models = lpp.get_model_names(lpp.tag_data.source)\
-                                if lpp.tag_data else []
+                            models = ["Auto"]
+                            if lpp.tag_data:
+                                source = lpp.sources[lpp.tag_data.source]
+                                models += source.supported_models
+
                             prompts_format = gr.Dropdown(
                                 label="Prompts Format",
-                                choices=["Auto"] + models,
+                                choices=models,
                                 value="Auto",
                                 scale=8
                             )
@@ -482,7 +485,7 @@ class Scripts(scripts.Script):
             # Prompt Manager Event Handlers ###################################
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
-                models = ["Auto"] + lpp.get_model_names(source)
+                models = ["Auto"] + lpp.sources[source].supported_models
                 lpp.try_send_request(source, *params)
                 return (
                     lpp.status,
@@ -566,7 +569,7 @@ class Scripts(scripts.Script):
                 filters_update = gr.update()
                 if lpp.tag_data:
                     source = lpp.tag_data.source
-                    models = ["Auto"] + lpp.get_model_names(source)
+                    models = ["Auto"] + lpp.sources[source].supported_models
                     models_update = gr.update(
                         choices=models,
                         value=current_model if current_model in models
@@ -683,7 +686,8 @@ class Scripts(scripts.Script):
                 "67ab2fd8ec": Models.PDV56.value,   # PD V6 XL
                 "6fdb703d7d": Models.PDV56.value,   # PD V5.5
                 "51e44370f4": Models.PDV56.value,   # PD V5
-                "821628644e": Models.EF.value       # EasyFluff V11.2
+                "821628644e": Models.EF.value,      # EasyFluff V11.2
+                "461c3bbd5c": Models.SEAART.value   # SeaArt Furry v1.0
             }
             if p.sd_model_hash not in model_hashes:
                 prompts_format = Models.PDV56.value

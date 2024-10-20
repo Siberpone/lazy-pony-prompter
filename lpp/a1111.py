@@ -55,9 +55,6 @@ class LPP_A1111:
     def tag_data(self, value: TagData) -> None:
         self.__prompts_manager.tag_data = value
 
-    def get_model_names(self, source: str) -> list[str]:
-        return self.__sources_manager.sources[source].get_model_names()
-
     @property
     def saved_collections_names(self) -> list[str]:
         return self.__cache_manager.get_saved_names()

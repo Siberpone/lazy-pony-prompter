@@ -27,6 +27,13 @@ class TagGroups:
 class Models(enum.Enum):
     PDV56 = "Pony Diffusion V5(.5)/V6"
     EF = "EasyFluff"
+    SEAART = "SeaArt Furry v1.0"
+
+    def get_default_template(model: str) -> str:
+        if model == Models.SEAART.value:
+            return "{species}, {character}, {artist}, {general}, {meta}"
+        else:
+            return "{rating}, {character}, {species}, {artist}, {general}, {meta}"
 
 
 class LppMessageService(ABC):

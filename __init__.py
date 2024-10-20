@@ -66,7 +66,7 @@ class ComfyDerpibooru(ComfyTagSourceBase):
         types = deepcopy(self.tag_source_input_types_base)
         types["required"]["filter"] = (sm.sources["Derpibooru"].get_filters(),)
         types["required"]["sort_by"] = (sm.sources["Derpibooru"].get_sort_options(),)
-        types["required"]["format"] = (sm.sources["Derpibooru"].get_model_names(),)
+        types["required"]["format"] = (sm.sources["Derpibooru"].supported_models,)
         types["optional"]["tag_data"] = ("LPP_TAG_DATA_DERPIBOORU",)
         return types
 
@@ -95,7 +95,7 @@ class ComfyE621(ComfyTagSourceBase):
         types = deepcopy(self.tag_source_input_types_base)
         types["required"]["rating"] = (sm.sources["E621"].get_ratings(),)
         types["required"]["sort_by"] = (sm.sources["E621"].get_sort_options(),)
-        types["required"]["format"] = (sm.sources["E621"].get_model_names(),)
+        types["required"]["format"] = (sm.sources["E621"].supported_models,)
         types["optional"]["tag_data"] = ("LPP_TAG_DATA_E621",)
         return types
 

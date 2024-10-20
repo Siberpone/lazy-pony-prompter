@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources import TagSourceBase
-from lpp.utils import TagData, FilterData
+from lpp.utils import TagData, FilterData, Models
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
@@ -45,6 +45,7 @@ class PromptsManager:
 
     def __apply_template(self,
                          tag_groups: dict[str:list[str]],
+                         default_template: str,
                          template: str = None,
                          sep: str = ", ",
                          sanitize: bool = True) -> str:
@@ -53,7 +54,6 @@ class PromptsManager:
         }
         flat_groups = {k: sep.join(v) for k, v in escaped_tag_groups.items()}
         tokens = set(tag_groups.keys())
-        default_template = "{rating}, {character}, {species}, {artist}, {general}, {meta}"
         prompt = ""
 
         if template:
@@ -134,7 +134,9 @@ class PromptsManager:
             raw_tags = raw_tags * factor
         chosen_prompts = sample(raw_tags, k=n)
 
-        format_func = source.formatters[model]
+        format_func = source.formatters[model]\
+            if model in source.supported_models\
+            else source.default_formatter
 
         processed_prompts = []
         for raw_tags in chosen_prompts:
@@ -143,7 +145,9 @@ class PromptsManager:
                 if tag_filter_str\
                 else self.__filter_tags(formatted_tags, filters)
             processed_prompts.append(
-                self.__apply_template(filtered_tags, template)
+                self.__apply_template(
+                    filtered_tags, Models.get_default_template(model), template
+                )
             )
         return processed_prompts
 
