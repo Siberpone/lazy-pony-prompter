@@ -157,22 +157,31 @@ class LPP_A1111:
             *args
         )
 
-    def try_get_tag_data_json(self, name: str) -> dict[str:object]:
+    def try_get_tag_data_markdown(self, name: str) -> str:
         try:
             target = self.__cache_manager.get_tag_data(name)
             ratings = {"Safe": 0, "Questionable": 0, "Explicit": 0}
             source = self.__sources_manager.sources[target.source]
             for item in target.raw_tags:
                 ratings[source.get_lpp_rating(item)] += 1
-            return {
-                "source": target.source,
-                "query": target.query,
-                "other parameters": target.other_params,
-                "count": len(target.raw_tags),
-                "ratings": ratings
-            }
+            filter_str = "Filters: " +\
+                " ".join([f"`{x}`" for x in target.other_params["filters"]])
+            other_params = ", ".join(
+                [f"{k}: **{v}**" for k, v in target.other_params.items()
+                    if k not in ["filters", "tag_filter"]]
+            )
+            main_info =\
+f"""Source: **{target.source}** *({len(target.raw_tags)} total prompts)*
+
+Safe: **{ratings["Safe"]}** | Questionable: **{ratings["Questionable"]}** | Explicit: **{ratings["Explicit"]}**
+
+```
+{target.query}
+```
+"""
+            return main_info + filter_str + "\n" + other_params
         except KeyError:
-            return {}
+            return "no collection selected"
 
     def try_choose_prompts(self,
                            model: str,

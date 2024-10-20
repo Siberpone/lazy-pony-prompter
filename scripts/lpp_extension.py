@@ -343,7 +343,7 @@ class Scripts(scripts.Script):
                             load_prompts_btn = ToolButton("📤")
                             delete_prompts_btn = ToolButton("❌")
 
-                        prompts_manager_metadata = gr.JSON(
+                        prompts_manager_metadata = gr.Markdown(
                             label="Prompts Info",
                             show_label=True,
                             render=False
@@ -354,15 +354,15 @@ class Scripts(scripts.Script):
                                     choices=list(lpp.saved_collections_names),
                                     value=name
                                 ),
-                                gr.JSON.update(
-                                    lpp.try_get_tag_data_json(name)
+                                gr.update(
+                                    value=lpp.try_get_tag_data_markdown(name)
                                 )
                             ],
                             [prompts_manager_input, prompts_manager_metadata]
                         )
                         pm_dialog_panel, pm_dialog_msg = pm_dialog.ui()
 
-                        with FormRow(visible=False) as prompts_info_panel:
+                        with FormRow(visible=False, variant="panel") as prompts_info_panel:
                             prompts_manager_metadata.render()
                         with FormRow():
                             models = ["Auto"]
@@ -551,7 +551,7 @@ class Scripts(scripts.Script):
                         gr.Dropdown.update(
                             choices=lpp.saved_collections_names
                         ),
-                        gr.update(value=lpp.try_get_tag_data_json(name)),
+                        gr.update(value=lpp.try_get_tag_data_markdown(name)),
                         "", gr.update(visible=False)
                     )
 
@@ -609,7 +609,7 @@ class Scripts(scripts.Script):
 
             # Load Prompts Dropdown Change
             prompts_manager_input.change(
-                lambda n: lpp.try_get_tag_data_json(n),
+                lambda n: lpp.try_get_tag_data_markdown(n),
                 [prompts_manager_input],
                 [prompts_manager_metadata],
                 show_progress="hidden"
