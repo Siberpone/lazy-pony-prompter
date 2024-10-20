@@ -1,13 +1,12 @@
 from lpp.utils import TagData, TagGroups, Models, glob_match, get_config
 from lpp.log import get_logger
-from urllib.request import urlopen, Request, URLError
-from urllib.parse import urlencode
 from abc import ABC, abstractmethod
 from tqdm import trange
+from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 import os
 import re
+import requests
 import time
-import json
 
 logger = get_logger()
 
@@ -42,13 +41,16 @@ class TagSourceBase(ABC):
 
     def _send_api_request(
         self, endpoint: str, query_params: dict[str:str],
-        user_agent: str = "lazy-pony-prompter (by user Siberpone)"
+        user_agent: str = "lazy-pony-prompter (by user Siberpone)/v1.0.0"
     ) -> dict[str:object]:
-        url = "?".join([endpoint, urlencode(query_params)])
-        req = Request(url)
-        req.add_header("User-Agent", user_agent)
-        with urlopen(req) as response:
-            return json.load(response)
+        TIMEOUTS = (3.1, 9.1)
+        req = requests.get(
+            endpoint,
+            query_params,
+            timeout=TIMEOUTS,
+            headers={"User-Agent": user_agent}
+        )
+        return req.json()
 
     @property
     def supported_models(self) -> list[str]:
@@ -306,8 +308,10 @@ class Derpibooru(TagSourceBase):
             for filter in json_response["filters"]:
                 self.__filter_ids[filter["name"]] = filter["id"]
             logger.info("Successfully fetched Derpibooru user filters.")
-        except (URLError, json.JSONDecodeError):
-            logger.warning("Failed to fetch Derpibooru user filters")
+        except (HTTPError, ConnectionError, TooManyRedirects):
+            logger.warning("Failed to fetch Derpibooru user filters due to connection issues.")
+        except Timeout:
+            logger.warning("Failed to fetch Derpibooru filters due to connection timeout.")
         except Exception as e:
             logger.debug(f"Failed to fetch Derpibooru user filters ({e:=})")
 
