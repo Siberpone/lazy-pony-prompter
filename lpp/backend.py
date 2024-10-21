@@ -73,11 +73,14 @@ class PromptsManager:
             prompt = self.__replace_tokens(flat_groups, default_template)
 
         if sanitize:
-            prompt = re.sub(" +", " ", prompt)
-            prompt = re.sub(r"(, )\1+", r"\1", prompt)
-            prompt = re.sub("^, *", "", prompt)
-            prompt = re.sub(", *$", "", prompt)
-
+            rules = {
+                " +": " ",
+                r"(, )\1+": r"\1",
+                "^, +": "",
+                ", +$": ""
+            }
+            for re_pattern, replacement in rules.items():
+                prompt = re.sub(re_pattern, replacement, prompt)
         return prompt
 
     def __filter_tags_legacy(self, tag_groups: dict[str:list[str]], filter_str: str):
