@@ -1,4 +1,4 @@
-from lpp.sources.common import TagSourceBase, formatter, default_formatter
+from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
 from lpp.utils import get_config, glob_match, TagData, TagGroups, Models
 from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 from tqdm import trange
@@ -9,7 +9,10 @@ import re
 
 class Derpibooru(TagSourceBase):
     def __init__(self, work_dir: str = "."):
-        TagSourceBase.__init__(self, work_dir)
+        TagSourceBase.__init__(self,
+                               "https://derpibooru.org/pages/search_syntax",
+                               "Derpibooru query or image URL",
+                               work_dir)
         self.__api_key = None
         config = get_config("derpi", os.path.join(self._work_dir, "config"))
         self.__filter_ids = config["filter_ids"]
@@ -20,9 +23,11 @@ class Derpibooru(TagSourceBase):
         self.__meta_tags = config["meta_tags"]
         self.__filtered_tags = config["filtered_tags"]
 
+    @attach_query_param("filter_type", "Derpibooru Filter")
     def get_filters(self) -> list[str]:
         return list(self.__filter_ids.keys())
 
+    @attach_query_param("sort_type", "Sort by")
     def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
 

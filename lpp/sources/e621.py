@@ -1,4 +1,4 @@
-from lpp.sources.common import TagSourceBase, formatter, default_formatter
+from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
 from lpp.utils import TagData, TagGroups, Models, glob_match, get_config
 from tqdm import trange
 import os
@@ -8,7 +8,10 @@ import time
 
 class E621(TagSourceBase):
     def __init__(self, work_dir: str = "."):
-        TagSourceBase.__init__(self, work_dir)
+        TagSourceBase.__init__(self,
+                               "https://e621.net/help/cheatsheet",
+                               "E621 query or image URL",
+                               work_dir)
         config: dict[str:object] = get_config(
             "e621", os.path.join(self._work_dir, "config")
         )
@@ -16,9 +19,11 @@ class E621(TagSourceBase):
         self.__sort_params: dict[str:str] = config["sort_params"]
         self.__filtered_tags: dict[str:object] = config["filtered_tags"]
 
+    @attach_query_param("rating", "Rating")
     def get_ratings(self) -> list[str]:
         return list(self.__ratings["lookup"].keys())
 
+    @attach_query_param("sort_type", "Sort by")
     def get_sort_options(self) -> list[str]:
         return list(self.__sort_params.keys())
 

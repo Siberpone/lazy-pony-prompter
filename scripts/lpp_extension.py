@@ -6,6 +6,7 @@ from modules import shared
 from modules import script_callbacks
 from modules.ui_components import InputAccordion, FormRow, FormColumn, FormGroup, ToolButton
 import gradio as gr
+import inspect
 import logging
 
 base_dir = scripts.basedir()
@@ -204,103 +205,54 @@ class FilterEditor:
 
 
 @dataclass
-class QueryPanelData:
-    panel: object
-    send_btn: object
-    params: list
+class QueryPanel:
+    panel: gr.Group
+    send_btn: gr.Button
+    params: list[object]
 
 
-class QueryPanels:
-    __PROMPTS_MIN = 5
-    __PROMPTS_MAX = 1500
-    __PROMPTS_STEP = 5
-    __PROMPTS_DEFAULT = 100
-
-    @staticmethod
-    def Derpibooru(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
-        NAME = "Derpibooru"
+def get_query_panels(active_panel_name: str):
+    panels = {}
+    for name, source in lpp.sources.items():
         with FormGroup(
-            visible=(active_panel_name == NAME)
+            visible=(active_panel_name == name)
         ) as panel:
             gr.Markdown(
-                "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
+                f"[🔗 {name} Syntax Help]({source.syntax_help_url})")
             with FormRow():
                 query = gr.Textbox(
-                    placeholder="Derpibooru query or image URL",
+                    placeholder=source.query_hint,
                     show_label=False
                 )
             with FormRow():
                 with FormColumn():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
-                        minimum=QueryPanels.__PROMPTS_MIN,
-                        maximum=QueryPanels.__PROMPTS_MAX,
-                        step=QueryPanels.__PROMPTS_STEP,
-                        value=QueryPanels.__PROMPTS_DEFAULT
+                        minimum=5,
+                        maximum=1500,
+                        step=5,
+                        value=100
                     )
                 with FormColumn():
                     with FormRow():
-                        filter_type = gr.Dropdown(
-                            label="Derpibooru Filter",
-                            choices=lpp.sources[NAME].get_filters()
-                        )
-                        filter_type.value = filter_type.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
+                        extra_params = inspect.getfullargspec(
+                            getattr(source, "request_tags")
+                        )[0][3:]
+                        extra_controls = []
+                        for p in extra_params:
+                            obj = source.extra_query_params[p]
+                            control = gr.Dropdown(
+                                label=obj.display_name,
+                                choices=obj()
+                            )
+                            control.value = control.choices[0]
+                            extra_controls.append(control)
             with FormRow():
                 send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, filter_type, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, filter_type, sort_type]
-            )
-
-    @staticmethod
-    def E621(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
-        NAME = "E621"
-        with FormGroup(
-            visible=(active_panel_name == NAME)
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
-            with FormRow():
-                query = gr.Textbox(
-                    placeholder="E621 query or image URL",
-                    show_label=False
-                )
-            with FormRow():
-                with FormColumn():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=QueryPanels.__PROMPTS_MIN,
-                        maximum=QueryPanels.__PROMPTS_MAX,
-                        step=QueryPanels.__PROMPTS_STEP,
-                        value=QueryPanels.__PROMPTS_DEFAULT
-                    )
-                with FormColumn():
-                    with FormRow():
-                        rating = gr.Dropdown(
-                            label="Rating",
-                            choices=lpp.sources[NAME].get_ratings()
-                        )
-                        rating.value = rating.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with FormRow():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, rating, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, rating, sort_type]
-            )
+            controls = [query, prompts_count] + extra_controls
+            set_no_config(*controls)
+            panels[name] = QueryPanel(panel, send_btn, controls)
+    return panels
 
 
 class Scripts(scripts.Script):
@@ -395,13 +347,7 @@ class Scripts(scripts.Script):
                                     value=lambda: lpp.source_names[0],
                                     elem_id="lpp-chbox-group"
                                 )
-                                for attr in [
-                                    x for x in dir(QueryPanels) if not x.startswith("_")
-                                ]:
-                                    query_panel = getattr(QueryPanels, attr)
-                                    self.query_panels[query_panel.__name__] = query_panel(
-                                        source.value, lpp
-                                    )
+                                self.query_panels = get_query_panels(source.value)
 
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
