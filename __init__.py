@@ -5,7 +5,8 @@ from random import randint
 LPP_ROOT_DIR = dirname(__file__)
 sys.path.append(LPP_ROOT_DIR)
 
-from .lpp.sources import Derpibooru, E621
+from .lpp.sources.derpibooru import Derpibooru
+from .lpp.sources.e621 import E621
 from .lpp.backend import SourcesManager, PromptsManager, CacheManager
 
 sm = SourcesManager(LPP_ROOT_DIR)

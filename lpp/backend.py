@@ -1,7 +1,8 @@
 from copy import deepcopy
 from dataclasses import asdict
 from lpp.log import get_logger
-from lpp.sources import TagSourceBase
+from lpp.sources.common import TagSourceBase
+from lpp.sources import *
 from lpp.utils import TagData, FilterData, Models
 from os import path
 from random import sample
