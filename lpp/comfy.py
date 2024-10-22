@@ -1,0 +1,242 @@
+import sys
+import os.path as path
+from copy import deepcopy
+
+LPP_ROOT_DIR = path.join(path.dirname(__file__), "..")
+sys.path.append(LPP_ROOT_DIR)
+print(LPP_ROOT_DIR)
+
+from lpp.sources.derpibooru import Derpibooru
+from lpp.sources.e621 import E621
+from lpp.sources.danbooru import Danbooru
+from lpp.backend import SourcesManager, PromptsManager, CacheManager
+
+sm = SourcesManager(LPP_ROOT_DIR)
+cm = CacheManager(LPP_ROOT_DIR)
+
+
+class ComfyTagSourceBase:
+    tag_source_input_types_base = {
+        "required": {
+            "query": ("STRING", {
+                "multiline": True
+            }),
+            "tag_filter": ("STRING", {
+                "multiline": False
+            }),
+            "count": ("INT", {
+                "default": 100,
+                "min": 5,
+                "max": 1500,
+                "step": 5,
+                "display": "slider"
+            }),
+            "send_request": ("BOOLEAN", {
+                "default": False
+            })
+        },
+        "optional": {
+            "prompt_template": ("STRING", {
+                "multiline": False
+            })
+        }
+    }
+
+    def __init__(self, source):
+        self._sm: SourcesManager = SourcesManager(LPP_ROOT_DIR, [source])
+        self._pm: PromptsManager = PromptsManager(self._sm)
+
+    RETURN_TYPES = ("STRING", "LPP_TAG_DATA")
+    RETURN_NAMES = ("Prompt", "LPP Tag Data")
+    CATEGORY = "LPP/sources"
+    FUNCTION = "get_prompt"
+
+    def get_prompt(self):
+        pass
+
+    @classmethod
+    def IS_CHANGED(self, *args, **kwargs):
+        return float("NaN")
+
+
+class ComfyDerpibooru(ComfyTagSourceBase):
+    def __init__(self):
+        ComfyTagSourceBase.__init__(self, Derpibooru)
+
+    @classmethod
+    def INPUT_TYPES(self):
+        types = deepcopy(self.tag_source_input_types_base)
+        types["required"]["filter"] = (sm.sources["Derpibooru"].get_filters(),)
+        types["required"]["sort_by"] = (sm.sources["Derpibooru"].get_sort_options(),)
+        types["required"]["format"] = (sm.sources["Derpibooru"].supported_models,)
+        types["optional"]["tag_data"] = ("LPP_TAG_DATA_DERPIBOORU",)
+        return types
+
+    def get_prompt(
+        self, query, count, filter, sort_by, format, tag_filter,
+        send_request, tag_data=None, prompt_template=""
+    ):
+        if tag_data:
+            self._pm.tag_data = tag_data
+        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+            self._pm.tag_data = self._sm.request_prompts(
+                "Derpibooru", query, count, filter, sort_by
+            )
+        return (
+            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
+            (self._pm.tag_data, tag_filter)
+        )
+
+
+class ComfyE621(ComfyTagSourceBase):
+    def __init__(self):
+        ComfyTagSourceBase.__init__(self, E621)
+
+    @classmethod
+    def INPUT_TYPES(self):
+        types = deepcopy(self.tag_source_input_types_base)
+        types["required"]["rating"] = (sm.sources["E621"].get_ratings(),)
+        types["required"]["sort_by"] = (sm.sources["E621"].get_sort_options(),)
+        types["required"]["format"] = (sm.sources["E621"].supported_models,)
+        types["optional"]["tag_data"] = ("LPP_TAG_DATA_E621",)
+        return types
+
+    def get_prompt(
+        self, query, count, rating, sort_by, format, tag_filter,
+        send_request, tag_data=None, prompt_template=""
+    ):
+        if tag_data:
+            self._pm.tag_data = tag_data
+        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+            self._pm.tag_data = self._sm.request_prompts(
+                "E621", query, count, rating, sort_by
+            )
+        return (
+            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
+            (self._pm.tag_data, tag_filter)
+        )
+
+
+class ComfyDanbooru(ComfyTagSourceBase):
+    def __init__(self):
+        ComfyTagSourceBase.__init__(self, Danbooru)
+
+    @classmethod
+    def INPUT_TYPES(self):
+        types = deepcopy(self.tag_source_input_types_base)
+        types["required"]["rating"] = (sm.sources["Danbooru"].get_ratings(),)
+        types["required"]["sort_by"] = (sm.sources["Danbooru"].get_sort_options(),)
+        types["required"]["format"] = (sm.sources["Danbooru"].supported_models,)
+        types["optional"]["tag_data"] = ("LPP_TAG_DATA_DANBOORU",)
+        return types
+
+    def get_prompt(
+        self, query, count, rating, sort_by, format, tag_filter,
+        send_request, tag_data=None, prompt_template=""
+    ):
+        if tag_data:
+            self._pm.tag_data = tag_data
+        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+            self._pm.tag_data = self._sm.request_prompts(
+                "Danbooru", query, count, rating, sort_by
+            )
+        return (
+            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
+            (self._pm.tag_data, tag_filter)
+        )
+
+
+class LPPSaver:
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "tag_data": ("LPP_TAG_DATA",),
+                "name": ("STRING", {
+                    "multiline": False,
+                }),
+                "overwrite": ("BOOLEAN", {
+                    "default": False
+                })
+            }
+        }
+    RETURN_TYPES = ()
+    CATEGORY = "LPP"
+    FUNCTION = "save_tag_data"
+    OUTPUT_NODE = True
+
+    def save_tag_data(self, tag_data, name, overwrite):
+        existing_names = cm.get_saved_names()
+        if (name in existing_names and overwrite) \
+                or name not in existing_names:
+            cm.cache_tag_data(name, tag_data[0], tag_data[1])
+        return {}
+
+
+class LPPLoaderDerpibooru:
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "collection_name": (cm.get_saved_names("Derpibooru"),)
+            }
+        }
+    RETURN_TYPES = ("LPP_TAG_DATA_DERPIBOORU",)
+    RETURN_NAMES = ("tag data",)
+    CATEGORY = "LPP/loaders"
+    FUNCTION = "load_tag_data"
+
+    def load_tag_data(self, collection_name):
+        return (cm.get_tag_data(collection_name),)
+
+
+class LPPLoaderE621:
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "collection_name": (cm.get_saved_names("E621"),)
+            }
+        }
+    RETURN_TYPES = ("LPP_TAG_DATA_E621",)
+    RETURN_NAMES = ("tag data",)
+    CATEGORY = "LPP/loaders"
+    FUNCTION = "load_tag_data"
+
+    def load_tag_data(self, collection_name):
+        return (cm.get_tag_data(collection_name),)
+
+
+class LPPLoaderDanbooru:
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "collection_name": (cm.get_saved_names("Danbooru"),)
+            }
+        }
+    RETURN_TYPES = ("LPP_TAG_DATA_DANBOORU",)
+    RETURN_NAMES = ("tag data",)
+    CATEGORY = "LPP/loaders"
+    FUNCTION = "load_tag_data"
+
+    def load_tag_data(self, collection_name):
+        return (cm.get_tag_data(collection_name),)
+
+
+class LPPDeleter:
+    @classmethod
+    def INPUT_TYPES(self):
+        return {
+            "required": {
+                "collection_name": (cm.get_saved_names(),)
+            }
+        }
+    RETURN_TYPES = ()
+    CATEGORY = "LPP"
+    FUNCTION = "delete_tag_data"
+    OUTPUT_NODE = True
+
+    def delete_tag_data(self, collection_name):
+        cm.delete_tag_data(collection_name)
+        return {}
