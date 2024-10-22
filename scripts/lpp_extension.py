@@ -1,5 +1,5 @@
 from lpp.a1111 import LPP_A1111, DefaultLppMessageService
-from lpp.utils import Models, FilterData
+from lpp.utils import Models, FilterData, Ratings
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -369,7 +369,7 @@ class Scripts(scripts.Script):
                         with FormRow():
                             rating_filter = gr.CheckboxGroup(
                                 label="Rating Filter",
-                                choices=["Safe", "Questionable", "Explicit"],
+                                choices=[x.value for x in Ratings],
                                 value="Safe",
                                 elem_id="lpp-chbox-group"
                             )

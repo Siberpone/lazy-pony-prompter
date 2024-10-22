@@ -1,6 +1,6 @@
 from lpp.backend import SourcesManager, PromptsManager, CacheManager, FiltersManager
 from lpp.log import get_logger
-from lpp.utils import LppMessageService, TagData, FilterData
+from lpp.utils import LppMessageService, TagData, FilterData, Ratings
 
 logger = get_logger()
 
@@ -160,7 +160,11 @@ class LPP_A1111:
     def try_get_tag_data_markdown(self, name: str) -> str:
         try:
             target = self.__cache_manager.get_tag_data(name)
-            ratings = {"Safe": 0, "Questionable": 0, "Explicit": 0}
+            ratings = {
+                Ratings.SAFE.value: 0,
+                Ratings.QUESTIONABLE.value: 0,
+                Ratings.EXPLICIT.value: 0
+            }
             source = self.__sources_manager.sources[target.source]
             for item in target.raw_tags:
                 ratings[source.get_lpp_rating(item)] += 1
@@ -173,7 +177,7 @@ class LPP_A1111:
             main_info =\
 f"""Source: **{target.source}** *({len(target.raw_tags)} total prompts)*
 
-Safe: **{ratings["Safe"]}** | Questionable: **{ratings["Questionable"]}** | Explicit: **{ratings["Explicit"]}**
+Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUESTIONABLE.value]}** | Explicit: **{ratings[Ratings.EXPLICIT.value]}**
 
 ```
 {target.query}

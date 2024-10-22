@@ -3,7 +3,7 @@ from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources.common import TagSourceBase
 from lpp.sources import *
-from lpp.utils import TagData, FilterData, Models
+from lpp.utils import TagData, FilterData, Models, Ratings
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
@@ -122,9 +122,7 @@ class PromptsManager:
         raw_tags = self.tag_data.raw_tags
         source = self.__sm.sources[self.tag_data.source]
 
-        # TODO: get rid of magical constants and refactor LPP ratings with
-        # enum or, possibly, a class
-        if allowed_ratings and len(allowed_ratings) < 3:
+        if allowed_ratings and len(allowed_ratings) < len(Ratings):
             raw_tags = [
                 x for x in raw_tags if (source.get_lpp_rating(x) in allowed_ratings)
             ]

@@ -39,6 +39,12 @@ class Models(enum.Enum):
             return "{rating}, {character}, {species}, {artist}, {general}, {meta}"
 
 
+class Ratings(enum.Enum):
+    SAFE = "Safe"
+    QUESTIONABLE = "Questionable"
+    EXPLICIT = "Explicit"
+
+
 class LppMessageService(ABC):
     @abstractmethod
     def info(self, message: str): pass
