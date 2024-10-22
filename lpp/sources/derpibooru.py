@@ -46,7 +46,7 @@ class Derpibooru(TagSourceBase):
         QUERY_DELAY = 0.5
 
         image_id = re.search(
-            r"^(?:https?:\/\/)?(?:derpibooru\.org\/images\/)?(\d+).*$", query
+            r"^(?:https?:\/\/)?(?:derpibooru\.org\/images\/)?(\d+)(\?.*)?$", query
         )
         if image_id:
             query = f"id:{image_id.groups(0)[0]}"

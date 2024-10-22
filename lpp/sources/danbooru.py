@@ -6,18 +6,18 @@ import re
 import time
 
 
-class E621(TagSourceBase):
+class Danbooru(TagSourceBase):
     def __init__(self, work_dir: str = "."):
         TagSourceBase.__init__(self,
-                               "https://e621.net/help/cheatsheet",
-                               "E621 query or image URL",
+                               "https://danbooru.donmai.us/wiki_pages/help%3Acheatsheet",
+                               "Danbooru query or image URL",
                                work_dir)
         config: dict[str:object] = get_config(
-            "e621", os.path.join(self._work_dir, "config")
+            "danbooru", os.path.join(self._work_dir, "config")
         )
         self.__ratings: dict[str:str] = config["ratings"]
         self.__sort_params: dict[str:str] = config["sort_params"]
-        self.__filtered_tags: dict[str:object] = config["filtered_tags"]
+        self.__filtered_tags: dict[str:list[str]] = config["filtered_tags"]
 
     @attach_query_param("rating", "Rating")
     def get_ratings(self) -> list[str]:
@@ -34,12 +34,12 @@ class E621(TagSourceBase):
         self, query: str, count: int,
         rating: str = None, sort_type: str = None
     ) -> TagData:
-        ENDPOINT = "https://e621.net/posts.json"
-        PER_PAGE_MAX = 320
-        QUERY_DELAY = 1
+        ENDPOINT = "https://danbooru.donmai.us/posts.json"
+        PER_PAGE_MAX = 200
+        QUERY_DELAY = 0.1
 
         image_id = re.search(
-            r"^(?:https?:\/\/)?(?:e621\.net\/posts\/)?(\d+)(\?.*)?$", query
+            r"/^(?:https?:\/\/)?(?:danbooru\.donmai\.us\/posts\/)?(\d+)(\?.*)?$", query
         )
         if image_id:
             query = f"id:{image_id.groups(0)[0]}"
@@ -54,7 +54,7 @@ class E621(TagSourceBase):
             "limit": count if count < PER_PAGE_MAX else PER_PAGE_MAX
         }
 
-        raw_tags = []
+        posts = []
         pages_to_load = (count // PER_PAGE_MAX) + \
             (1 if count % PER_PAGE_MAX > 0 else 0)
 
@@ -62,18 +62,25 @@ class E621(TagSourceBase):
             time.sleep(QUERY_DELAY)
             query_params["page"] = p
             json_response = self._send_api_request(ENDPOINT, query_params)
-            posts = json_response["posts"]
-            for post in posts:
-                post["tags"]["rating"] = post["rating"]
-            raw_tags += posts
-            if len(posts) < PER_PAGE_MAX:
+            posts += json_response
+            if len(json_response) < PER_PAGE_MAX:
                 break
 
-        raw_tags = [x["tags"] for x in raw_tags]
+        processed_response = []
+        for post in posts:
+            post_tags = {
+                "general": post["tag_string_general"].split(" "),
+                "artist": post["tag_string_artist"].split(" "),
+                "rating": post["rating"],
+                "character": post["tag_string_character"].split(" "),
+                "meta": post["tag_string_meta"].split(" ")
+                + post["tag_string_copyright"].split(" ")
+            }
+            processed_response.append(post_tags)
         return TagData(
             self.__class__.__name__,
             p_query,
-            raw_tags[:count],
+            processed_response[:count],
             {}
         )
 
@@ -97,68 +104,49 @@ class E621(TagSourceBase):
         return self.__replace_underscores(filtered_tags)\
             if replace_underscores else filtered_tags
 
-    @formatter(Models.PDV56.value)
-    def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
+    @default_formatter(Models.ANIME.value)
+    def anime_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
         t = self.__filter_raw_tags(
-            ["character", "species", "general", "meta"],
+            ["character", "artist", "general", "meta"],
             raw_image_tags
         )
-        rating = self.__ratings["pdv5"][raw_image_tags["rating"]]
         return TagGroups(
             t["character"],
-            t["species"],
-            [rating],
             [],
+            [],
+            t["artist"],
             t["general"],
             t["meta"]
         )
 
-    @default_formatter(Models.EF.value)
-    def easyfluff_format(
-        self, raw_image_tags: dict[str:list[str]]
-    ) -> TagGroups:
+    @formatter(f"{Models.ANIME.value} (keep underscores)")
+    def anime_underscores_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
         t = self.__filter_raw_tags(
-            ["character", "species", "general", "artist", "copyright", "meta"],
-            raw_image_tags
-        )
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [],
-            [f"by {x}" for x in t["artist"]],
-            t["general"],
-            t["copyright"] + t["meta"]
-        )
-
-    @formatter(f"{Models.EF.value} (no artist names)")
-    def easyfluff_no_artist_format(
-        self, raw_image_tags: dict[str:list[str]]
-    ) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "copyright", "meta"],
-            raw_image_tags
-        )
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [],
-            [],
-            t["general"],
-            t["copyright"] + t["meta"]
-        )
-
-    @formatter(Models.SEAART.value)
-    def seaart_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "artist", "copyright", "meta"],
+            ["character", "artist", "general", "meta"],
             raw_image_tags,
             False
         )
         return TagGroups(
             t["character"],
-            t["species"],
+            [],
             [],
             t["artist"],
             t["general"],
-            t["copyright"] + t["meta"]
+            t["meta"]
+        )
+
+    @formatter(Models.PDV56.value)
+    def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
+        t = self.__filter_raw_tags(
+            ["character", "general", "meta"],
+            raw_image_tags
+        )
+        rating = self.__ratings["pdv5"][raw_image_tags["rating"]]
+        return TagGroups(
+            t["character"],
+            [],
+            [rating],
+            [],
+            t["general"],
+            t["meta"]
         )

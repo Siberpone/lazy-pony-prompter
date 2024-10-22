@@ -60,6 +60,7 @@ class TagSourceBase(ABC):
             timeout=TIMEOUTS,
             headers={"User-Agent": user_agent}
         )
+        req.raise_for_status()
         return req.json()
 
     @property
