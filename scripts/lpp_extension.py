@@ -400,10 +400,6 @@ class Scripts(scripts.Script):
                         )
                         fe_dialog_panel, fe_dialog_msg = fe_dialog.ui()
                         with FormRow():
-                            fe_legacy_filters_btn = gr.Button(
-                                "Import Legacy Filters"
-                            )
-                        with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
                                 gr.Markdown(r"""
 * patterns are separated with new lines
@@ -608,18 +604,6 @@ class Scripts(scripts.Script):
                 [fe_dialog_panel, fe_dialog_msg],
                 show_progress="hidden"
             )
-
-            # Import Legacy Filters Button ------------------------------------
-            def fe_legacy_filters_click():
-                lpp.import_legacy_filters()
-                return (gr.update(choices=lpp.filters),
-                        gr.update(choices=lpp.filters))
-
-            fe_legacy_filters_btn.click(
-                fe_legacy_filters_click,
-                None,
-                [filters, fe_filter_name]
-            )
         return [lpp_enable, prompts_format, rating_filter, quick_filter, filters]
 
     def process(self, p, enabled, prompts_format, allowed_ratings,
@@ -647,7 +631,7 @@ class Scripts(scripts.Script):
         if quick_filter:
             filters += [FilterData.from_string(quick_filter, ",")]
         p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, None, allowed_ratings, filters
+            prompts_format, p.prompt, n_images, allowed_ratings, filters
         )
 
         p.all_prompts = [

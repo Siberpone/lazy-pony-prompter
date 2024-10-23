@@ -10,6 +10,7 @@ from lpp.sources.derpibooru import Derpibooru
 from lpp.sources.e621 import E621
 from lpp.sources.danbooru import Danbooru
 from lpp.backend import SourcesManager, PromptsManager, CacheManager
+from lpp.utils import FilterData
 
 sm = SourcesManager(LPP_ROOT_DIR)
 cm = CacheManager(LPP_ROOT_DIR)
@@ -82,9 +83,10 @@ class ComfyDerpibooru(ComfyTagSourceBase):
             self._pm.tag_data = self._sm.request_prompts(
                 "Derpibooru", query, count, filter, sort_by
             )
+        tf = FilterData.from_string(tag_filter, ",")
         return (
-            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
-            (self._pm.tag_data, tag_filter)
+            self._pm.choose_prompts(format, prompt_template, 1, None, [tf])[0],
+            (self._pm.tag_data, tf)
         )
 
 
@@ -111,9 +113,10 @@ class ComfyE621(ComfyTagSourceBase):
             self._pm.tag_data = self._sm.request_prompts(
                 "E621", query, count, rating, sort_by
             )
+        tf = FilterData.from_string(tag_filter, ",")
         return (
-            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
-            (self._pm.tag_data, tag_filter)
+            self._pm.choose_prompts(format, prompt_template, 1, None, [tf])[0],
+            (self._pm.tag_data, tf)
         )
 
 
@@ -140,9 +143,10 @@ class ComfyDanbooru(ComfyTagSourceBase):
             self._pm.tag_data = self._sm.request_prompts(
                 "Danbooru", query, count, rating, sort_by
             )
+        tf = FilterData.from_string(tag_filter, ",")
         return (
-            self._pm.choose_prompts(format, prompt_template, 1, tag_filter)[0],
-            (self._pm.tag_data, tag_filter)
+            self._pm.choose_prompts(format, prompt_template, 1, None, [tf])[0],
+            (self._pm.tag_data, tf)
         )
 
 
@@ -169,7 +173,7 @@ class LPPSaver:
         existing_names = cm.get_saved_names()
         if (name in existing_names and overwrite) \
                 or name not in existing_names:
-            cm.cache_tag_data(name, tag_data[0], tag_data[1])
+            cm.save_item(name, tag_data[0])
         return {}
 
 
@@ -187,7 +191,7 @@ class LPPLoaderDerpibooru:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_tag_data(collection_name),)
+        return (cm.get_item(collection_name),)
 
 
 class LPPLoaderE621:
@@ -204,7 +208,7 @@ class LPPLoaderE621:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_tag_data(collection_name),)
+        return (cm.get_item(collection_name),)
 
 
 class LPPLoaderDanbooru:
@@ -221,7 +225,7 @@ class LPPLoaderDanbooru:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_tag_data(collection_name),)
+        return (cm.get_item(collection_name),)
 
 
 class LPPDeleter:
@@ -238,5 +242,5 @@ class LPPDeleter:
     OUTPUT_NODE = True
 
     def delete_tag_data(self, collection_name):
-        cm.delete_tag_data(collection_name)
+        cm.delete_item(collection_name)
         return {}

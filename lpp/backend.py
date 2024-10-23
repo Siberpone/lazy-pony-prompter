@@ -84,15 +84,9 @@ class PromptsManager:
                 prompt = re.sub(re_pattern, replacement, prompt)
         return prompt
 
-    def __filter_tags_legacy(self, tag_groups: dict[str:list[str]], filter_str: str):
-        # INFO: this old filtering method is left for compatibility and
-        # will be removed in the future.
-        tag_filter = FilterData.from_string(filter_str, ",")
-        return {k: [
-                    x for x in v if not tag_filter.match(x)
-                ] for k, v in tag_groups.items()}
-
-    def __filter_tags(self, tag_groups: dict[str:list[str]], filters: list[FilterData]):
+    def __filter_tags(self,
+                      tag_groups: dict[str:list[str]],
+                      filters: list[FilterData]):
         if not filters:
             return tag_groups
 
@@ -112,7 +106,6 @@ class PromptsManager:
                        model: str,
                        template: str = None,
                        n: int = 1,
-                       tag_filter_str: str = "",
                        allowed_ratings: list[str] = None,
                        filters: list[FilterData] = None
                        ) -> list[list[str]]:
@@ -143,9 +136,7 @@ class PromptsManager:
         processed_prompts = []
         for raw_tags in chosen_prompts:
             formatted_tags = asdict(format_func(raw_tags))
-            filtered_tags = self.__filter_tags_legacy(formatted_tags, tag_filter_str)\
-                if tag_filter_str\
-                else self.__filter_tags(formatted_tags, filters)
+            filtered_tags = self.__filter_tags(formatted_tags, filters)
             processed_prompts.append(
                 self.__apply_template(
                     filtered_tags, Models.get_default_template(model), template
@@ -153,6 +144,7 @@ class PromptsManager:
             )
         return processed_prompts
 
+    # TODO: change to property
     def get_loaded_prompts_count(self) -> int:
         return len(self.tag_data.raw_tags) if self.tag_data else 0
 
@@ -212,7 +204,6 @@ class CacheManager(LppDataManager):
     def save_item(self,
                   name: str,
                   data: TagData,
-                  tag_filter: str = None,
                   filters: list[str] = None) -> None:
         if not name:
             raise ValueError("Empty \"name\" parameter")
@@ -222,35 +213,6 @@ class CacheManager(LppDataManager):
 
         self._data[name] = new_item
         self._dump_cache()
-
-    def extract_legacy_filters(self) -> dict[str:FilterData]:
-        converted_filters = {}
-        LEGACY_FILTER = "tag_filter"
-        NEW_FILTER = "filters"
-        for name, tag_data in self._data.items():
-            filter_name = f"[F] {name}"
-            params = tag_data.other_params
-            if LEGACY_FILTER in params and params[LEGACY_FILTER]:
-                converted_filters[filter_name] = \
-                    FilterData.from_string(params[LEGACY_FILTER], ",")
-                if NEW_FILTER in params and filter_name not in params[NEW_FILTER]:
-                    params[NEW_FILTER] += [filter_name]
-                else:
-                    params[NEW_FILTER] = [filter_name]
-        self._dump_cache()
-        return converted_filters
-
-    # INFO: Left these for compatibility
-    def cache_tag_data(
-        self, name: str, data: TagData, tag_filter: str = None
-    ) -> None:
-        self.save_item(name, data, tag_filter)
-
-    def get_tag_data(self, name: str) -> TagData:
-        return self.get_item(name)
-
-    def delete_tag_data(self, name: str) -> None:
-        self.delete_item(name)
 
 
 class FiltersManager(LppDataManager):

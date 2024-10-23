@@ -87,12 +87,12 @@ class LPP_A1111:
             self.__cache_manager.save_item,
             f"Successfully saved \"{name}\"",
             f"Failed to save \"{name}\":",
-            name, self.tag_data, None, filters
+            name, self.tag_data, filters
         )
 
     def try_load_prompts(self, name: str) -> None:
         def load_new_tag_data(name: str) -> None:
-            self.tag_data = self.__cache_manager.get_tag_data(name)
+            self.tag_data = self.__cache_manager.get_item(name)
             self.__collection_name = name
         self.__try_exec_command(
             load_new_tag_data,
@@ -103,7 +103,7 @@ class LPP_A1111:
 
     def try_delete_prompts(self, name: str) -> None:
         self.__try_exec_command(
-            self.__cache_manager.delete_tag_data,
+            self.__cache_manager.delete_item,
             f"Successfully deleted \"{name}\"",
             f"Failed to delete \"{name}\":",
             name
@@ -159,7 +159,7 @@ class LPP_A1111:
 
     def try_get_tag_data_markdown(self, name: str) -> str:
         try:
-            target = self.__cache_manager.get_tag_data(name)
+            target = self.__cache_manager.get_item(name)
             ratings = {
                 Ratings.SAFE.value: 0,
                 Ratings.QUESTIONABLE.value: 0,
@@ -191,13 +191,12 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
                            model: str,
                            template: str = None,
                            n: int = 1,
-                           tag_filter_str: str = "",
                            allowed_ratings: list[str] = None,
                            filters: list[FilterData] = None
                            ) -> list[list[str]]:
         try:
             return self.__prompts_manager.choose_prompts(
-                model, template, n, tag_filter_str, allowed_ratings, filters
+                model, template, n, allowed_ratings, filters
             )
         # HACK: these should really be errors and not warnings, but effing
         # A1111 or Gradio just refuses to display them. It is important to
@@ -207,11 +206,3 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
             self.__messenger.warning(repr(e))
         except Exception:
             logger.exception("An error occured when trying to choose prompts.")
-
-    def import_legacy_filters(self) -> None:
-        filters = self.__cache_manager.extract_legacy_filters()
-        total = len(filters)
-        count = self.__filters_manager.import_filters(filters)
-        hint = " (some filters might have been imported already or there's a naming conflict)" \
-            if count != total else ""
-        self.__messenger.info(f"Imported {count}/{total} filters{hint}.")
