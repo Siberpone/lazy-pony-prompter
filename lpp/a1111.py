@@ -41,7 +41,7 @@ class LPP_A1111:
 
     @property
     def source_names(self):
-        return self.__sources_manager.get_source_names()
+        return self.__sources_manager.source_names
 
     @property
     def sources(self) -> dict[str:list[object]]:

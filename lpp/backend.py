@@ -26,7 +26,8 @@ class SourcesManager:
         s = sources if sources else TagSourceBase.__subclasses__()
         return {x.__name__: x(self.__work_dir) for x in s}
 
-    def get_source_names(self) -> list[str]:
+    @property
+    def source_names(self) -> list[str]:
         return list(self.sources.keys())
 
     def request_prompts(self, source: str, *args: object) -> None:
