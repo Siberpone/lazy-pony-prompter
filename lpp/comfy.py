@@ -193,7 +193,7 @@ class LPPLoaderDerpibooru:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_item(collection_name),)
+        return (cm[collection_name],)
 
 
 class LPPLoaderE621:
@@ -212,7 +212,7 @@ class LPPLoaderE621:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_item(collection_name),)
+        return (cm[collection_name],)
 
 
 class LPPLoaderDanbooru:
@@ -231,7 +231,7 @@ class LPPLoaderDanbooru:
     FUNCTION = "load_tag_data"
 
     def load_tag_data(self, collection_name):
-        return (cm.get_item(collection_name),)
+        return (cm[collection_name],)
 
 
 class LPPDeleter:

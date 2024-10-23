@@ -156,6 +156,11 @@ class LppDataManager(ABC):
         self._work_dir: str = work_dir
         self._data: dict[str:object] = self._load_cache()
 
+    def __getitem__(self, name: str) -> object:
+        if name not in self._data:
+            raise KeyError(f"No name '{name}' in cache")
+        return deepcopy(self._data[name])
+
     def _load_cache(self) -> dict[str:object]:
         cache_file = path.join(self._work_dir, self._cache_file)
         if not path.exists(cache_file):
@@ -183,11 +188,6 @@ class LppDataManager(ABC):
         if selector:
             return [k for k, v in self._data.items() if selector(k, v)]
         return list(self._data.keys())
-
-    def get_item(self, name: str) -> object:
-        if name not in self._data:
-            raise KeyError(f"No name '{name}' in cache")
-        return deepcopy(self._data[name])
 
     def delete_item(self, name: str) -> None:
         if name not in self._data:

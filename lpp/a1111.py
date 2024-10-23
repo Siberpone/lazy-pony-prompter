@@ -92,7 +92,7 @@ class LPP_A1111:
 
     def try_load_prompts(self, name: str) -> None:
         def load_new_tag_data(name: str) -> None:
-            self.tag_data = self.__cache_manager.get_item(name)
+            self.tag_data = self.__cache_manager[name]
             self.__collection_name = name
         self.__try_exec_command(
             load_new_tag_data,
@@ -119,7 +119,7 @@ class LPP_A1111:
 
     def try_load_filter(self, name: str) -> FilterData:
         try:
-            f = self.__filters_manager.get_item(name)
+            f = self.__filters_manager[name]
             self.__messenger.info(f"Successfully loaded filter \"{name}\"")
             return f
         except KeyError:
@@ -139,7 +139,7 @@ class LPP_A1111:
         failed_filters = []
         for f in filter_names:
             if f in self.filters:
-                filters.append(self.__filters_manager.get_item(f))
+                filters.append(self.__filters_manager[f])
             else:
                 failed_filters.append(f)
         if failed_filters:
@@ -159,7 +159,7 @@ class LPP_A1111:
 
     def try_get_tag_data_markdown(self, name: str) -> str:
         try:
-            target = self.__cache_manager.get_item(name)
+            target = self.__cache_manager[name]
             ratings = {
                 Ratings.SAFE.value: 0,
                 Ratings.QUESTIONABLE.value: 0,
