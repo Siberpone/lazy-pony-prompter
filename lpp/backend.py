@@ -178,6 +178,11 @@ class LppDataManager(ABC):
     def save_item(self, name: str, data: object, *args) -> None:
         pass
 
+    def get_item_names(self, selector: callable = None) -> list[str]:
+        if selector:
+            return [k for k, v in self._data.items() if selector(k, v)]
+        return list(self._data.keys())
+
     def get_item(self, name: str) -> object:
         if name not in self._data:
             raise KeyError(f"No name '{name}' in cache")
@@ -193,13 +198,6 @@ class LppDataManager(ABC):
 class CacheManager(LppDataManager):
     def __init__(self, work_dir: str = "."):
         super().__init__("tag_cache.dat", work_dir)
-
-    def get_saved_names(self, source: str = None) -> list[str]:
-        if not source:
-            return list(self._data.keys())
-        return [
-            k for k, v in self._data.items() if v.source == source
-        ]
 
     def save_item(self,
                   name: str,
@@ -225,9 +223,6 @@ class FiltersManager(LppDataManager):
         new_item = deepcopy(data)
         self._data[name] = new_item
         self._dump_cache()
-
-    def get_filter_names(self) -> list[str]:
-        return list(self._data.keys())
 
     def import_filters(self, filters: dict[str:FilterData]) -> int:
         count = 0

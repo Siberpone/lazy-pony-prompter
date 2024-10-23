@@ -170,7 +170,7 @@ class LPPSaver:
     OUTPUT_NODE = True
 
     def save_tag_data(self, tag_data, name, overwrite):
-        existing_names = cm.get_saved_names()
+        existing_names = cm.get_item_names()
         if (name in existing_names and overwrite) \
                 or name not in existing_names:
             cm.save_item(name, tag_data[0])
@@ -182,7 +182,9 @@ class LPPLoaderDerpibooru:
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (cm.get_saved_names("Derpibooru"),)
+                "collection_name": (
+                    cm.get_item_names(lambda k, v: (v.source == "Derpibooru")),
+                )
             }
         }
     RETURN_TYPES = ("LPP_TAG_DATA_DERPIBOORU",)
@@ -199,7 +201,9 @@ class LPPLoaderE621:
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (cm.get_saved_names("E621"),)
+                "collection_name": (
+                    cm.get_item_names(lambda k, v: (v.source == "E621")),
+                )
             }
         }
     RETURN_TYPES = ("LPP_TAG_DATA_E621",)
@@ -216,7 +220,9 @@ class LPPLoaderDanbooru:
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (cm.get_saved_names("Danbooru"),)
+                "collection_name": (
+                    cm.get_item_names(lambda k, v: (v.source == "Danbooru")),
+                )
             }
         }
     RETURN_TYPES = ("LPP_TAG_DATA_DANBOORU",)

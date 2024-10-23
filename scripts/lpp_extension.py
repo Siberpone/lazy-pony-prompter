@@ -26,7 +26,7 @@ saved_prompt_collections = []
 
 def refresh_saved_collections():
     global saved_prompt_collections
-    saved_prompt_collections = ["None"] + lpp.saved_collections_names
+    saved_prompt_collections = ["None"] + lpp.prompt_collections
 
 
 def on_ui_settings():
@@ -41,7 +41,7 @@ def on_ui_settings():
                 "None",
                 "Load this collection on startup",
                 gr.Dropdown,
-                lambda: {"choices": ["None"] + lpp.saved_collections_names},
+                lambda: {"choices": ["None"] + lpp.prompt_collections},
                 refresh=refresh_saved_collections
             ),
         "lpp_logging_level":
@@ -287,7 +287,7 @@ class Scripts(scripts.Script):
                         with FormRow():
                             prompts_manager_input = gr.Dropdown(
                                 label="Prompts Collection Name",
-                                choices=lpp.saved_collections_names,
+                                choices=lpp.prompt_collections,
                                 allow_custom_value=True
                             )
                             prompts_info_btn = ToolButton("📋")
@@ -303,7 +303,7 @@ class Scripts(scripts.Script):
                         pm_dialog = ConfirmationDialog(
                             lambda name: [
                                 gr.Dropdown.update(
-                                    choices=list(lpp.saved_collections_names),
+                                    choices=lpp.prompt_collections,
                                     value=name
                                 ),
                                 gr.update(
@@ -480,7 +480,7 @@ class Scripts(scripts.Script):
                     lambda: lpp.try_save_prompts(name, filters),
                     name
                 )
-                if name in lpp.saved_collections_names:
+                if name in lpp.prompt_collections:
                     return (
                         gr.update(),
                         gr.update(),
@@ -491,7 +491,7 @@ class Scripts(scripts.Script):
                     lpp.try_save_prompts(name, filters)
                     return (
                         gr.Dropdown.update(
-                            choices=lpp.saved_collections_names
+                            choices=lpp.prompt_collections
                         ),
                         gr.update(value=lpp.try_get_tag_data_markdown(name)),
                         "", gr.update(visible=False)

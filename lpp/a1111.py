@@ -56,12 +56,12 @@ class LPP_A1111:
         self.__prompts_manager.tag_data = value
 
     @property
-    def saved_collections_names(self) -> list[str]:
-        return self.__cache_manager.get_saved_names()
+    def prompt_collections(self) -> list[str]:
+        return self.__cache_manager.get_item_names()
 
     @property
-    def filters(self) -> list[(str, FilterData)]:
-        return self.__filters_manager.get_filter_names()
+    def filters(self) -> list[str]:
+        return self.__filters_manager.get_item_names()
 
     @property
     def status(self) -> str:
