@@ -79,7 +79,7 @@ class ComfyDerpibooru(ComfyTagSourceBase):
     ):
         if tag_data:
             self._pm.tag_data = tag_data
-        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+        elif self._pm.prompts_count == 0 or send_request:
             self._pm.tag_data = self._sm.request_prompts(
                 "Derpibooru", query, count, filter, sort_by
             )
@@ -109,7 +109,7 @@ class ComfyE621(ComfyTagSourceBase):
     ):
         if tag_data:
             self._pm.tag_data = tag_data
-        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+        elif self._pm.prompts_count == 0 or send_request:
             self._pm.tag_data = self._sm.request_prompts(
                 "E621", query, count, rating, sort_by
             )
@@ -139,7 +139,7 @@ class ComfyDanbooru(ComfyTagSourceBase):
     ):
         if tag_data:
             self._pm.tag_data = tag_data
-        elif self._pm.get_loaded_prompts_count() == 0 or send_request:
+        elif self._pm.prompts_count == 0 or send_request:
             self._pm.tag_data = self._sm.request_prompts(
                 "Danbooru", query, count, rating, sort_by
             )

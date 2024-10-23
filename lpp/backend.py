@@ -144,8 +144,8 @@ class PromptsManager:
             )
         return processed_prompts
 
-    # TODO: change to property
-    def get_loaded_prompts_count(self) -> int:
+    @property
+    def prompts_count(self) -> int:
         return len(self.tag_data.raw_tags) if self.tag_data else 0
 
 
