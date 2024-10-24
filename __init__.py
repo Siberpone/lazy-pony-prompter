@@ -1,7 +1,7 @@
-from .lpp.comfy import ComfyDerpibooru, LPPLoaderDerpibooru
-from .lpp.comfy import ComfyE621, LPPLoaderE621
-from .lpp.comfy import ComfyDanbooru, LPPLoaderDanbooru
-from .lpp.comfy import LPPSaver, LPPDeleter
+from .lpp.ui.comfy import ComfyDerpibooru, LPPLoaderDerpibooru
+from .lpp.ui.comfy import ComfyE621, LPPLoaderE621
+from .lpp.ui.comfy import ComfyDanbooru, LPPLoaderDanbooru
+from .lpp.ui.comfy import LPPSaver, LPPDeleter
 
 
 NODE_CLASS_MAPPINGS = {

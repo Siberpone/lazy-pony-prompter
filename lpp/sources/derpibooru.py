@@ -1,5 +1,6 @@
 from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
-from lpp.utils import get_config, glob_match, TagData, TagGroups, Models
+from lpp.data import TagData, TagGroups, Models
+from lpp.utils import get_config, glob_match
 from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 from tqdm import trange
 import time

@@ -2,15 +2,15 @@ import sys
 import os.path as path
 from copy import deepcopy
 
-LPP_ROOT_DIR = path.join(path.dirname(__file__), "..")
+LPP_ROOT_DIR = path.join(path.dirname(__file__), "..", "..")
 sys.path.append(LPP_ROOT_DIR)
 print(LPP_ROOT_DIR)
 
 from lpp.sources.derpibooru import Derpibooru
 from lpp.sources.e621 import E621
 from lpp.sources.danbooru import Danbooru
-from lpp.backend import SourcesManager, PromptsManager, CacheManager
-from lpp.utils import FilterData
+from lpp.core import SourcesManager, PromptsManager, CacheManager
+from lpp.data import FilterData
 
 sm = SourcesManager(LPP_ROOT_DIR)
 cm = CacheManager(LPP_ROOT_DIR)
@@ -239,7 +239,7 @@ class LPPDeleter:
     def INPUT_TYPES(self):
         return {
             "required": {
-                "collection_name": (cm.get_saved_names(),)
+                "collection_name": (cm.get_item_names(),)
             }
         }
     RETURN_TYPES = ()

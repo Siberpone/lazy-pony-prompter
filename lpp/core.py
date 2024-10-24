@@ -3,7 +3,7 @@ from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources.common import TagSourceBase
 from lpp.sources import *
-from lpp.utils import TagData, FilterData, Models, Ratings
+from lpp.data import TagData, FilterData, Models, Ratings
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
@@ -150,6 +150,17 @@ class PromptsManager:
         return len(self.tag_data.raw_tags) if self.tag_data else 0
 
 
+# HACK: Since "TagData" and "FilterData" were moved to a new module, they won't
+# be deserializable from old pickle files, so we need a workaround.
+class RenameUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        renamed_module = module
+        if module == "lpp.utils" and (name == "TagData" or name == "FilterData"):
+            renamed_module = "lpp.data"
+
+        return super(RenameUnpickler, self).find_class(renamed_module, name)
+
+
 class LppDataManager(ABC):
     def __init__(self, cache_file: str, work_dir: str = "."):
         self._cache_file = cache_file
@@ -168,7 +179,7 @@ class LppDataManager(ABC):
 
         with open(cache_file, "rb") as f:
             try:
-                return pickle.load(f)
+                return RenameUnpickler(f).load()
             except Exception:
                 logger.exception(
                     "Failed to unpickle cache file", exc_info=True

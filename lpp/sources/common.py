@@ -1,6 +1,6 @@
 from lpp.log import get_logger
 from abc import ABC, abstractmethod
-from lpp.utils import TagData
+from lpp.data import TagData
 import requests
 
 
