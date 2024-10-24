@@ -218,8 +218,7 @@ class CacheManager(LppDataManager):
         if not name:
             raise ValueError("Empty \"name\" parameter")
         new_item = deepcopy(data)
-        if filters is not None:
-            new_item.other_params["filters"] = deepcopy(filters)
+        new_item.other_params["filters"] = deepcopy(filters) if filters else []
 
         self._data[name] = new_item
         self._dump_cache()
