@@ -275,9 +275,7 @@ class Scripts(scripts.Script):
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
             with lpp_enable.extra():
-                status_bar = gr.HTML(
-                    lpp.status, elem_id="lpp-status-bar", container=False
-                )
+                status_bar = gr.HTML(lpp.status, elem_id="lpp-status-bar")
 
             # Prompts Manager #################################################
             with gr.Tab("Prompts Manager"):
