@@ -243,9 +243,9 @@ def get_query_panels(active_panel_name: str):
                             obj = source.extra_query_params[p]
                             control = gr.Dropdown(
                                 label=obj.display_name,
-                                choices=obj()
+                                choices=obj(),
+                                value=obj()[0]
                             )
-                            control.value = control.choices[0]
                             extra_controls.append(control)
             with FormRow():
                 send_btn = gr.Button(value="Send")
