@@ -30,7 +30,7 @@ class SourcesManager:
     def source_names(self) -> list[str]:
         return list(self.sources.keys())
 
-    def request_prompts(self, source: str, *args: object) -> None:
+    def request_prompts(self, source: str, *args: object) -> TagData:
         return self.sources[source].request_tags(*args)
 
 
@@ -87,7 +87,7 @@ class PromptsManager:
 
     def __filter_tags(self,
                       tag_groups: dict[str:list[str]],
-                      filters: list[FilterData]):
+                      filters: list[FilterData]) -> dict[str:list[str]]:
         if not filters:
             return tag_groups
 
@@ -109,7 +109,7 @@ class PromptsManager:
                        n: int = 1,
                        allowed_ratings: list[str] = None,
                        filters: list[FilterData] = None
-                       ) -> list[list[str]]:
+                       ) -> list[str]:
         if not self.tag_data:
             raise ValueError("No prompts are currently loaded.")
 

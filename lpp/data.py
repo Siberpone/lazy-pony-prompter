@@ -48,18 +48,18 @@ class FilterData:
     __patterns: dict[str:None]  # ordered set emulation
 
     @property
-    def patterns(self):
+    def patterns(self) -> list[str]:
         return self.__patterns.keys()
 
     @patterns.setter
-    def patterns(self, value):
+    def patterns(self, value: str) -> None:
         self.__patterns = dict.fromkeys(value)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.__patterns is not dict:
             self.__patterns = dict.fromkeys(self.__patterns)
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = [f"{k}||{v}" for k, v in self.substitutions.items()]
         return "\n".join(s + list(self.patterns))
 

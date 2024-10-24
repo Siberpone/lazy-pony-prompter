@@ -19,7 +19,7 @@ def __init_logger(level: int = logging.WARNING,
     return logger
 
 
-def get_logger():
+def get_logger() -> logging.Logger:
     global __logger
 
     if __logger:
