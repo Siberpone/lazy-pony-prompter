@@ -135,6 +135,9 @@ class LPP_A1111:
         )
 
     def get_filters(self, filter_names: str):
+        if not filter_names:
+            return []
+
         filters = []
         failed_filters = []
         for f in filter_names:
