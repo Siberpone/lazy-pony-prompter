@@ -13,30 +13,13 @@ import re
 logger = get_logger()
 
 
-class SourcesManager:
-    def __init__(
-        self, work_dir: str = ".", sources: list[TagSourceBase] = None
-    ):
-        self.__work_dir: str = work_dir
-        self.sources: dict[str:TagSourceBase] = self.__load_sources(sources)
-
-    def __load_sources(
-        self, sources: list[TagSourceBase]
-    ) -> dict[str:TagSourceBase]:
-        s = sources if sources else TagSourceBase.__subclasses__()
-        return {x.__name__: x(self.__work_dir) for x in s}
-
-    @property
-    def source_names(self) -> list[str]:
-        return list(self.sources.keys())
-
-    def request_prompts(self, source: str, *args: object) -> TagData:
-        return self.sources[source].request_tags(*args)
+def get_sources(work_dir: str = ".") -> dict[str:TagSourceBase]:
+    return {x.__name__: x(work_dir) for x in TagSourceBase.__subclasses__()}
 
 
 class PromptsManager:
-    def __init__(self, sources_manager: SourcesManager):
-        self.__sm = sources_manager
+    def __init__(self, sources: dict[str:TagSourceBase]):
+        self.__sources: dict[str:TagSourceBase] = sources
         self.tag_data: TagData = None
 
     def __replace_tokens(self, flat_groups: dict[str:str], template: str) -> str:
@@ -114,7 +97,7 @@ class PromptsManager:
             raise ValueError("No prompts are currently loaded.")
 
         raw_tags = self.tag_data.raw_tags
-        source = self.__sm.sources[self.tag_data.source]
+        source = self.__sources[self.tag_data.source]
 
         if allowed_ratings and len(allowed_ratings) < len(Ratings):
             raw_tags = [

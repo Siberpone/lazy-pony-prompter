@@ -6,13 +6,14 @@ LPP_ROOT_DIR = path.join(path.dirname(__file__), "..", "..")
 sys.path.append(LPP_ROOT_DIR)
 print(LPP_ROOT_DIR)
 
+from lpp.sources.common import TagSourceBase
 from lpp.sources.derpibooru import Derpibooru
 from lpp.sources.e621 import E621
 from lpp.sources.danbooru import Danbooru
-from lpp.core import SourcesManager, PromptsManager, CacheManager
+from lpp.core import PromptsManager, CacheManager, get_sources
 from lpp.data import FilterData
 
-sm = SourcesManager(LPP_ROOT_DIR)
+lpp_sources = get_sources(LPP_ROOT_DIR)
 cm = CacheManager(LPP_ROOT_DIR)
 
 
@@ -43,9 +44,11 @@ class ComfyTagSourceBase:
         }
     }
 
-    def __init__(self, source):
-        self._sm: SourcesManager = SourcesManager(LPP_ROOT_DIR, [source])
-        self._pm: PromptsManager = PromptsManager(self._sm)
+    def __init__(self, source: TagSourceBase):
+        self._source: TagSourceBase = source
+        self._pm: PromptsManager = PromptsManager(
+            {source.__class__.__name__: self._source}
+        )
 
     RETURN_TYPES = ("STRING", "LPP_TAG_DATA")
     RETURN_NAMES = ("Prompt", "LPP Tag Data")
@@ -62,14 +65,15 @@ class ComfyTagSourceBase:
 
 class ComfyDerpibooru(ComfyTagSourceBase):
     def __init__(self):
-        ComfyTagSourceBase.__init__(self, Derpibooru)
+        ComfyTagSourceBase.__init__(self, Derpibooru(LPP_ROOT_DIR))
 
     @classmethod
     def INPUT_TYPES(self):
+        s = lpp_sources["Derpibooru"]
         types = deepcopy(self.tag_source_input_types_base)
-        types["required"]["filter"] = (sm.sources["Derpibooru"].get_filters(),)
-        types["required"]["sort_by"] = (sm.sources["Derpibooru"].get_sort_options(),)
-        types["required"]["format"] = (sm.sources["Derpibooru"].supported_models,)
+        types["required"]["filter"] = (s.get_filters(),)
+        types["required"]["sort_by"] = (s.get_sort_options(),)
+        types["required"]["format"] = (s.supported_models,)
         types["optional"]["tag_data"] = ("LPP_TAG_DATA_DERPIBOORU",)
         return types
 
@@ -80,8 +84,8 @@ class ComfyDerpibooru(ComfyTagSourceBase):
         if tag_data:
             self._pm.tag_data = tag_data
         elif self._pm.prompts_count == 0 or send_request:
-            self._pm.tag_data = self._sm.request_prompts(
-                "Derpibooru", query, count, filter, sort_by
+            self._pm.tag_data = self._source.request_tags(
+                query, count, filter, sort_by
             )
         tf = FilterData.from_string(tag_filter, ",")
         return (
@@ -92,14 +96,15 @@ class ComfyDerpibooru(ComfyTagSourceBase):
 
 class ComfyE621(ComfyTagSourceBase):
     def __init__(self):
-        ComfyTagSourceBase.__init__(self, E621)
+        ComfyTagSourceBase.__init__(self, E621(LPP_ROOT_DIR))
 
     @classmethod
     def INPUT_TYPES(self):
+        s = lpp_sources["E621"]
         types = deepcopy(self.tag_source_input_types_base)
-        types["required"]["rating"] = (sm.sources["E621"].get_ratings(),)
-        types["required"]["sort_by"] = (sm.sources["E621"].get_sort_options(),)
-        types["required"]["format"] = (sm.sources["E621"].supported_models,)
+        types["required"]["rating"] = (s.get_ratings(),)
+        types["required"]["sort_by"] = (s.get_sort_options(),)
+        types["required"]["format"] = (s.supported_models,)
         types["optional"]["tag_data"] = ("LPP_TAG_DATA_E621",)
         return types
 
@@ -110,8 +115,8 @@ class ComfyE621(ComfyTagSourceBase):
         if tag_data:
             self._pm.tag_data = tag_data
         elif self._pm.prompts_count == 0 or send_request:
-            self._pm.tag_data = self._sm.request_prompts(
-                "E621", query, count, rating, sort_by
+            self._pm.tag_data = self._source.request_tags(
+                query, count, rating, sort_by
             )
         tf = FilterData.from_string(tag_filter, ",")
         return (
@@ -122,14 +127,15 @@ class ComfyE621(ComfyTagSourceBase):
 
 class ComfyDanbooru(ComfyTagSourceBase):
     def __init__(self):
-        ComfyTagSourceBase.__init__(self, Danbooru)
+        ComfyTagSourceBase.__init__(self, Danbooru(LPP_ROOT_DIR))
 
     @classmethod
     def INPUT_TYPES(self):
+        s = lpp_sources["Danbooru"]
         types = deepcopy(self.tag_source_input_types_base)
-        types["required"]["rating"] = (sm.sources["Danbooru"].get_ratings(),)
-        types["required"]["sort_by"] = (sm.sources["Danbooru"].get_sort_options(),)
-        types["required"]["format"] = (sm.sources["Danbooru"].supported_models,)
+        types["required"]["rating"] = (s.get_ratings(),)
+        types["required"]["sort_by"] = (s.get_sort_options(),)
+        types["required"]["format"] = (s.supported_models,)
         types["optional"]["tag_data"] = ("LPP_TAG_DATA_DANBOORU",)
         return types
 
@@ -140,8 +146,8 @@ class ComfyDanbooru(ComfyTagSourceBase):
         if tag_data:
             self._pm.tag_data = tag_data
         elif self._pm.prompts_count == 0 or send_request:
-            self._pm.tag_data = self._sm.request_prompts(
-                "Danbooru", query, count, rating, sort_by
+            self._pm.tag_data = self._source.request_tags(
+                query, count, rating, sort_by
             )
         tf = FilterData.from_string(tag_filter, ",")
         return (

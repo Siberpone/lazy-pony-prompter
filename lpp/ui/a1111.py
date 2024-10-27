@@ -1,6 +1,7 @@
-from lpp.core import SourcesManager, PromptsManager, CacheManager, FiltersManager
+from lpp.core import PromptsManager, CacheManager, FiltersManager, get_sources
 from lpp.data import TagData, FilterData, Ratings
 from lpp.log import get_logger
+from lpp.sources.common import TagSourceBase
 from lpp.utils import LppMessageService, DefaultLppMessageService
 
 logger = get_logger()
@@ -14,14 +15,14 @@ class LPP_A1111:
         self.__work_dir: str = work_dir
         if logging_level:
             logger.setLevel(logging_level)
-        self.__sources_manager: SourcesManager = SourcesManager(self.__work_dir)
+        self.__sources: dict[str:TagSourceBase] = get_sources(self.__work_dir)
 
         # TODO: need better way of handling this
-        if "Derpibooru" in self.__sources_manager.sources.keys():
-            self.__sources_manager.sources["Derpibooru"].set_api_key(derpi_api_key)
+        if "Derpibooru" in self.__sources.keys():
+            self.__sources["Derpibooru"].set_api_key(derpi_api_key)
 
         self.__prompts_manager: PromptsManager = PromptsManager(
-            self.__sources_manager
+            self.__sources
         )
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
         self.__filters_manager: FiltersManager = FiltersManager(self.__work_dir)
@@ -30,12 +31,12 @@ class LPP_A1111:
         self.__collection_name = ""
 
     @property
-    def source_names(self):
-        return self.__sources_manager.source_names
+    def source_names(self) -> list[str]:
+        return list(self.__sources.keys())
 
     @property
-    def sources(self) -> dict[str:list[object]]:
-        return self.__sources_manager.sources
+    def sources(self) -> dict[str:TagSourceBase]:
+        return self.__sources
 
     @property
     def tag_data(self) -> TagData:
@@ -139,14 +140,14 @@ class LPP_A1111:
             self.__messenger.warning(f"Filed to load filters: {', '.join(failed_filters)}")
         return filters
 
-    def try_send_request(self, *args: object) -> None:
+    def try_send_request(self, source: str, *args: object) -> None:
         def load_new_tag_data(*args: object) -> None:
-            self.tag_data = self.__sources_manager.request_prompts(*args)
+            self.tag_data = self.__sources[source].request_tags(*args)
             self.__collection_name = "from query"
         self.__try_exec_command(
             load_new_tag_data,
-            f"Successfully fetched tags from \"{args[0]}\"",
-            f"Failed to fetch tags from \"{args[0]}\":",
+            f"Successfully fetched tags from \"{source}\"",
+            f"Failed to fetch tags from \"{source}\":",
             *args
         )
 
@@ -158,7 +159,7 @@ class LPP_A1111:
                 Ratings.QUESTIONABLE.value: 0,
                 Ratings.EXPLICIT.value: 0
             }
-            source = self.__sources_manager.sources[target.source]
+            source = self.__sources[target.source]
             for item in target.raw_tags:
                 ratings[source.get_lpp_rating(item)] += 1
             filter_str = "Filters: " +\
