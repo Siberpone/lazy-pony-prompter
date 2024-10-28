@@ -1,11 +1,9 @@
 import sys
 import os.path as path
-import inspect
 from copy import deepcopy
 
 LPP_ROOT_DIR = path.join(path.dirname(__file__), "..", "..")
 sys.path.append(LPP_ROOT_DIR)
-print(LPP_ROOT_DIR)
 
 from lpp.sources.common import TagSourceBase
 from lpp.sources.derpibooru import Derpibooru
@@ -92,10 +90,8 @@ class ComfyTagSourceBase:
         types = deepcopy(cls.tag_source_input_types_base)
         s = lpp_sources[cls.SOURCE_NAME]
 
-        extra_params = inspect.getfullargspec(getattr(s, "request_tags"))[0][3:]
-        for p in extra_params:
-            obj = s.extra_query_params[p]
-            types["required"][p] = (obj(),)
+        for p, get_values_func in s.extra_query_params.items():
+            types["required"][p] = (get_values_func(),)
         types["required"]["format"] = (s.supported_models,)
         types["optional"]["tag_data"] = (f"LPP_TAG_DATA_{cls.SOURCE_NAME.upper()}",)
         return types

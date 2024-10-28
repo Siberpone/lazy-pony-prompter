@@ -7,7 +7,6 @@ from modules import shared
 from modules import script_callbacks
 from modules.ui_components import InputAccordion, FormRow, FormColumn, FormGroup, ToolButton
 import gradio as gr
-import inspect
 import logging
 
 base_dir = scripts.basedir()
@@ -236,16 +235,12 @@ def get_query_panels(active_panel_name: str):
                     )
                 with FormColumn():
                     with FormRow():
-                        extra_params = inspect.getfullargspec(
-                            getattr(source, "request_tags")
-                        )[0][3:]
                         extra_controls = []
-                        for p in extra_params:
-                            obj = source.extra_query_params[p]
+                        for p, get_values_func in source.extra_query_params.items():
                             control = gr.Dropdown(
-                                label=obj.display_name,
-                                choices=obj(),
-                                value=obj()[0]
+                                label=get_values_func.display_name,
+                                choices=get_values_func(),
+                                value=get_values_func()[0]
                             )
                             extra_controls.append(control)
             with FormRow():
