@@ -1,9 +1,8 @@
 from copy import deepcopy
 from lpp.log import get_logger
-from lpp.sources.common import TagSourceBase
+from lpp.sources.common import TagSourceBase, Tags
 from lpp.sources import *
 from lpp.data import TagData, FilterData, Models, Ratings
-from lpp.formatting import Tags
 from os import path
 from random import sample
 from abc import ABC, abstractmethod

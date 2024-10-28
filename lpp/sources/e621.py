@@ -1,7 +1,6 @@
-from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
+from lpp.sources.common import TagSourceBase, Tags, formatter, default_formatter, attach_query_param
 from lpp.data import TagData, TagGroups, Models, FilterData
 from lpp.utils import get_config
-from lpp.formatting import Tags
 from tqdm import trange
 import os
 import re
