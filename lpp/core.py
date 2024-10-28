@@ -1,15 +1,10 @@
 from lpp.log import get_logger
 from lpp.sources.common import TagSourceBase, Tags
-from lpp.sources import *
 from lpp.data import TagData, FilterData, Models, Ratings
 from random import sample
 import re
 
 logger = get_logger()
-
-
-def get_sources(work_dir: str = ".") -> dict[str:TagSourceBase]:
-    return {x.__name__: x(work_dir) for x in TagSourceBase.__subclasses__()}
 
 
 class PromptsManager:
