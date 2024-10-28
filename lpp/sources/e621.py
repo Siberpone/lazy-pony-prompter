@@ -1,6 +1,7 @@
 from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
-from lpp.data import TagData, TagGroups, Models
-from lpp.utils import glob_match, get_config
+from lpp.data import TagData, TagGroups, Models, FilterData
+from lpp.utils import get_config
+from lpp.formatting import Tags
 from tqdm import trange
 import os
 import re
@@ -18,7 +19,9 @@ class E621(TagSourceBase):
         )
         self.__ratings: dict[str:str] = config["ratings"]
         self.__sort_params: dict[str:str] = config["sort_params"]
-        self.__filtered_tags: dict[str:object] = config["filtered_tags"]
+        self.filter: FilterData = FilterData.from_list(
+            [x for cat in config["filtered_tags"].values() for x in cat]
+        )
 
     @attach_query_param("rating", "Rating")
     def get_ratings(self) -> list[str]:
@@ -78,88 +81,49 @@ class E621(TagSourceBase):
             {}
         )
 
-    def __replace_underscores(self, tags: dict[str:list[str]]):
-        return {k: [x.replace("_", " ") for x in v] for k, v in tags.items()}
-
-    def __filter_raw_tags(self,
-                          categories: list[str],
-                          raw_image_tags: dict[str:list[str]],
-                          replace_underscores: bool = True
-                          ) -> dict[str:list[str]]:
-        filtered_tags = {}
-        for category in categories:
-            if category not in self.__filtered_tags.keys():
-                filtered_tags[category] = raw_image_tags[category]
-            else:
-                filtered_tags[category] = [
-                    x for x in raw_image_tags[category]
-                    if not glob_match(x, self.__filtered_tags[category])
-                ]
-        return self.__replace_underscores(filtered_tags)\
-            if replace_underscores else filtered_tags
+    def _convert_raw_tags(self, raw_tags: dict[str:object]) -> TagGroups:
+        return TagGroups(
+            raw_tags["character"],
+            raw_tags["species"],
+            raw_tags["rating"],
+            raw_tags["artist"],
+            raw_tags["general"],
+            raw_tags["copyright"] + raw_tags["meta"]
+        )
 
     @formatter(Models.PDV56.value)
     def pdv5_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "meta"],
-            raw_image_tags
-        )
-        rating = self.__ratings["pdv5"][raw_image_tags["rating"]]
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [rating],
-            [],
-            t["general"],
-            t["meta"]
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "rating", "species", "general", "meta")\
+            .modify(lambda x: self.__ratings["pdv5"][x], "rating")\
+            .filter(self.filter)\
+            .replace_underscores(exclude=["rating"])\
+            .as_tag_groups()
 
     @default_formatter(Models.EF.value)
     def easyfluff_format(
-        self, raw_image_tags: dict[str:list[str]]
+            self, raw_image_tags: dict[str:list[str]]
     ) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "artist", "copyright", "meta"],
-            raw_image_tags
-        )
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [],
-            [f"by {x}" for x in t["artist"]],
-            t["general"],
-            t["copyright"] + t["meta"]
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "general", "artist", "meta")\
+            .modify(lambda x: f"by {x}", "artist")\
+            .filter(self.filter)\
+            .replace_underscores()\
+            .as_tag_groups()
 
     @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artist_format(
         self, raw_image_tags: dict[str:list[str]]
     ) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "copyright", "meta"],
-            raw_image_tags
-        )
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [],
-            [],
-            t["general"],
-            t["copyright"] + t["meta"]
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "general", "meta")\
+            .filter(self.filter)\
+            .replace_underscores()\
+            .as_tag_groups()
 
     @formatter(Models.SEAART.value)
     def seaart_format(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
-        t = self.__filter_raw_tags(
-            ["character", "species", "general", "artist", "copyright", "meta"],
-            raw_image_tags,
-            False
-        )
-        return TagGroups(
-            t["character"],
-            t["species"],
-            [],
-            t["artist"],
-            t["general"],
-            t["copyright"] + t["meta"]
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "general", "artist", "meta")\
+            .filter(self.filter)\
+            .as_tag_groups()

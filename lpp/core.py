@@ -1,9 +1,9 @@
 from copy import deepcopy
-from dataclasses import asdict
 from lpp.log import get_logger
 from lpp.sources.common import TagSourceBase
 from lpp.sources import *
 from lpp.data import TagData, FilterData, Models, Ratings
+from lpp.formatting import Tags
 from os import path
 from random import sample
 from abc import ABC, abstractmethod
@@ -29,16 +29,12 @@ class PromptsManager:
         return result
 
     def __apply_template(self,
-                         tag_groups: dict[str:list[str]],
+                         flat_groups: dict[str:str],
                          default_template: str,
                          template: str = None,
                          sep: str = ", ",
                          sanitize: bool = True) -> str:
-        escaped_tag_groups = {
-            k: [x.replace("(", "\\(").replace(")", "\\)") for x in v] for k, v in tag_groups.items()
-        }
-        flat_groups = {k: sep.join(v) for k, v in escaped_tag_groups.items()}
-        tokens = set(tag_groups.keys())
+        tokens = set(flat_groups.keys())
         prompt = ""
 
         if template:
@@ -67,24 +63,6 @@ class PromptsManager:
             for re_pattern, replacement in rules.items():
                 prompt = re.sub(re_pattern, replacement, prompt)
         return prompt
-
-    def __filter_tags(self,
-                      tag_groups: dict[str:list[str]],
-                      filters: list[FilterData]) -> dict[str:list[str]]:
-        if not filters:
-            return tag_groups
-
-        filtered_tags = {}
-        joint_filter = FilterData.merge(*filters)
-        for group, tags in tag_groups.items():
-            filtered_tags[group] = []
-            for tag in tags:
-                if joint_filter.match_subst(tag):
-                    filtered_tags[group].append(joint_filter.substitutions[tag])
-                    continue
-                if not joint_filter.match(tag):
-                    filtered_tags[group].append(tag)
-        return filtered_tags
 
     def choose_prompts(self,
                        model: str,
@@ -119,11 +97,13 @@ class PromptsManager:
 
         processed_prompts = []
         for raw_tags in chosen_prompts:
-            formatted_tags = asdict(format_func(raw_tags))
-            filtered_tags = self.__filter_tags(formatted_tags, filters)
+            formatted_tags = Tags(format_func(raw_tags))\
+                .escape_parentheses()\
+                .filter(*filters)\
+                .as_flat_groups()
             processed_prompts.append(
                 self.__apply_template(
-                    filtered_tags, Models.get_default_template(model), template
+                    formatted_tags, Models.get_default_template(model), template
                 )
             )
         return processed_prompts

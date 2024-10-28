@@ -1,6 +1,6 @@
 from lpp.log import get_logger
 from abc import ABC, abstractmethod
-from lpp.data import TagData
+from lpp.data import TagData, TagGroups
 import requests
 
 
@@ -73,4 +73,8 @@ class TagSourceBase(ABC):
 
     @abstractmethod
     def request_tags(self, query: str, count: int, *params: object) -> TagData:
+        pass
+
+    @abstractmethod
+    def _convert_raw_tags(self, raw_tags: list[object]) -> TagGroups:
         pass

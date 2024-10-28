@@ -1,6 +1,7 @@
 from lpp.sources.common import TagSourceBase, formatter, default_formatter, attach_query_param
-from lpp.data import TagData, TagGroups, Models
-from lpp.utils import get_config, glob_match
+from lpp.data import TagData, TagGroups, Models, FilterData
+from lpp.utils import get_config
+from lpp.formatting import Tags
 from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 from tqdm import trange
 import time
@@ -19,10 +20,10 @@ class Derpibooru(TagSourceBase):
         self.__filter_ids = config["filter_ids"]
         self.__sort_params = config["sort_params"]
         self.__ratings = config["ratings"]
-        self.__character_tags = config["character_tags"]
-        self.__species_tags = config["species_tags"]
-        self.__meta_tags = config["meta_tags"]
-        self.__filtered_tags = config["filtered_tags"]
+        self.__character_tags = set(config["character_tags"])
+        self.__species_tags = set(config["species_tags"])
+        self.__meta_tags = set(config["meta_tags"])
+        self.filter = FilterData.from_list(config["filtered_tags"])
 
     @attach_query_param("filter_type", "Derpibooru Filter")
     def get_filters(self) -> list[str]:
@@ -38,10 +39,11 @@ class Derpibooru(TagSourceBase):
                 return self.__ratings["lpp"][tag]
         return "Unknown"
 
-    def request_tags(
-        self, query: str, count: int,
-        filter_type: str = None, sort_type: str = None
-    ) -> TagData:
+    def request_tags(self,
+                     query: str,
+                     count: int,
+                     filter_type: str = None,
+                     sort_type: str = None) -> TagData:
         ENDPOINT = "https://derpibooru.org/api/v1/json/search/images"
         PER_PAGE_MAX = 50
         QUERY_DELAY = 0.5
@@ -86,6 +88,40 @@ class Derpibooru(TagSourceBase):
             }
         )
 
+    def _convert_raw_tags(self, raw_tags: list[list[str]]) -> TagGroups:
+        rating = []
+        characters = []
+        species = []
+        artists = []
+        general = []
+        meta = []
+        for tag in raw_tags:
+            if tag in self.__ratings["pdv5"]:
+                rating.append(self.__ratings["pdv5"][tag])
+                continue
+            if tag in self.__character_tags or tag.startswith("oc:"):
+                characters.append(tag)
+                continue
+            if tag in self.__species_tags:
+                species.append(tag)
+                continue
+            # TODO: Add glob_match
+            if tag in self.__meta_tags:
+                meta.append(tag)
+                continue
+            if tag.startswith("artist:"):
+                artists.append(tag[7:])
+                continue
+            general.append(tag)
+        return TagGroups(
+            characters,
+            species,
+            rating,
+            artists,
+            general,
+            meta
+        )
+
     def set_api_key(self, key: str):
         if not key:
             return
@@ -104,77 +140,38 @@ class Derpibooru(TagSourceBase):
                 self.__filter_ids[filter["name"]] = filter["id"]
             self._logger.info("Successfully fetched Derpibooru user filters.")
         except (HTTPError, ConnectionError, TooManyRedirects):
-            self._logger.warning("Failed to fetch Derpibooru user filters due to connection issues.")
+            self._logger.warning(
+                "Failed to fetch Derpibooru user filters due to connection issues."
+            )
         except Timeout:
-            self._logger.warning("Failed to fetch Derpibooru filters due to connection timeout.")
+            self._logger.warning(
+                "Failed to fetch Derpibooru filters due to connection timeout."
+            )
         except Exception as e:
-            self._logger.debug(f"Failed to fetch Derpibooru user filters ({e:=})")
-
-    def __filter_tags(self, raw_image_tags: list[str]) -> tuple[str]:
-        rating = []
-        characters = []
-        species = []
-        artists = []
-        general = []
-        meta = []
-        for tag in raw_image_tags:
-            if glob_match(tag, self.__filtered_tags):
-                continue
-            if tag in self.__ratings["pdv5"].keys():
-                rating.append(self.__ratings["pdv5"][tag])
-                continue
-            if tag in self.__character_tags:
-                characters.append(tag)
-                continue
-            if tag in self.__species_tags:
-                species.append(tag)
-                continue
-            if glob_match(tag, self.__meta_tags):
-                meta.append(tag)
-                continue
-            if tag.startswith("artist:"):
-                artists.append(tag[7:])
-                continue
-            general.append(tag)
-        return rating, characters, species, artists, general, meta
+            self._logger.debug(
+                f"Failed to fetch Derpibooru user filters ({e:=})"
+            )
 
     @default_formatter(Models.PDV56.value)
     def pdv5_format(self, raw_image_tags: list[str]) -> TagGroups:
-        rating, characters, species, _, general, meta = \
-            self.__filter_tags(raw_image_tags)
-        return TagGroups(
-            characters,
-            species,
-            rating,
-            [],
-            general,
-            meta
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "rating", "general", "meta")\
+            .filter(self.filter)\
+            .as_tag_groups()
 
     @formatter(Models.EF.value)
     def easyfluff_format(self, raw_image_tags: list[str]) -> TagGroups:
-        _, characters, species, artists, general, meta = \
-            self.__filter_tags(raw_image_tags)
-        return TagGroups(
-            characters,
-            species,
-            [],
-            [f"by {x}" for x in artists],
-            general,
-            meta
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "artist", "general", "meta")\
+            .modify(lambda x: f"by {x}", "artist")\
+            .filter(self.filter)\
+            .as_tag_groups()
 
     @formatter(f"{Models.EF.value} (no artist names)")
     def easyfluff_no_artists_format(
         self, raw_image_tags: list[str]
     ) -> TagGroups:
-        _, characters, species, _, general, meta = \
-            self.__filter_tags(raw_image_tags)
-        return TagGroups(
-            characters,
-            species,
-            [],
-            [],
-            general,
-            meta
-        )
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "species", "general", "meta")\
+            .filter(self.filter)\
+            .as_tag_groups()
