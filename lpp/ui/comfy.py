@@ -10,8 +10,8 @@ from lpp.sources.common import TagSourceBase
 from lpp.sources.derpibooru import Derpibooru
 from lpp.sources.e621 import E621
 from lpp.sources.danbooru import Danbooru
-from lpp.core import PromptsManager, CacheManager, get_sources
-from lpp.data import FilterData
+from lpp.core import PromptsManager, get_sources
+from lpp.data import FilterData, CacheManager
 
 lpp_sources = get_sources(LPP_ROOT_DIR)
 cm = CacheManager(LPP_ROOT_DIR)
