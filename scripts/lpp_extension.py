@@ -629,9 +629,16 @@ class Scripts(scripts.Script):
         filters = lpp.get_filters(filter_names)
         if quick_filter:
             filters += [FilterData.from_string(quick_filter, ",")]
-        p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, allowed_ratings, filters
-        )
+
+        chosen_prompts = lpp.try_choose_prompts(n_images, allowed_ratings)
+        p.all_prompts = chosen_prompts\
+            .apply_formatting(prompts_format)\
+            .extra_tag_formatting(
+                lambda x: x.filter(*filters).escape_parentheses()
+            )\
+            .apply_template(prompts_format, p.prompt)\
+            .sanitize()\
+            .as_list()
 
         p.all_prompts = [
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)

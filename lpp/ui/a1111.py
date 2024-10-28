@@ -1,4 +1,4 @@
-from lpp.core import PromptsManager
+from lpp.prompts import PromptPool, Prompts
 from lpp.data import TagData, FilterData, Ratings, CacheManager, FiltersManager
 from lpp.log import get_logger
 from lpp.sources.common import TagSourceBase
@@ -22,9 +22,7 @@ class LPP_A1111:
         if "Derpibooru" in self.__sources.keys():
             self.__sources["Derpibooru"].set_api_key(derpi_api_key)
 
-        self.__prompts_manager: PromptsManager = PromptsManager(
-            self.__sources
-        )
+        self.__prompt_pool = None
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
         self.__filters_manager: FiltersManager = FiltersManager(self.__work_dir)
 
@@ -41,11 +39,11 @@ class LPP_A1111:
 
     @property
     def tag_data(self) -> TagData:
-        return self.__prompts_manager.tag_data
+        return self.__prompt_pool.tag_data if self.__prompt_pool else None
 
     @tag_data.setter
     def tag_data(self, value: TagData) -> None:
-        self.__prompts_manager.tag_data = value
+        self.__prompt_pool = PromptPool(value, self.__work_dir)
 
     @property
     def prompt_collections(self) -> list[str]:
@@ -57,7 +55,8 @@ class LPP_A1111:
 
     @property
     def status(self) -> str:
-        n_prompts = self.__prompts_manager.prompts_count
+        n_prompts = self.__prompt_pool.prompts_count\
+            if self.__prompt_pool else 0
         return f"\"{self.__collection_name}\" <b>[{n_prompts}]</b> ✅" \
             if n_prompts > 0 \
             else "No prompts loaded 🛑"
@@ -183,16 +182,11 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
             return "no collection selected"
 
     def try_choose_prompts(self,
-                           model: str,
-                           template: str = None,
                            n: int = 1,
                            allowed_ratings: list[str] = None,
-                           filters: list[FilterData] = None
-                           ) -> list[list[str]]:
+                           ) -> Prompts:
         try:
-            return self.__prompts_manager.choose_prompts(
-                model, template, n, allowed_ratings, filters
-            )
+            return self.__prompt_pool.choose_prompts(n, allowed_ratings)
         # HACK: these should really be errors and not warnings, but effing
         # A1111 or Gradio just refuses to display them. It is important to
         # explicitly alert the user about these problems, so for now I'll
