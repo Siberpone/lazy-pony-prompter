@@ -1,20 +1,22 @@
 # Lazy Pony Prompter
 
-A booru API powered prompt generator for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with flexible tag filtering system and customizable prompt templates.
+A booru API powered prompt generator for [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) / [Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) and [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with flexible tag filtering system and customizable prompt templates.
 
 Supported boorus/websites:
 * [Derpibooru](https://derpibooru.org)
 * [E621](https://e621.net)
-* More coming soon™
+* [Danbooru](https://danbooru.donmai.us)
+* More coming soon™ (or not ;))
 
 > [!IMPORTANT]
-> **1.0.0 release highlights:**
-> * Overhauled UI
-> * New tag filtering system with filter management and pattern substitutions
-> * Filter prompts by content rating (Safe/Questionable/Explicit)
-> * Increased maximum prompts fetching limit to 1500
-> * Improved status reporting and logging
-> * See [Filter Editor](#filter-editor) for converting legacy filter strings to new format
+>
+> **1.1.0 release highlights:**
+> * Added [Danbooru](https://danbooru.donmai.us) as tag source
+> * Added support for [SeaArt Furry XL V1](https://civitai.com/models/391781/seaart-furry-xl-10) model
+> * Import/Export functions for prompts and filters
+> * Prompt info panel is now more compact and readable
+> * Minor ComfyUI nodes improvements (notably: updater dummy is no longer needed)
+> * Tons of refactoring and behind-the-scene improvements
 
 Derpibooru + [Pony Diffusion V6 XL](https://civitai.com/models/257749?modelVersionId=290640) + [PD Styles Collection](https://github.com/Siberpone/pd-styles) (which I highly recommend you also check out) samples:
 
@@ -29,11 +31,13 @@ E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
 # Installation
 
 ### ❗Requirements
-* [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) or [ComfyUI](https://github.com/comfyanonymous/ComfyUI);
+* [AUTOMATIC1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) / [Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) or [ComfyUI](https://github.com/comfyanonymous/ComfyUI);
 * One of recommended models (these are the "officially" supported models, but LPP should work well for other tag-based models as long as their "native" booru is used as tag source):
   * [Pony Diffusion V6 XL](https://civitai.com/models/257749?modelVersionId=290640);
-  * [EasyFluff](https://civitai.com/models/129996/easyfluff);
   * [Pony Diffusion V5(.5)](https://civitai.com/models/95367/pony-diffusion-v5);
+  * [EasyFluff](https://civitai.com/models/129996/easyfluff);
+  * [SeaArt Furry XL V1](https://civitai.com/models/391781/seaart-furry-xl-10);
+  * [AutismMix](https://civitai.com/models/288584);
 * Active internet connection for communication with boorus;
 * *(optional)* [Derpibooru](https://derpibooru.org) account for extra functionality.
 
@@ -48,7 +52,7 @@ Click "Install" and after it's finished installing, restart the server. You shou
 
 ### 🛏 ComfyUI
 
-Clone this repository to `.../ComfyUI/custom_nodes`
+You can install LPP via [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager) or manually by cloning this repository to `.../ComfyUI/custom_nodes`
 
 ### 🙌 Manual
 Clone this repository with:
@@ -92,7 +96,7 @@ On this panel you can pull tag data from selected booru site by typing in or pas
 * **Derpibooru specific:**
   * *Derpibooru Filter* - will apply this [Derpibooru filter](https://derpibooru.org/filters) to the query. Only system filters are available by default. If you want to use your personal filters, you must provide an [API key](#-api-key);
   * *Sort by* - type of sorting to apply to the query. Wilson Score is the default.
-* **E621 specific:**
+* **E621 and Danbooru specific:**
   * *Rating* - will append selected rating tag to the query.
   * *Sort by* - will append selected sorting type tag to the query.
 
@@ -125,7 +129,9 @@ And last but not least for the filtering system is the `Rating Filter`. It allow
 
 ![Filter Editor](images/filters_editor.jpg)
 
-This tab is used to manage and edit your persistent filters that can then be applied to LPP-generated prompts via selecting them in the `Filters` input on the "Prompts Manager" tab. On the left you'll find the `Create or delete a filter` input that is used to manage your filters: type in a new name for a filter and click the ✨ to create a new filter or select an existing filter form a drop-down list and click the ❌ to delete it. The `Import Legacy Filters` button underneath is used to convert your pre-1.0.0 saved filter strings to the new system. It will create a new persistent filter for each prompt collection that has legacy filter string attached to it and automatically add it to the collection's autoload list. You only need to run this once.
+This tab is used to manage and edit your persistent filters that can then be applied to LPP-generated prompts via selecting them in the `Filters` input on the "Prompts Manager" tab. On the left you'll find the `Create or delete a filter` input that is used to manage your filters: type in a new name for a filter and click the ✨ to create a new filter or select an existing filter form a drop-down list and click the ❌ to delete it.
+
+Below, you'll find the file drop area for importing and exporting your locally saved prompts and filters. You can export them by clicking the "Export Prompts and Filters" button and then downloading the json file from file drop area. You can import prompts and filters data by dragging the previously exported json file onto the file drop area. If there is a naming conflict between already existing items and items that are being imported, the existing items take precedence.
 
 Next you'll find a number of identical filter editors that are used to edit the filters. You can adjust the number of editors in the LPP's section of A1111 settings. To load up a filter, simply choose it from a drop-down in any of the editors (hit the 🗘 button if the desired filter doesn't appear on the list) and start editing the filter patterns. The syntax is exactly the same as described in the [Filtering System](#-filtering-system), but patterns are separated with new lines. Click the 💾 button to save changes to the filter.
 
@@ -213,7 +219,7 @@ LPP nodes are available under `LPP` group. The interface and functionality are k
 
 To further personalize your queries you can provide LPP with your personal Derpibooru API key (requires Derpibooru account). This will enable LPP to use your personal [Derpibooru filters](https://derpibooru.org/filters) and access images from your watch list by including `my:watched` into your queries. To provide an API key, go to `Settings -> Lazy Pony Prompter` and paste the key into the respective textbox. Then click "Apply settings" and reload UI. You can obtain an API key from your Derpibooru account info page (hover over your user icon -> Account).
 
-# Pro Tips & Potential Pitfalls
+# Pro Tips & Fun Facts
 * 🐞 Found a bug? Create an [issue](https://github.com/Siberpone/lazy-pony-prompter/issues).
 * 💬 Want to request a feature or have suggestions on how to improve the extension? Open up a [discussion](https://github.com/Siberpone/lazy-pony-prompter/discussions).
 * You can see the latest additions to LPP in the [Changelog](CHANGELOG.md).
@@ -221,10 +227,10 @@ To further personalize your queries you can provide LPP with your personal Derpi
 * LPP works best with images with high upvote/score count as those tend to be the most fully and properly tagged.
 * LPP overrides webui prompts processing completely and, thus, not compatible with dynamic prompting extensions (you don't have to uninstall them or anything, just don't run them simultaneously with LPP).
 * LPP is very light on traffic since it uses the website's API and only pulls necessary text data and not the actual webpages or images.
-* Your saved prompts are stored in `tag_cache.dat` file in the root extension directory.
+* Use Export prompts and filters feature to create backups of your locally stored data or share it with friends!
 * Useful links:
-    * [purplesmart.ai](https://purplesmart.ai) aka PSAI - V5 creators website with gallery and prompt examples.
-    * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V5 bot.
+    * [CivitAI](https://civitai.com/) - *the* AI art website. And [small magical horses themed art](https://civitai.com/user/Siberpone/posts) by yours truly on the aforementioned website ;)
+    * [purplesmart.ai](https://purplesmart.ai) aka PSAI - Pony Diffusion creators website with gallery and prompt examples.
+    * [PSAI Discord server](http://discord.gg/94KqBcE) - poni AI discussion, help, tech support and free V6 bot.
     * [EasyFluff](https://civitai.com/models/129996/easyfluff)
-    * [Stable Diffusion Guides Collection](https://rentry.org/sdgoldmine)
 * 🐎 Please, poni responsibly 🐴🦄🪶.
