@@ -21,7 +21,13 @@ class Derpibooru(TagSourceBase):
         self.__ratings = config["ratings"]
         self.__character_tags = set(config["character_tags"])
         self.__species_tags = set(config["species_tags"])
-        self.__meta_tags = set(config["meta_tags"])
+        self.__meta_tags = set()
+        self.__meta_tags_glob = set()
+        for pattern in config["meta_tags"]:
+            if any(x in pattern for x in ["*", "[", "?"]):
+                self.__meta_tags_glob.add(pattern)
+            else:
+                self.__meta_tags.add(pattern)
         self.filter = FilterData.from_list(config["filtered_tags"])
 
     @attach_query_param("filter_type", "Derpibooru Filter")
@@ -104,8 +110,8 @@ class Derpibooru(TagSourceBase):
             if tag in self.__species_tags:
                 species.append(tag)
                 continue
-            # TODO: Add glob_match
-            if tag in self.__meta_tags:
+            if (tag in self.__meta_tags
+                    or FilterData.glob_match(tag, *self.__meta_tags_glob)):
                 meta.append(tag)
                 continue
             if tag.startswith("artist:"):
