@@ -612,8 +612,8 @@ class Scripts(scripts.Script):
                 "51e44370f4": Models.PDV56.value,   # PD V5
                 "821628644e": Models.EF.value,      # EasyFluff V11.2
                 "461c3bbd5c": Models.SEAART.value,  # SeaArt Furry v1.0
-                "821aa5537f": Models.ANIME.value,   # AutismMix_pony
-                "ac006fdd7e": Models.ANIME.value,   # AutismMix_confetti
+                "821aa5537f": Models.PDV56.value,   # AutismMix_pony
+                "ac006fdd7e": Models.PDV56.value,   # AutismMix_confetti
             }
             if p.sd_model_hash not in model_hashes:
                 prompts_format = Models.PDV56.value
