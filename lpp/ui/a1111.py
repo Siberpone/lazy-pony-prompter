@@ -1,9 +1,8 @@
 from lpp.prompts import PromptPool, Prompts
 from lpp.data import TagData, FilterData, Ratings, CacheManager, FiltersManager
-from lpp.log import get_logger
+from lpp.log import get_logger, LppMessageService, DefaultLppMessageService
 from lpp.sources.common import TagSourceBase
 from lpp.sources.utils import get_sources
-from lpp.utils import LppMessageService, DefaultLppMessageService
 
 logger = get_logger()
 

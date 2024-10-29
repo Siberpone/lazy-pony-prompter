@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import logging
 
 __logger = None
@@ -27,3 +28,27 @@ def get_logger() -> logging.Logger:
     else:
         __logger = __init_logger()
         return __logger
+
+
+class LppMessageService(ABC):
+    @abstractmethod
+    def info(self, message: str): pass
+
+    @abstractmethod
+    def warning(self, message: str): pass
+
+    @abstractmethod
+    def error(self, message: str): pass
+
+
+class DefaultLppMessageService(LppMessageService):
+    logger = get_logger()
+
+    def info(self, message: str) -> None:
+        self.logger.info(message)
+
+    def warning(self, message: str) -> None:
+        self.logger.warning(message)
+
+    def error(self, message: str) -> None:
+        self.logger.error(message)
