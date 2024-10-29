@@ -3,6 +3,8 @@ from lpp.data import TagData, FilterData, Ratings, CacheManager, FiltersManager
 from lpp.log import get_logger, LppMessageService, DefaultLppMessageService
 from lpp.sources.common import TagSourceBase
 from lpp.sources.utils import get_sources
+import json
+import tempfile
 
 logger = get_logger()
 
@@ -194,3 +196,39 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
             self.__messenger.warning(repr(e))
         except Exception:
             logger.exception("An error occured when trying to choose prompts.")
+
+    def try_export_json(self):
+        try:
+            payload = {
+                "version": "1.0.0",
+                "prompts": self.__cache_manager.export_data(),
+                "filters": self.__filters_manager.export_data()
+            }
+
+            with tempfile.NamedTemporaryFile(
+                "w+t", delete=False, suffix=".json"
+            ) as tmp:
+                json.dump(payload, tmp)
+            return tmp.name
+        except Exception:
+            logger.exception("An error occured when trying to export prompts.")
+
+    def try_import_json(self, temp_file_obj: str) -> None:
+        try:
+            with open(temp_file_obj.name, "r") as f:
+                data = json.load(f)
+            total_prompts = len(data["prompts"])
+            total_filters = len(data["filters"])
+            imported_prompts = self.__cache_manager.import_data(data["prompts"])
+            imported_filters = self.__filters_manager.import_data(data["filters"])
+            hint = " (some prompts/filters may have failed to import due to naming conflicts)"\
+                if total_prompts != imported_prompts or total_filters != imported_filters\
+                else ""
+            self.__messenger.info(
+                f"Imported {imported_prompts}/{total_prompts} prompts and {imported_filters}/{total_filters} filters{hint}"
+            )
+            return True
+
+        except Exception:
+            logger.exception("An error occured when trying to import prompts.")
+            return False

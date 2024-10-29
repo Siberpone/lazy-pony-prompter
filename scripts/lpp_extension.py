@@ -394,6 +394,18 @@ class Scripts(scripts.Script):
                         )
                         fe_dialog_panel, fe_dialog_msg = fe_dialog.ui()
                         with FormRow():
+                            import_export_panel = gr.File(
+                                label="Prompts & filters import/export",
+                                file_count="single",
+                                file_types=[".json"],
+                                interactive=True,
+                            )
+
+                        with FormRow():
+                            export_btn = gr.Button(
+                                value="Export Prompts and Filters"
+                            )
+                        with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
                                 gr.Markdown(r"""
 * patterns are separated with new lines
@@ -597,6 +609,29 @@ class Scripts(scripts.Script):
                 [fe_filter_name],
                 [fe_dialog_panel, fe_dialog_msg],
                 show_progress="hidden"
+            )
+
+            # Import Export Panel ---------------------------------------------
+            export_btn.click(
+                lpp.try_export_json,
+                [],
+                [import_export_panel]
+            )
+
+            def import_export_upload(temp_file_obj):
+                if lpp.try_import_json(temp_file_obj):
+                    return (
+                        gr.update(choices=lpp.prompt_collections),
+                        gr.update(choices=lpp.filters),
+                        gr.update(choices=lpp.filters)
+                    )
+                else:
+                    return (gr.update() * 3)
+
+            import_export_panel.upload(
+                import_export_upload,
+                [import_export_panel],
+                [prompts_manager_input, filters, fe_filter_name]
             )
         return [lpp_enable, prompts_format, rating_filter, quick_filter, filters]
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, asdict
 from lpp.log import get_logger
 from os import path
 import enum
@@ -160,6 +160,14 @@ class LppDataManager(ABC):
     def save_item(self, name: str, data: object, *args) -> None:
         pass
 
+    @abstractmethod
+    def export_data(self) -> dict[str:object]:
+        pass
+
+    @abstractmethod
+    def import_data(self, data: dict[str:object]) -> int:
+        pass
+
     def get_item_names(self, selector: callable = None) -> list[str]:
         if selector:
             return [k for k, v in self._data.items() if selector(k, v)]
@@ -188,6 +196,17 @@ class CacheManager(LppDataManager):
         self._data[name] = new_item
         self._dump_cache()
 
+    def export_data(self) -> dict[str:dict[str:object]]:
+        return {k: asdict(v) for k, v in self._data.items()}
+
+    def import_data(self, data: dict[str:dict[str:object]]) -> int:
+        success_count = 0
+        for name, item in data.items():
+            if name not in self._data:
+                self.save_item(name, TagData(**item))
+                success_count += 1
+        return success_count
+
 
 class FiltersManager(LppDataManager):
     def __init__(self, work_dir: str = "."):
@@ -200,10 +219,13 @@ class FiltersManager(LppDataManager):
         self._data[name] = new_item
         self._dump_cache()
 
-    def import_filters(self, filters: dict[str:FilterData]) -> int:
-        count = 0
-        for name, lpp_filter in filters.items():
-            if name not in self._data.keys():
-                self.save_item(name, lpp_filter)
-                count += 1
-        return count
+    def export_data(self) -> dict[str:str]:
+        return {k: str(v) for k, v in self._data.items()}
+
+    def import_data(self, data: dict[str:str]) -> int:
+        success_count = 0
+        for name, item in data.items():
+            if name not in self._data:
+                self.save_item(name, FilterData.from_string(item))
+                success_count += 1
+        return success_count
