@@ -1,5 +1,6 @@
-from lpp.a1111 import LPP_A1111, DefaultLppMessageService
-from lpp.utils import Models, FilterData
+from lpp.ui.a1111 import LPP_A1111
+from lpp.data import Models, FilterData, Ratings
+from lpp.log import DefaultLppMessageService
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -25,7 +26,7 @@ saved_prompt_collections = []
 
 def refresh_saved_collections():
     global saved_prompt_collections
-    saved_prompt_collections = ["None"] + lpp.saved_collections_names
+    saved_prompt_collections = ["None"] + lpp.prompt_collections
 
 
 def on_ui_settings():
@@ -40,7 +41,7 @@ def on_ui_settings():
                 "None",
                 "Load this collection on startup",
                 gr.Dropdown,
-                lambda: {"choices": ["None"] + lpp.saved_collections_names},
+                lambda: {"choices": ["None"] + lpp.prompt_collections},
                 refresh=refresh_saved_collections
             ),
         "lpp_logging_level":
@@ -204,103 +205,50 @@ class FilterEditor:
 
 
 @dataclass
-class QueryPanelData:
-    panel: object
-    send_btn: object
-    params: list
+class QueryPanel:
+    panel: gr.Group
+    send_btn: gr.Button
+    params: list[object]
 
 
-class QueryPanels:
-    __PROMPTS_MIN = 5
-    __PROMPTS_MAX = 1500
-    __PROMPTS_STEP = 5
-    __PROMPTS_DEFAULT = 100
-
-    @staticmethod
-    def Derpibooru(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
-        NAME = "Derpibooru"
+def get_query_panels(active_panel_name: str):
+    panels = {}
+    for name, source in lpp.sources.items():
         with FormGroup(
-            visible=(active_panel_name == NAME)
+            visible=(active_panel_name == name)
         ) as panel:
             gr.Markdown(
-                "[🔗 Syntax Help](https://derpibooru.org/pages/search_syntax)")
+                f"[🔗 {name} Syntax Help]({source.syntax_help_url})")
             with FormRow():
                 query = gr.Textbox(
-                    placeholder="Derpibooru query or image URL",
+                    placeholder=source.query_hint,
                     show_label=False
                 )
             with FormRow():
                 with FormColumn():
                     prompts_count = gr.Slider(
                         label="Number of Prompts to Load",
-                        minimum=QueryPanels.__PROMPTS_MIN,
-                        maximum=QueryPanels.__PROMPTS_MAX,
-                        step=QueryPanels.__PROMPTS_STEP,
-                        value=QueryPanels.__PROMPTS_DEFAULT
+                        minimum=5,
+                        maximum=1500,
+                        step=5,
+                        value=100
                     )
                 with FormColumn():
                     with FormRow():
-                        filter_type = gr.Dropdown(
-                            label="Derpibooru Filter",
-                            choices=lpp.sources[NAME].get_filters()
-                        )
-                        filter_type.value = filter_type.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
+                        extra_controls = []
+                        for p, get_values_func in source.extra_query_params.items():
+                            control = gr.Dropdown(
+                                label=get_values_func.display_name,
+                                choices=get_values_func(),
+                                value=get_values_func()[0]
+                            )
+                            extra_controls.append(control)
             with FormRow():
                 send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, filter_type, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, filter_type, sort_type]
-            )
-
-    @staticmethod
-    def E621(active_panel_name: str, lpp: LPP_A1111) -> QueryPanelData:
-        NAME = "E621"
-        with FormGroup(
-            visible=(active_panel_name == NAME)
-        ) as panel:
-            gr.Markdown(
-                "[🔗 Syntax Help](https://e621.net/help/cheatsheet)")
-            with FormRow():
-                query = gr.Textbox(
-                    placeholder="E621 query or image URL",
-                    show_label=False
-                )
-            with FormRow():
-                with FormColumn():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=QueryPanels.__PROMPTS_MIN,
-                        maximum=QueryPanels.__PROMPTS_MAX,
-                        step=QueryPanels.__PROMPTS_STEP,
-                        value=QueryPanels.__PROMPTS_DEFAULT
-                    )
-                with FormColumn():
-                    with FormRow():
-                        rating = gr.Dropdown(
-                            label="Rating",
-                            choices=lpp.sources[NAME].get_ratings()
-                        )
-                        rating.value = rating.choices[0]
-                        sort_type = gr.Dropdown(
-                            label="Sort by",
-                            choices=lpp.sources[NAME].get_sort_options()
-                        )
-                        sort_type.value = sort_type.choices[0]
-            with FormRow():
-                send_btn = gr.Button(value="Send")
-            set_no_config(query, prompts_count, rating, sort_type)
-            return QueryPanelData(
-                panel,
-                send_btn,
-                [query, prompts_count, rating, sort_type]
-            )
+            controls = [query, prompts_count] + extra_controls
+            set_no_config(*controls)
+            panels[name] = QueryPanel(panel, send_btn, controls)
+    return panels
 
 
 class Scripts(scripts.Script):
@@ -323,9 +271,7 @@ class Scripts(scripts.Script):
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
             with lpp_enable.extra():
-                status_bar = gr.HTML(
-                    lpp.status, elem_id="lpp-status-bar", container=False
-                )
+                status_bar = gr.HTML(lpp.status, elem_id="lpp-status-bar")
 
             # Prompts Manager #################################################
             with gr.Tab("Prompts Manager"):
@@ -335,7 +281,7 @@ class Scripts(scripts.Script):
                         with FormRow():
                             prompts_manager_input = gr.Dropdown(
                                 label="Prompts Collection Name",
-                                choices=lpp.saved_collections_names,
+                                choices=lpp.prompt_collections,
                                 allow_custom_value=True
                             )
                             prompts_info_btn = ToolButton("📋")
@@ -343,7 +289,7 @@ class Scripts(scripts.Script):
                             load_prompts_btn = ToolButton("📤")
                             delete_prompts_btn = ToolButton("❌")
 
-                        prompts_manager_metadata = gr.JSON(
+                        prompts_manager_metadata = gr.Markdown(
                             label="Prompts Info",
                             show_label=True,
                             render=False
@@ -351,25 +297,28 @@ class Scripts(scripts.Script):
                         pm_dialog = ConfirmationDialog(
                             lambda name: [
                                 gr.Dropdown.update(
-                                    choices=list(lpp.saved_collections_names),
+                                    choices=lpp.prompt_collections,
                                     value=name
                                 ),
-                                gr.JSON.update(
-                                    lpp.try_get_tag_data_json(name)
+                                gr.update(
+                                    value=lpp.try_get_tag_data_markdown(name)
                                 )
                             ],
                             [prompts_manager_input, prompts_manager_metadata]
                         )
                         pm_dialog_panel, pm_dialog_msg = pm_dialog.ui()
 
-                        with FormRow(visible=False) as prompts_info_panel:
+                        with FormRow(visible=False, variant="panel") as prompts_info_panel:
                             prompts_manager_metadata.render()
                         with FormRow():
-                            models = lpp.get_model_names(lpp.tag_data.source)\
-                                if lpp.tag_data else []
+                            models = ["Auto"]
+                            if lpp.tag_data:
+                                source = lpp.sources[lpp.tag_data.source]
+                                models += source.supported_models
+
                             prompts_format = gr.Dropdown(
                                 label="Prompts Format",
-                                choices=["Auto"] + models,
+                                choices=models,
                                 value="Auto",
                                 scale=8
                             )
@@ -392,13 +341,7 @@ class Scripts(scripts.Script):
                                     value=lambda: lpp.source_names[0],
                                     elem_id="lpp-chbox-group"
                                 )
-                                for attr in [
-                                    x for x in dir(QueryPanels) if not x.startswith("_")
-                                ]:
-                                    query_panel = getattr(QueryPanels, attr)
-                                    self.query_panels[query_panel.__name__] = query_panel(
-                                        source.value, lpp
-                                    )
+                                self.query_panels = get_query_panels(source.value)
 
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
@@ -420,7 +363,7 @@ class Scripts(scripts.Script):
                         with FormRow():
                             rating_filter = gr.CheckboxGroup(
                                 label="Rating Filter",
-                                choices=["Safe", "Questionable", "Explicit"],
+                                choices=[x.value for x in Ratings],
                                 value="Safe",
                                 elem_id="lpp-chbox-group"
                             )
@@ -451,8 +394,16 @@ class Scripts(scripts.Script):
                         )
                         fe_dialog_panel, fe_dialog_msg = fe_dialog.ui()
                         with FormRow():
-                            fe_legacy_filters_btn = gr.Button(
-                                "Import Legacy Filters"
+                            import_export_panel = gr.File(
+                                label="Prompts & filters import/export",
+                                file_count="single",
+                                file_types=[".json"],
+                                interactive=True,
+                            )
+
+                        with FormRow():
+                            export_btn = gr.Button(
+                                value="Export Prompts and Filters"
                             )
                         with FormRow():
                             with gr.Accordion("cheatsheet", open=False):
@@ -482,7 +433,7 @@ class Scripts(scripts.Script):
             # Prompt Manager Event Handlers ###################################
             # Send Query Buttons
             def send_request_click(source, prompts_format, *params):
-                models = ["Auto"] + lpp.get_model_names(source)
+                models = ["Auto"] + lpp.sources[source].supported_models
                 lpp.try_send_request(source, *params)
                 return (
                     lpp.status,
@@ -535,7 +486,7 @@ class Scripts(scripts.Script):
                     lambda: lpp.try_save_prompts(name, filters),
                     name
                 )
-                if name in lpp.saved_collections_names:
+                if name in lpp.prompt_collections:
                     return (
                         gr.update(),
                         gr.update(),
@@ -546,9 +497,9 @@ class Scripts(scripts.Script):
                     lpp.try_save_prompts(name, filters)
                     return (
                         gr.Dropdown.update(
-                            choices=lpp.saved_collections_names
+                            choices=lpp.prompt_collections
                         ),
-                        gr.update(value=lpp.try_get_tag_data_json(name)),
+                        gr.update(value=lpp.try_get_tag_data_markdown(name)),
                         "", gr.update(visible=False)
                     )
 
@@ -566,7 +517,7 @@ class Scripts(scripts.Script):
                 filters_update = gr.update()
                 if lpp.tag_data:
                     source = lpp.tag_data.source
-                    models = ["Auto"] + lpp.get_model_names(source)
+                    models = ["Auto"] + lpp.sources[source].supported_models
                     models_update = gr.update(
                         choices=models,
                         value=current_model if current_model in models
@@ -606,7 +557,7 @@ class Scripts(scripts.Script):
 
             # Load Prompts Dropdown Change
             prompts_manager_input.change(
-                lambda n: lpp.try_get_tag_data_json(n),
+                lambda n: lpp.try_get_tag_data_markdown(n),
                 [prompts_manager_input],
                 [prompts_manager_metadata],
                 show_progress="hidden"
@@ -660,16 +611,27 @@ class Scripts(scripts.Script):
                 show_progress="hidden"
             )
 
-            # Import Legacy Filters Button ------------------------------------
-            def fe_legacy_filters_click():
-                lpp.import_legacy_filters()
-                return (gr.update(choices=lpp.filters),
-                        gr.update(choices=lpp.filters))
+            # Import Export Panel ---------------------------------------------
+            export_btn.click(
+                lpp.try_export_json,
+                [],
+                [import_export_panel]
+            )
 
-            fe_legacy_filters_btn.click(
-                fe_legacy_filters_click,
-                None,
-                [filters, fe_filter_name]
+            def import_export_upload(temp_file_obj):
+                if lpp.try_import_json(temp_file_obj):
+                    return (
+                        gr.update(choices=lpp.prompt_collections),
+                        gr.update(choices=lpp.filters),
+                        gr.update(choices=lpp.filters)
+                    )
+                else:
+                    return (gr.update() * 3)
+
+            import_export_panel.upload(
+                import_export_upload,
+                [import_export_panel],
+                [prompts_manager_input, filters, fe_filter_name]
             )
         return [lpp_enable, prompts_format, rating_filter, quick_filter, filters]
 
@@ -683,7 +645,10 @@ class Scripts(scripts.Script):
                 "67ab2fd8ec": Models.PDV56.value,   # PD V6 XL
                 "6fdb703d7d": Models.PDV56.value,   # PD V5.5
                 "51e44370f4": Models.PDV56.value,   # PD V5
-                "821628644e": Models.EF.value       # EasyFluff V11.2
+                "821628644e": Models.EF.value,      # EasyFluff V11.2
+                "461c3bbd5c": Models.SEAART.value,  # SeaArt Furry v1.0
+                "821aa5537f": Models.PDV56.value,   # AutismMix_pony
+                "ac006fdd7e": Models.PDV56.value,   # AutismMix_confetti
             }
             if p.sd_model_hash not in model_hashes:
                 prompts_format = Models.PDV56.value
@@ -694,9 +659,16 @@ class Scripts(scripts.Script):
         filters = lpp.get_filters(filter_names)
         if quick_filter:
             filters += [FilterData.from_string(quick_filter, ",")]
-        p.all_prompts = lpp.try_choose_prompts(
-            prompts_format, p.prompt, n_images, None, allowed_ratings, filters
-        )
+
+        chosen_prompts = lpp.try_choose_prompts(n_images, allowed_ratings)
+        p.all_prompts = chosen_prompts\
+            .apply_formatting(prompts_format)\
+            .extra_tag_formatting(
+                lambda x: x.filter(*filters).escape_parentheses()
+            )\
+            .apply_template(prompts_format, p.prompt)\
+            .sanitize()\
+            .as_list()
 
         p.all_prompts = [
             shared.prompt_styles.apply_styles_to_prompt(x, p.styles)

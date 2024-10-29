@@ -1,0 +1,48 @@
+{
+    "ratings": {
+        "lookup": {
+            "None": "",
+            "General": "rating:g",
+            "Sensitive": "rating:s",
+            "Questionable": "rating:q",
+            "Explicit": "rating:e"
+        },
+        "pdv5": {
+            "g": "rating_safe",
+            "s": "rating_questionable",
+            "q": "rating_questionable",
+            "e": "rating_explicit"
+        },
+        "lpp": {
+            "g": "Safe",
+            "s": "Questionable",
+            "q": "Questionable",
+            "e": "Explicit"
+        }
+    },
+    "sort_params": {
+        "None": "",
+        "Chronological": "order:id_desc",
+        "Score": "order:score",
+        "Faves": "order:favcount",
+        "Comments": "oreder:comment",
+        "Rank": "order:rank"
+    },
+    "filtered_tags": {
+        "general": [
+
+        ],
+        "character": [
+
+        ],
+        "copyright": [
+
+        ],
+        "artist": [
+
+        ],
+        "meta": [
+
+        ]
+    }
+}

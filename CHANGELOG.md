@@ -1,3 +1,13 @@
+### 2024-10-29
+
+**1.1.0** release
+* Added [Danbooru](https://danbooru.donmai.us) as tag source
+* Added support for [SeaArt Furry XL V1](https://civitai.com/models/391781/seaart-furry-xl-10) model
+* Import/Export functions for prompts and filters
+* Prompt info panel is now more compact and readable
+* Minor ComfyUI nodes improvements (notably: updater dummy is no longer needed)
+* Tons of refactoring and behind-the-scene improvements
+
 ### 2024-07-03
 
 **1.0.0 release**

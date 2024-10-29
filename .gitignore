@@ -5,5 +5,5 @@ __pycache__
 my_*.json
 auth/*
 cache*.json
-tag_cache.dat
+*.dat
 venv

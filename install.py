@@ -17,5 +17,5 @@ if __name__ == "__main__":
             except Exception as e:
                 print(e)
                 print(
-                    f'Warning: Failed to install {package}, some preprocessors may not work.'
+                    f'Warning: Failed to install {package}.'
                 )
