@@ -91,39 +91,27 @@ class Derpibooru(TagSourceBase):
             }
         )
 
-    def _convert_raw_tags(self, raw_tags: list[list[str]]) -> TagGroups:
-        rating = []
-        characters = []
-        species = []
-        artists = []
-        general = []
-        meta = []
+    def _convert_raw_tags(self, raw_tags: list[str]) -> TagGroups:
+        sorted_tags = {k: [] for k in TagGroups.get_categories()}
         for tag in raw_tags:
             if tag in self.__ratings["pdv5"]:
-                rating.append(self.__ratings["pdv5"][tag])
+                sorted_tags["rating"].append(self.__ratings["pdv5"][tag])
                 continue
             if tag in self.__character_tags or tag.startswith("oc:"):
-                characters.append(tag)
+                sorted_tags["character"].append(tag)
                 continue
             if tag in self.__species_tags:
-                species.append(tag)
+                sorted_tags["species"].append(tag)
                 continue
             if (tag in self.__meta_tags
                     or FilterData.glob_match(tag, *self.__meta_tags_glob)):
-                meta.append(tag)
+                sorted_tags["meta"].append(tag)
                 continue
             if tag.startswith("artist:"):
-                artists.append(tag[7:])
+                sorted_tags["artist"].append(tag[7:])
                 continue
-            general.append(tag)
-        return TagGroups(
-            characters,
-            species,
-            rating,
-            artists,
-            general,
-            meta
-        )
+            sorted_tags["general"].append(tag)
+        return TagGroups(**sorted_tags)
 
     def set_api_key(self, key: str):
         if not key:

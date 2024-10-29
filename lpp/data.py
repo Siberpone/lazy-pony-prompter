@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from lpp.log import get_logger
 from os import path
 import enum
@@ -26,6 +26,10 @@ class TagGroups:
     artist: list[str]
     general: list[str]
     meta: list[str]
+
+    @classmethod
+    def get_categories(cls) -> list[str]:
+        return [x.name for x in fields(cls)]
 
 
 class Models(enum.Enum):
