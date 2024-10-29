@@ -54,7 +54,7 @@ class TagSourceBase(ABC):
 
     def _send_api_request(
         self, endpoint: str, query_params: dict[str:str],
-        user_agent: str = "lazy-pony-prompter (by user Siberpone)/v1.0.0"
+        user_agent: str = "lazy-pony-prompter (by user Siberpone)/v1.1.0"
     ) -> dict[str:object]:
         TIMEOUTS = (6.1, 9.1)
         req = requests.get(
