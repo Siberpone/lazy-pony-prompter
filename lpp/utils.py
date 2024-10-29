@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from lpp.log import get_logger
 import os
 import json
-import fnmatch
 
 logger = get_logger()
 
@@ -27,10 +26,6 @@ class DefaultLppMessageService(LppMessageService):
 
     def error(self, message: str) -> None:
         logger.error(message)
-
-
-def glob_match(term: str, patterns: list[str]) -> bool:
-    return any([fnmatch.fnmatch(term, x) for x in patterns])
 
 
 def get_config(name: str, work_dir: str = "config") -> dict[str:object]:

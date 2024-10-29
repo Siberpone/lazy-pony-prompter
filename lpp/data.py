@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from lpp.log import get_logger
-from lpp.utils import glob_match
 from os import path
 import enum
+import fnmatch
 import pickle
 
 logger = get_logger()
@@ -97,11 +97,18 @@ class FilterData:
             patterns += filter.patterns
         return FilterData(substitutions, patterns)
 
-    def match_subst(self, term: str) -> bool:
-        return glob_match(term, self.substitutions.keys())
+    @staticmethod
+    def glob_match(term: str, *patterns: str) -> bool:
+        return any([fnmatch.fnmatch(term, x) for x in patterns])
+
+    def match_subst(self, term: str) -> str:
+        for pattern, substitution in self.substitutions.items():
+            if FilterData.glob_match(term, pattern):
+                return substitution
+        return None
 
     def match(self, term: str) -> bool:
-        return glob_match(term, self.patterns)
+        return FilterData.glob_match(term, *self.patterns)
 
 
 # HACK: Since "TagData" and "FilterData" were moved to a new module, they won't

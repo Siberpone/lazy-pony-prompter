@@ -129,8 +129,9 @@ class Tags:
         for group, tags in self.__tag_groups.items():
             filtered_tags[group] = []
             for tag in tags:
-                if joint_filter.match_subst(tag):
-                    filtered_tags[group].append(joint_filter.substitutions[tag])
+                subst = joint_filter.match_subst(tag)
+                if subst:
+                    filtered_tags[group].append(subst)
                     continue
                 if not joint_filter.match(tag):
                     filtered_tags[group].append(tag)
