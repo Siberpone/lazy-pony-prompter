@@ -1,10 +1,8 @@
 from lpp.sources.common import TagSourceBase, Tags, formatter, default_formatter, attach_query_param
 from lpp.data import TagData, TagGroups, Models, FilterData
-from lpp.utils import get_config
 from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 from tqdm import trange
 import time
-import os
 import re
 
 
@@ -15,7 +13,7 @@ class Derpibooru(TagSourceBase):
                                "Derpibooru query or image URL",
                                work_dir)
         self.__api_key = None
-        config = get_config("derpi", os.path.join(self._work_dir, "config"))
+        config = self._get_config()
         self.__filter_ids = config["filter_ids"]
         self.__sort_params = config["sort_params"]
         self.__ratings = config["ratings"]

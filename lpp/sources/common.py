@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from lpp.data import TagData, TagGroups, FilterData
 from dataclasses import asdict
 import requests
+import os
+import json
 
 
 def formatter(model_name: str) -> callable:
@@ -63,6 +65,13 @@ class TagSourceBase(ABC):
         )
         req.raise_for_status()
         return req.json()
+
+    def _get_config(self) -> dict[str:object]:
+        name = self.__class__.__name__.lower()
+        config_file = os.path.join(self._work_dir, "config", f"{name}.json")
+        with open(config_file) as f:
+            config_entry = json.load(f)
+        return config_entry
 
     @property
     def supported_models(self) -> list[str]:

@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from lpp.log import get_logger
-import os
-import json
 
 logger = get_logger()
 
@@ -26,10 +24,3 @@ class DefaultLppMessageService(LppMessageService):
 
     def error(self, message: str) -> None:
         logger.error(message)
-
-
-def get_config(name: str, work_dir: str = "config") -> dict[str:object]:
-    config_file = os.path.join(work_dir, f"{name}.json")
-    with open(config_file) as f:
-        config_entry = json.load(f)
-    return config_entry
