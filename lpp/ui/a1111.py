@@ -200,7 +200,7 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
     def try_export_json(self):
         try:
             payload = {
-                "version": "1.1.0",
+                "version": "1.1.1",
                 "prompts": self.__cache_manager.export_data(),
                 "filters": self.__filters_manager.export_data()
             }
