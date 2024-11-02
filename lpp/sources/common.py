@@ -69,7 +69,7 @@ class TagSourceBase(ABC):
     def _get_config(self) -> dict[str:object]:
         name = self.__class__.__name__.lower()
         config_file = os.path.join(self._work_dir, "config", f"{name}.json")
-        with open(config_file) as f:
+        with open(config_file, encoding="utf-8") as f:
             config_entry = json.load(f)
         return config_entry
 
