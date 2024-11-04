@@ -109,3 +109,11 @@ class Danbooru(TagSourceBase):
             .filter(self.filter)\
             .replace_underscores(exclude=["rating"])\
             .as_tag_groups()
+
+    @formatter(Models.NOOBAI.value)
+    def noobai_fomat(self, raw_image_tags: dict[str:list[str]]) -> TagGroups:
+        return Tags(self._convert_raw_tags(raw_image_tags))\
+            .select("character", "general", "artist", "meta")\
+            .filter(self.filter)\
+            .replace_underscores()\
+            .as_tag_groups()

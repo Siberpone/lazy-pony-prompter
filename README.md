@@ -35,6 +35,7 @@ E621 + [EasyFluff](https://civitai.com/models/129996/easyfluff) samples:
 * One of recommended models (these are the "officially" supported models, but LPP should work well for other tag-based models as long as their "native" booru is used as tag source):
   * [Pony Diffusion V6 XL](https://civitai.com/models/257749?modelVersionId=290640);
   * [Pony Diffusion V5(.5)](https://civitai.com/models/95367/pony-diffusion-v5);
+  * [NoobAI v1.0](https://civitai.com/models/833294/noobai-xl-nai-xl)
   * [EasyFluff](https://civitai.com/models/129996/easyfluff);
   * [SeaArt Furry XL V1](https://civitai.com/models/391781/seaart-furry-xl-10);
   * [AutismMix](https://civitai.com/models/288584);

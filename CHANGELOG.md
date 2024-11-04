@@ -1,3 +1,7 @@
+### 2024-11-04
+
+* Added support for [NoobAI v1.0](https://civitai.com/models/833294/noobai-xl-nai-xl) model
+
 ### 2024-10-29
 
 **1.1.0** release

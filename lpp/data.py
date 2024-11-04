@@ -37,14 +37,16 @@ class Models(enum.Enum):
     EF = "EasyFluff"
     SEAART = "SeaArt Furry v1.0"
     ANIME = "Generic Anime"
+    NOOBAI = "NoobAI XL v1.0"
 
     def get_default_template(model: str) -> str:
         if model == Models.SEAART.value:
             return "{species}, {character}, {artist}, {general}, {meta}"
         if model == Models.ANIME.value:
             return "{character}, {general}, {artist}, {meta}"
-        else:
-            return "{rating}, {character}, {species}, {artist}, {general}, {meta}"
+        if model == Models.NOOBAI.value:
+            return "{character}, {meta}, {artist}, {species}, {general}"
+        return "{rating}, {character}, {species}, {artist}, {general}, {meta}"
 
 
 class Ratings(enum.Enum):
