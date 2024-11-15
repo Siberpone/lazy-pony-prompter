@@ -1,5 +1,5 @@
 from lpp.sources.common import TagSourceBase, Tags, formatter, default_formatter, attach_query_param
-from lpp.data import TagData, TagGroups, Models, FilterData
+from lpp.data import TagData, TagGroups, Models, FilterData, ImageData
 from tqdm import trange
 import re
 import time
@@ -82,6 +82,49 @@ class Danbooru(TagSourceBase):
             processed_response[:count],
             {}
         )
+
+    def request_image_data(self,
+                           query: str,
+                           page: int = 1,
+                           rating: str = None,
+                           sort_type: str = None) -> list[ImageData]:
+        ENDPOINT = "https://danbooru.donmai.us/posts.json"
+        PER_PAGE_MAX = 12
+
+        image_id = re.search(
+            r"/^(?:https?:\/\/)?(?:danbooru\.donmai\.us\/posts\/)?(\d+)(\?.*)?$", query
+        )
+        if image_id:
+            query = f"id:{image_id.groups(0)[0]}"
+
+        p_rating = self.__ratings["lookup"][rating] if rating \
+            and rating in self.__ratings["lookup"] else None
+        p_sort = self.__sort_params[sort_type] if sort_type \
+            and sort_type in self.__sort_params else None
+        p_query = " ".join(x for x in [query, p_rating, p_sort] if x)
+        query_params = {
+            "tags": p_query + " -webm -animated",
+            "page": page,
+            "limit":  PER_PAGE_MAX
+        }
+
+        posts = self._send_api_request(ENDPOINT, query_params)
+        return [
+            ImageData(
+                x["id"],
+                {
+                    "general": x["tag_string_general"].split(" "),
+                    "artist": x["tag_string_artist"].split(" "),
+                    "rating": x["rating"],
+                    "character": x["tag_string_character"].split(" "),
+                    "meta": x["tag_string_meta"].split(" ")
+                    + x["tag_string_copyright"].split(" ")
+                },
+                x["file_url"],
+                x["preview_file_url"],
+                self.__class__.__name__
+            ) for x in posts
+        ]
 
     def _convert_raw_tags(self, raw_tags: dict[str:object]) -> TagGroups:
         return TagGroups(species=[], **raw_tags)

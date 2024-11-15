@@ -1,6 +1,7 @@
-from lpp.ui.a1111 import LPP_A1111
+from lpp.ui.a1111.controller import A1111_Controller
+from lpp.ui.a1111.utils import set_no_config, get_opt, A1111LppMessageService, ConfirmationDialog, FilterEditor
 from lpp.data import Models, FilterData, Ratings
-from lpp.log import DefaultLppMessageService
+from lpp.prompts import Prompts
 from dataclasses import dataclass
 from modules import scripts
 from modules import shared
@@ -12,16 +13,15 @@ import logging
 base_dir = scripts.basedir()
 
 
-def set_no_config(*args: object) -> None:
-    for control in args:
-        setattr(control, "do_not_save_to_config", True)
-
-
-def get_opt(option, default):
-    return getattr(shared.opts, option, default)
-
-
 saved_prompt_collections = []
+
+
+lpp: A1111_Controller = A1111_Controller(
+    base_dir,
+    get_opt("lpp_derpibooru_api_key", None),
+    get_opt("lpp_logging_level", None),
+    A1111LppMessageService()
+)
 
 
 def refresh_saved_collections():
@@ -78,142 +78,18 @@ def on_ui_settings():
 script_callbacks.on_ui_settings(on_ui_settings)
 
 
-class A1111LppMessageService(DefaultLppMessageService):
-    def __init__(self):
-        def modal_decorator(func, modal_func):
-            def inner(message):
-                func(self, message)
-                modal_func(f"[LPP] {message}")
-            return inner
-        self.info = modal_decorator(super().info.__func__, gr.Info)
-        self.warning = modal_decorator(super().warning.__func__, gr.Warning)
-        self.error = modal_decorator(super().error.__func__, gr.Error)
-
-
-lpp: LPP_A1111 = LPP_A1111(
-    base_dir,
-    get_opt("lpp_derpibooru_api_key", None),
-    get_opt("lpp_logging_level", None),
-    A1111LppMessageService()
-)
-
-
-class ConfirmationDialog:
-    def __init__(self, gradio_upd_func, gradio_outputs):
-        def action_decorator(func):
-            def inner():
-                self.__action()
-                ret = func(*self.__gradio_upd_func_args)
-                return (*ret, gr.update(visible=False))
-            return inner
-        self.__gradio_upd_func = action_decorator(gradio_upd_func)
-        self.__gradio_outputs = gradio_outputs
-
-    def set_action(self, action, *args):
-        self.__action = action
-        self.__gradio_upd_func_args = args
-
-    def ui(self):
-        with FormRow(variant="panel", visible=False) as dialog:
-            self.dialog = dialog
-            with FormColumn():
-                with FormRow():
-                    self.msg = gr.Markdown()
-                with FormRow():
-                    self.confirm_btn = gr.Button("Confirm", variant="stop")
-                    self.cancel_btn = gr.Button("Cancel")
-        self.confirm_btn.click(
-            self.__gradio_upd_func,
-            None,
-            self.__gradio_outputs + [self.dialog],
-            show_progress="hidden"
-        )
-        self.cancel_btn.click(
-            lambda: gr.update(visible=False),
-            None,
-            [self.dialog],
-            show_progress="hidden"
-        )
-        return self.dialog, self.msg
-
-
-class FilterEditor:
-    external_inputs = []  # ui components to update when saving a filter
-
-    def __init__(self):
-        self.current_text = ""
-
-    def ui(self):
-        with FormColumn(variant="panel", scale=1, min_width=300):
-            with FormRow():
-                self.filter_name = gr.Dropdown(
-                    label="Choose a filter to edit:",
-                    choices=lpp.filters
-                )
-                self.save_btn = ToolButton("💾")
-                self.refresh_btn = ToolButton("🗘")
-            with FormRow():
-                self.patterns_textarea = gr.Textbox(
-                    label="Filter Patterns",
-                    interactive=True,
-                    lines=7,
-                    max_lines=15
-                )
-
-        set_no_config(self.filter_name, self.patterns_textarea)
-
-        def filter_name_change(name):
-            filter_text = str(lpp.try_load_filter(name))
-            self.current_text = filter_text
-            return gr.update(value=filter_text)
-
-        self.filter_name.change(
-            filter_name_change,
-            [self.filter_name],
-            [self.patterns_textarea],
-            show_progress="hidden"
-        )
-
-        self.patterns_textarea.change(
-            lambda p: gr.update(label="Filter Patterns *(unsaved)")
-            if self.current_text != p else gr.update(label="Filter Patterns"),
-            [self.patterns_textarea],
-            [self.patterns_textarea],
-            show_progress="hidden"
-        )
-
-        def save_btn_click(name, patterns):
-            self.current_text = patterns
-            lpp.try_save_filter(name, FilterData.from_string(patterns))
-            return [gr.update(label="Filter Patterns")]\
-                + [gr.update(choices=lpp.filters)]\
-                * len(FilterEditor.external_inputs)
-
-        self.save_btn.click(
-            save_btn_click,
-            [self.filter_name, self.patterns_textarea],
-            [self.patterns_textarea, *FilterEditor.external_inputs],
-            show_progress="hidden"
-        )
-
-        self.refresh_btn.click(
-            lambda: gr.update(choices=lpp.filters),
-            [],
-            [self.filter_name],
-            show_progress="hidden"
-        )
-
-
 @dataclass
 class QueryPanel:
     panel: gr.Group
-    send_btn: gr.Button
+    buttons: dict[str:gr.Button]
     params: list[object]
 
 
-def get_query_panels(active_panel_name: str):
+def get_query_panels(active_panel_name: str, is_img2img: bool):
     panels = {}
     for name, source in lpp.sources.items():
+        controls = []
+        buttons = {}
         with FormGroup(
             visible=(active_panel_name == name)
         ) as panel:
@@ -224,34 +100,36 @@ def get_query_panels(active_panel_name: str):
                     placeholder=source.query_hint,
                     show_label=False
                 )
+                controls.append(query)
             with FormRow():
-                with FormColumn():
-                    prompts_count = gr.Slider(
-                        label="Number of Prompts to Load",
-                        minimum=5,
-                        maximum=1500,
-                        step=5,
-                        value=100
-                    )
+                if not is_img2img:
+                    with FormColumn():
+                        prompts_count = gr.Slider(
+                            label="Number of Prompts to Load",
+                            minimum=5,
+                            maximum=1500,
+                            step=5,
+                            value=100
+                        )
+                    controls.append(prompts_count)
                 with FormColumn():
                     with FormRow():
-                        extra_controls = []
                         for p, get_values_func in source.extra_query_params.items():
                             control = gr.Dropdown(
                                 label=get_values_func.display_name,
                                 choices=get_values_func(),
                                 value=get_values_func()[0]
                             )
-                            extra_controls.append(control)
+                            controls.append(control)
             with FormRow():
                 send_btn = gr.Button(value="Send")
-            controls = [query, prompts_count] + extra_controls
+                buttons["send"] = send_btn
             set_no_config(*controls)
-            panels[name] = QueryPanel(panel, send_btn, controls)
+            panels[name] = QueryPanel(panel, buttons, controls)
     return panels
 
 
-class Scripts(scripts.Script):
+class LPP_Txt2Img:
     def __init__(self):
         self.query_panels = {}
         self.prompt_info_visible = False
@@ -260,13 +138,7 @@ class Scripts(scripts.Script):
         if startup_collection != "None":
             lpp.try_load_prompts(startup_collection)
 
-    def title(self):
-        return "Lazy Pony Prompter"
-
-    def show(self, is_img2img):
-        return scripts.AlwaysVisible
-
-    def ui(self, is_img2img):
+    def ui(self):
         with InputAccordion(
                 value=False,
                 label="💤 Lazy Pony Prompter",) as lpp_enable:
@@ -341,7 +213,9 @@ class Scripts(scripts.Script):
                                     value=lambda: lpp.source_names[0],
                                     elem_id="lpp-chbox-group"
                                 )
-                                self.query_panels = get_query_panels(source.value)
+                                self.query_panels = get_query_panels(
+                                    source.value, False
+                                )
 
                     # Filtering Options Panel ---------------------------------
                     with FormColumn():
@@ -422,7 +296,7 @@ class Scripts(scripts.Script):
                     FilterEditor.external_inputs += [filters, fe_filter_name]
                     filter_editors = []
                     for i in range(get_opt("lpp_editors_count", 3)):
-                        filter_editors.append(FilterEditor())
+                        filter_editors.append(FilterEditor(lpp))
                         filter_editors[i].ui()
 
             # A1111 will cache ui control values in ui_config.json and "freeze"
@@ -445,7 +319,7 @@ class Scripts(scripts.Script):
                 )
 
             for panel in self.query_panels.values():
-                panel.send_btn.click(
+                panel.buttons["send"].click(
                     send_request_click,
                     [source, prompts_format, *panel.params],
                     [status_bar, prompts_format],
@@ -635,6 +509,177 @@ class Scripts(scripts.Script):
             )
         return [lpp_enable, prompts_format, rating_filter, quick_filter, filters]
 
+
+class LPP_Img2Img:
+    def __init__(self, prompt, image, width, height):
+        self.__prompt_tbox = prompt
+        self.__image_area = image
+        self.__width_slider = width
+        self.__height_slider = height
+        self.__image_data = None
+        self.__prev_query = None
+        self.__prev_source = None
+
+    def ui(self):
+        with gr.Accordion(
+            label="💤 Lazy Pony Prompter",
+            open=False
+        ):
+            with FormRow():
+                source = gr.Radio(
+                    label="Tags Source",
+                    choices=lpp.source_names,
+                    value=lambda: lpp.source_names[0],
+                    elem_id="lpp-chbox-group",
+                    scale=5
+                )
+                models = lpp.sources[lpp.source_names[0]].supported_models
+                prompts_format = gr.Dropdown(
+                    label="Prompts Format",
+                    choices=models,
+                    value=lambda: models[0],
+                    scale=3
+                )
+            with FormRow(variant="panel"):
+                self.query_panels = get_query_panels(
+                    source.value, True
+                )
+            with FormRow():
+                prev_btn = ToolButton("🡄 ")
+                page = gr.Number(
+                    label="Page",
+                    value=1,
+                    precision=0,
+                    show_label=True
+                )
+                next_btn = ToolButton("🡆")
+            with FormRow():
+                gallery = gr.Gallery(
+                    columns=4, allow_preview=False, interactive=False,
+                    label="Click image to send it to i2i"
+                )
+
+            def send_request_click(source, *query_params):
+                self.__image_data, thumbs = lpp.try_get_thumbs(
+                    source, 1, *query_params
+                )
+                if not self.__image_data:
+                    return [gr.update()] * 2
+
+                self.__prev_query = query_params
+                self.__prev_source = source
+                return (
+                    gr.update(value=1),
+                    gr.update(value=thumbs)
+                )
+
+            for panel in self.query_panels.values():
+                panel.buttons["send"].click(
+                    send_request_click,
+                    [source, *panel.params],
+                    [page, gallery]
+                )
+
+            def change_page_click(page_delta, current_page):
+                if not self.__prev_query:
+                    return [gr.update()] * 2
+
+                page_to_load = current_page + page_delta
+                self.__image_data, thumbs = lpp.try_get_thumbs(
+                    self.__prev_source, page_to_load, *self.__prev_query
+                )
+                if not self.__image_data:
+                    return [gr.update()] * 2
+
+                return (
+                    gr.update(value=page_to_load),
+                    gr.update(value=thumbs)
+                )
+
+            prev_btn.click(
+                lambda p: change_page_click(-1, p),
+                [page],
+                [page, gallery]
+            )
+            next_btn.click(
+                lambda p: change_page_click(1, p),
+                [page],
+                [page, gallery]
+            )
+            page.submit(
+                lambda p: change_page_click(0, p),
+                [page],
+                [page, gallery]
+            )
+
+            def gallery_select(evt: gr.SelectData, prompt_format):
+                if not evt.selected:
+                    return [gr.update()] * 2
+
+                img_data = self.__image_data[evt.index]
+                img = lpp.try_get_image(img_data)
+                if not img:
+                    return [gr.update()] * 2
+
+                prompt = Prompts([img_data.raw_tags], lpp.sources[img_data.source])\
+                    .apply_formatting(prompt_format)\
+                    .extra_tag_formatting(lambda x: x.escape_parentheses())\
+                    .apply_template(prompt_format)\
+                    .sanitize()\
+                    .first()
+                return (
+                    gr.update(value=img),
+                    gr.update(value=prompt)
+                )
+
+            gallery.select(
+                gallery_select,
+                [prompts_format],
+                [self.__image_area, self.__prompt_tbox]
+            )
+
+            source.change(
+                lambda s, f: [
+                    gr.update(
+                        visible=(s == x)
+                    ) for x in self.query_panels.keys()
+                ] + [
+                        gr.update(
+                            choices=lpp.sources[s].supported_models,
+                            value=f
+                            if f in lpp.sources[s].supported_models
+                            else lpp.sources[s].supported_models[0]
+                        )
+                    ],
+                [source, prompts_format],
+                [x.panel for x in self.query_panels.values()] + [prompts_format],
+                show_progress="hidden"
+            )
+            # A1111 will cache ui control values in ui_config.json and "freeze"
+            # them without this attribute.
+            set_no_config(source, prompts_format)
+
+            # We don't do any processing in i2i tab, so we just return dummy
+            # controls to instantly trigger guard clause in process(...)
+            dummy_controls = [gr.Checkbox(value=False, visible=False)] + \
+                [gr.HTML(visible=False)] * 4
+        return dummy_controls
+
+
+class Scripts(scripts.Script):
+    i2i_components = {}
+
+    def title(self):
+        return "Lazy Pony Prompter"
+
+    def show(self, is_img2img):
+        return scripts.AlwaysVisible
+
+    def ui(self, is_img2img):
+        if is_img2img:
+            return LPP_Img2Img(**self.i2i_components).ui()
+        return LPP_Txt2Img().ui()
+
     def process(self, p, enabled, prompts_format, allowed_ratings,
                 quick_filter, filter_names):
         if not enabled:
@@ -679,3 +724,13 @@ class Scripts(scripts.Script):
         if p.enable_hr:
             p.all_hr_prompts = p.all_prompts
             p.all_hr_negative_prompts = [p.negative_prompt] * n_images
+
+    def after_component(self, component, *args, **kwargs):
+        if kwargs.get("elem_id") == "img2img_prompt":
+            self.i2i_components["prompt"] = component
+        if kwargs.get("elem_id") == "img2img_image":
+            self.i2i_components["image"] = component
+        if kwargs.get("elem_id") == "img2img_width":
+            self.i2i_components["width"] = component
+        if kwargs.get("elem_id") == "img2img_height":
+            self.i2i_components["height"] = component

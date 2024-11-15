@@ -1,5 +1,5 @@
 from lpp.sources.common import TagSourceBase, Tags, formatter, default_formatter, attach_query_param
-from lpp.data import TagData, TagGroups, Models, FilterData
+from lpp.data import TagData, TagGroups, Models, FilterData, ImageData
 from tqdm import trange
 import re
 import time
@@ -75,6 +75,45 @@ class E621(TagSourceBase):
             raw_tags[:count],
             {}
         )
+
+    def request_image_data(self,
+                           query: str,
+                           page: int = 1,
+                           rating: str = None,
+                           sort_type: str = None) -> list[ImageData]:
+        ENDPOINT = "https://e621.net/posts.json"
+        PER_PAGE_MAX = 12
+
+        image_id = re.search(
+            r"^(?:https?:\/\/)?(?:e621\.net\/posts\/)?(\d+)(\?.*)?$", query
+        )
+        if image_id:
+            query = f"id:{image_id.groups(0)[0]}"
+
+        p_rating = self.__ratings["lookup"][rating] if rating \
+            and rating in self.__ratings["lookup"] else None
+        p_sort = self.__sort_params[sort_type] if sort_type \
+            and sort_type in self.__sort_params else None
+        p_query = " ".join(x for x in [query, p_rating, p_sort] if x)
+        query_params = {
+            "tags": p_query + " -webm -animated",
+            "page": page,
+            "limit": PER_PAGE_MAX
+        }
+
+        json_response = self._send_api_request(ENDPOINT, query_params)
+        posts = json_response["posts"]
+        for post in posts:
+            post["tags"]["rating"] = post["rating"]
+        return [
+            ImageData(
+                x["id"],
+                x["tags"],
+                x["file"]["url"],
+                x["preview"]["url"],
+                self.__class__.__name__
+            ) for x in posts
+        ]
 
     def _convert_raw_tags(self, raw_tags: dict[str:object]) -> TagGroups:
         return TagGroups(

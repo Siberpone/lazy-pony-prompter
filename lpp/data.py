@@ -56,6 +56,15 @@ class Ratings(enum.Enum):
 
 
 @dataclass
+class ImageData:
+    id: int
+    raw_tags: object
+    url: str
+    thumbnail_url: str
+    source: str
+
+
+@dataclass
 class FilterData:
     substitutions: dict[str:str]
     __patterns: dict[str:None]  # ordered set emulation

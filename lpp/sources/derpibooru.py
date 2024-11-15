@@ -1,5 +1,5 @@
 from lpp.sources.common import TagSourceBase, Tags, formatter, default_formatter, attach_query_param
-from lpp.data import TagData, TagGroups, Models, FilterData
+from lpp.data import TagData, TagGroups, Models, FilterData, ImageData
 from requests.exceptions import HTTPError, Timeout, ConnectionError, TooManyRedirects
 from tqdm import trange
 import time
@@ -90,6 +90,47 @@ class Derpibooru(TagSourceBase):
                 "sort_type": sort_type,
             }
         )
+
+    def request_image_data(self,
+                           query: str,
+                           page: int = 1,
+                           filter_type: str = None,
+                           sort_type: str = None) -> list[ImageData]:
+        ENDPOINT = "https://derpibooru.org/api/v1/json/search/images"
+        PER_PAGE_MAX = 12
+
+        image_id = re.search(
+            r"^(?:https?:\/\/)?(?:derpibooru\.org\/images\/)?(\d+)(\?.*)?$", query
+        )
+        if image_id:
+            query = f"id:{image_id.groups(0)[0]}"
+
+        query_params = {
+            "q": query + ", -webm, -animated",
+            "page": page,
+            "per_page": PER_PAGE_MAX
+        }
+        if self.__api_key is not None:
+            query_params["key"] = self.__api_key
+        if filter_type is not None and filter_type in self.__filter_ids.keys():
+            query_params["filter_id"] = self.__filter_ids[filter_type]
+        if sort_type is not None and sort_type in self.__sort_params.keys():
+            query_params["sf"] = self.__sort_params[sort_type]
+
+        json_response = self._send_api_request(ENDPOINT, query_params)
+
+        image_data = []
+        for image in json_response["images"]:
+            image_data.append(
+                ImageData(
+                    image["id"],
+                    image["tags"],
+                    image["representations"]["full"],
+                    image["representations"]["thumb"],
+                    self.__class__.__name__
+                )
+            )
+        return image_data
 
     def _convert_raw_tags(self, raw_tags: list[str]) -> TagGroups:
         sorted_tags = {k: [] for k in TagGroups.get_categories()}

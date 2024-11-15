@@ -1,7 +1,9 @@
 from lpp.log import get_logger
 from abc import ABC, abstractmethod
-from lpp.data import TagData, TagGroups, FilterData
+from lpp.data import TagData, TagGroups, FilterData, ImageData
 from dataclasses import asdict
+from PIL import Image
+from io import BytesIO
 import requests
 import os
 import json
@@ -32,6 +34,9 @@ def attach_query_param(name: str, display_name: str) -> callable:
 
 
 class TagSourceBase(ABC):
+    USER_AGENT = "lazy-pony-prompter (by user Siberpone)/v1.1.x"
+    TIMEOUTS = (15.1, 27.1)
+
     def __init__(self,
                  syntax_help_url: str = "",
                  query_hint: str = "",
@@ -53,15 +58,13 @@ class TagSourceBase(ABC):
                 self.extra_query_params[obj.attached_param] = obj
 
     def _send_api_request(
-        self, endpoint: str, query_params: dict[str:str],
-        user_agent: str = "lazy-pony-prompter (by user Siberpone)/v1.1.x"
+        self, endpoint: str, query_params: dict[str:str] = {}
     ) -> dict[str:object]:
-        TIMEOUTS = (9.1, 15.1)
         req = requests.get(
             endpoint,
             query_params,
-            timeout=TIMEOUTS,
-            headers={"User-Agent": user_agent}
+            timeout=self.TIMEOUTS,
+            headers={"User-Agent": self.USER_AGENT}
         )
         req.raise_for_status()
         return req.json()
@@ -84,6 +87,32 @@ class TagSourceBase(ABC):
     @abstractmethod
     def request_tags(self, query: str, count: int, *params: object) -> TagData:
         pass
+
+    @abstractmethod
+    def request_image_data(self,
+                           query: str,
+                           page: int = 1,
+                           *params: object
+                           ) -> list[ImageData]:
+        pass
+
+    def get_image(self, image_data: ImageData) -> Image:
+        req = requests.get(
+            image_data.url,
+            timeout=self.TIMEOUTS,
+            headers={"User-Agent": self.USER_AGENT}
+        )
+        req.raise_for_status()
+        return Image.open(BytesIO(req.content))
+
+    def get_thumbnail(self, image_data: ImageData) -> Image:
+        req = requests.get(
+            image_data.thumbnail_url,
+            timeout=self.TIMEOUTS,
+            headers={"User-Agent": self.USER_AGENT}
+        )
+        req.raise_for_status()
+        return Image.open(BytesIO(req.content))
 
     @abstractmethod
     def _convert_raw_tags(self, raw_tags: list[object]) -> TagGroups:

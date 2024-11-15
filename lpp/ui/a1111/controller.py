@@ -1,15 +1,17 @@
 from lpp.prompts import PromptPool, Prompts
-from lpp.data import TagData, FilterData, Ratings, CacheManager, FiltersManager
+from lpp.data import TagData, FilterData, Ratings, CacheManager, FiltersManager, ImageData
 from lpp.log import get_logger, LppMessageService, DefaultLppMessageService
 from lpp.sources.common import TagSourceBase
 from lpp.sources.utils import get_sources
+from multiprocessing.dummy import Pool
+from PIL import Image
 import json
 import tempfile
 
 logger = get_logger()
 
 
-class LPP_A1111:
+class A1111_Controller:
     def __init__(self, work_dir: str = ".",
                  derpi_api_key: str = None,
                  logging_level: object = None,
@@ -232,3 +234,28 @@ Safe: **{ratings[Ratings.SAFE.value]}** | Questionable: **{ratings[Ratings.QUEST
         except Exception:
             logger.exception("An error occured when trying to import prompts.")
             return False
+
+    def try_get_thumbs(self, source: TagSourceBase, page: int, *query_params: object) -> (object, str):
+        if page < 1:
+            self.__messenger.warning("Invalid page number.")
+            return None, None
+        try:
+            img_data = self.__sources[source].request_image_data(
+                query_params[0], page, *query_params[1:]
+            )
+            thumbs = Pool(4).map(self.__sources[source].get_thumbnail, img_data)
+            return img_data, zip(thumbs, [x.id for x in img_data])
+        except Exception:
+            logger.exception(
+                f"An error occured when trying to fetch thumbnails from {source}."
+            )
+            return None, None
+
+    def try_get_image(self, image_data: ImageData) -> Image:
+        try:
+            return self.sources[image_data.source].get_image(image_data)
+        except Exception:
+            logger.exception(
+                f"An error occured when trying to fetch image from {image_data.source}."
+            )
+            return None
