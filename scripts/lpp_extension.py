@@ -19,6 +19,7 @@ saved_prompt_collections = []
 lpp: A1111_Controller = A1111_Controller(
     base_dir,
     get_opt("lpp_derpibooru_api_key", None),
+    get_opt("lpp_tantabus_api_key", None),
     get_opt("lpp_logging_level", None),
     A1111LppMessageService()
 )
@@ -59,6 +60,12 @@ def on_ui_settings():
         "lpp_derpibooru_api_key":
             shared.OptionInfo("",
                               "Derpibooru API Key",
+                              gr.Textbox,
+                              {"interactive": True, "type": "password"}
+                              ).needs_reload_ui(),
+        "lpp_tantabus_api_key":
+            shared.OptionInfo("",
+                              "Tantabus API Key",
                               gr.Textbox,
                               {"interactive": True, "type": "password"}
                               ).needs_reload_ui(),

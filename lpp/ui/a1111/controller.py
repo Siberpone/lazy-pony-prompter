@@ -14,6 +14,7 @@ logger = get_logger()
 class A1111_Controller:
     def __init__(self, work_dir: str = ".",
                  derpi_api_key: str = None,
+                 tant_api_key: str = None,
                  logging_level: object = None,
                  messenger: LppMessageService = DefaultLppMessageService()):
         self.__work_dir: str = work_dir
@@ -24,6 +25,8 @@ class A1111_Controller:
         # TODO: need better way of handling this
         if "Derpibooru" in self.__sources.keys():
             self.__sources["Derpibooru"].set_api_key(derpi_api_key)
+        if "Tantabus" in self.__sources.keys():
+            self.__sources["Tantabus"].set_api_key(tant_api_key)
 
         self.__prompt_pool = None
         self.__cache_manager: CacheManager = CacheManager(self.__work_dir)
